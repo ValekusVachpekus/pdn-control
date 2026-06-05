@@ -19,6 +19,9 @@
 | `template.typ` | Шаблон отчёта. Читает данные и рендерит PDF. |
 | `example.json` | Пример входного JSON (Контракт №2) для превью/тестов. |
 | `pyproject.toml` | Зависимости и метаданные проекта (управляется `uv`). |
+| `Dockerfile` | Образ с `typst` и кириллическими шрифтами внутри. |
+| `docker-compose.yml` | Сборка/запуск одной командой. |
+| `tests/` | Тесты на `pytest` (модели, API, рендеринг). |
 | `.gitignore` | Игнорирует артефакты (`*.pdf`, `*.png`, `data.json`) и `.venv/`. |
 
 ## Требования
@@ -67,6 +70,33 @@ typst compile --input data=example.json --format png template.typ "page-{n}.png"
 (`--input data=<path>`), а если он не задан — из `data.json` рядом с шаблоном.
 Путь к JSON разрешается относительно `template.typ` либо как абсолютный (в пределах
 `--root`, см. ниже).
+
+## Docker
+
+Образ самодостаточный: внутри уже лежат `typst` (статический бинарь) и кириллические
+шрифты — на сервере ничего доустанавливать не нужно.
+
+```sh
+# сборка и запуск
+docker build -t pdn-control/pdfreport .
+docker run --rm -p 8000:8000 pdn-control/pdfreport
+# или через compose
+docker compose up --build
+```
+
+После старта — те же `http://<host>:8000/docs` и `POST /render`. У контейнера есть
+`HEALTHCHECK` по `/health`. Версия typst фиксируется аргументом сборки
+`--build-arg TYPST_VERSION=0.14.2`. Сборка multi-arch (amd64/arm64).
+
+## Тесты
+
+Простые тесты на `pytest` в папке `tests/` (валидация моделей, HTTP-эндпоинты,
+компиляция PDF). Тесты, которым нужен `typst`, автоматически пропускаются, если его
+нет в `PATH`.
+
+```sh
+uv run pytest -q
+```
 
 ## Как устроен рендеринг
 

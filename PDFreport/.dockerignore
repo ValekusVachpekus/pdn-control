@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+*.pdf
+*.png
+data.json
+.git/
+.gitignore
+README.md
