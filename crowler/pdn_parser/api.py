@@ -4,7 +4,7 @@
 тот же, что отдаёт CLI. Парсер фактов — без юридических выводов.
 
 Запуск:
-    uvicorn pdn_parser.api:app --host 0.0.0.0 --port 8000
+    uvicorn pdn_parser.api:app --host 0.0.0.0 --port 8010
 
 Переменные окружения:
     MAX_CONCURRENT_SCANS  — сколько проверок выполнять одновременно (по умолчанию 2)

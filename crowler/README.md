@@ -64,7 +64,7 @@ python -m pdn_parser example.ru --max-pages 30 --max-depth 2 -o report.json
 
 ```bash
 cd crowler
-docker compose up --build        # поднимет сервис на http://localhost:8000
+docker compose up --build        # поднимет сервис на http://localhost:8010
 ```
 
 Эндпоинты:
@@ -79,7 +79,7 @@ docker compose up --build        # поднимет сервис на http://loc
 Пример запроса:
 
 ```bash
-curl -X POST http://localhost:8000/scan \
+curl -X POST http://localhost:8010/scan \
   -H "Content-Type: application/json" \
   -d '{"url": "kazan-clinic.ru", "max_pages": 5, "page_timeout_ms": 30000}'
 ```
@@ -101,7 +101,7 @@ JSON, что у CLI (`meta + summary + site_identity + policy_documents + pages`
 Без Docker сервис запускается так же:
 
 ```bash
-uvicorn pdn_parser.api:app --host 0.0.0.0 --port 8000
+uvicorn pdn_parser.api:app --host 0.0.0.0 --port 8010
 ```
 
 ## Как использовать из кода

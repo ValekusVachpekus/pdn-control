@@ -4,7 +4,7 @@ services:
     build: .
     image: pdn-control-crowler:latest
     ports:
-      - "8000:8000"
+      - "8010:8010"
     environment:
       MAX_CONCURRENT_SCANS: "2"   # сколько проверок одновременно (каждая = свой браузер)
       SCAN_TIMEOUT_SEC: "300"     # жёсткий лимит на одну проверку
