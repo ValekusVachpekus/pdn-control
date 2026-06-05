@@ -3,7 +3,7 @@
 Принимает JSON по Контракту №2, валидирует, компилирует PDF через Typst и отдаёт
 файл. Запуск (из папки PDFreport):
 
-    uv run uvicorn service:app --host 0.0.0.0 --port 8000
+    uv run uvicorn service:app --host 0.0.0.0 --port 8020
 
 Эндпоинты:
     GET  /health  — проверка живости + доступность typst.

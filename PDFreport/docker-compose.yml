@@ -3,5 +3,5 @@ services:
     build: .
     image: pdn-control/pdfreport:latest
     ports:
-      - "8000:8000"
+      - "8020:8020"
     restart: unless-stopped

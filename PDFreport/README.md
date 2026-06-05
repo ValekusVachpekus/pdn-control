@@ -36,7 +36,7 @@
 
 ```sh
 uv sync                                              # установить зависимости
-uv run uvicorn service:app --host 0.0.0.0 --port 8000
+uv run uvicorn service:app --host 0.0.0.0 --port 8020
 ```
 
 ### HTTP API
@@ -51,7 +51,7 @@ uv run uvicorn service:app --host 0.0.0.0 --port 8000
 
 ```sh
 # сгенерировать отчёт из примера
-curl -X POST http://localhost:8000/render \
+curl -X POST http://localhost:8020/render \
   -H 'Content-Type: application/json' \
   --data @example.json -o report.pdf
 ```
@@ -79,12 +79,12 @@ typst compile --input data=example.json --format png template.typ "page-{n}.png"
 ```sh
 # сборка и запуск
 docker build -t pdn-control/pdfreport .
-docker run --rm -p 8000:8000 pdn-control/pdfreport
+docker run --rm -p 8020:8020 pdn-control/pdfreport
 # или через compose
 docker compose up --build
 ```
 
-После старта — те же `http://<host>:8000/docs` и `POST /render`. У контейнера есть
+После старта — те же `http://<host>:8020/docs` и `POST /render`. У контейнера есть
 `HEALTHCHECK` по `/health`. Версия typst фиксируется аргументом сборки
 `--build-arg TYPST_VERSION=0.14.2`. Сборка multi-arch (amd64/arm64).
 
