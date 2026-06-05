@@ -104,7 +104,11 @@ class Crawler:
                     timeout_ms=self.page_timeout_ms,
                 )
             finally:
-                await browser.close()
+                # При Ctrl+C драйвер уже мог умереть — глушим вторичную ошибку закрытия.
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
 
         summary = build_summary(pages)
         identity = extract_identity(page_texts)
