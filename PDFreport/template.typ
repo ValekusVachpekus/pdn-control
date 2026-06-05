@@ -34,6 +34,21 @@
 // ---------- утилиты ----------------------------------------------------------
 #let dash(x) = if x == none or x == "" { [—] } else { [#x] }
 
+// группировка по разрядам: 2300000 → "2 300 000" (неразрывные пробелы)
+#let group-thousands(n) = {
+  let rev = str(n).clusters().rev()
+  let parts = ()
+  let chunk = ()
+  for (i, d) in rev.enumerate() {
+    chunk.push(d)
+    if calc.rem(i + 1, 3) == 0 { parts.push(chunk.rev().join()); chunk = () }
+  }
+  if chunk.len() > 0 { parts.push(chunk.rev().join()) }
+  parts.rev().join("\u{00A0}")
+}
+// сумма в рублях с разделителями: 2300000 → "2 300 000 ₽"
+#let fmt-rub(n) = group-thousands(n) + "\u{00A0}₽"
+
 #let badge(body, color: luma(90), fg: white) = box(
   fill: color, inset: (x: 6pt, y: 2.5pt), radius: 3pt,
   text(fill: fg, weight: "bold", size: 7.5pt)[#body],
@@ -163,6 +178,33 @@
   stat-card(st.passed_count, "Пройдено проверок", ok-green),
 )
 
+// суммарный потенциальный штраф: берём из executive_summary.total_fine_rub,
+// иначе складываем штрафы по отдельным нарушениям.
+#let es = data.executive_summary
+#let total-fine = if "total_fine_rub" in es and es.total_fine_rub != none {
+  es.total_fine_rub
+} else {
+  (data.violations.map(v =>
+    if "fine_rub" in v and v.fine_rub != none { v.fine_rub } else { 0 }
+  ) + (0,)).sum()
+}
+#if total-fine > 0 {
+  v(9pt)
+  block(
+    fill: rgb("#fbe9e7"), stroke: 0.5pt + rgb("#b3261e"),
+    radius: 5pt, inset: 11pt, width: 100%,
+  )[
+    #grid(columns: (1fr, auto), align: (left + horizon, right + horizon),
+      [
+        #text(size: 9.5pt, weight: "bold")[Потенциальная сумма штрафов]
+        #v(-2pt)
+        #text(size: 7.5pt, fill: luma(110))[Оценка по КоАП ст. 13.11; не является юридическим расчётом]
+      ],
+      text(size: 18pt, weight: "bold", fill: rgb("#b3261e"))[#fmt-rub(total-fine)],
+    )
+  ]
+}
+
 // ============================================================================
 // ИНФРАСТРУКТУРА И ГЕОЛОКАЦИЯ
 // ============================================================================
@@ -208,6 +250,12 @@
         text(size: 8pt)[#vio.article_152fz],
         text(size: 8pt, fill: luma(110))[Кому адресовано:],
         badge(role-ru.at(vio.target_role, default: vio.target_role), color: luma(95)),
+        ..if "fine_rub" in vio and vio.fine_rub != none {
+          (
+            text(size: 8pt, fill: luma(110))[Возможный штраф:],
+            text(size: 8pt, weight: "bold", fill: rgb("#b3261e"))[до #fmt-rub(vio.fine_rub)],
+          )
+        } else { () },
       )
       #if vio.evidence != none and vio.evidence.len() > 0 {
         v(5pt)

@@ -121,12 +121,15 @@ pdf_bytes = render_pdf(report_dict)   # report_dict — данные по Кон
 - `scoring` — `overall_score` (0–100), `risk_level`
   (`CRITICAL|HIGH|MEDIUM|LOW|SAFE`), `risk_label_ru`, `legal_score`, `technical_score`.
 - `executive_summary` — `verdict` + `stats`
-  (`critical_count`, `warning_count`, `info_count`, `passed_count`).
+  (`critical_count`, `warning_count`, `info_count`, `passed_count`) +
+  `total_fine_rub` (суммарный потенциальный штраф, ₽; необязателен — если не
+  прислан, шаблон складывает `violations[].fine_rub`).
 - `infrastructure_and_geo` — IP/страна/хостинг, `localization_compliant` (bool),
   `localization_note`.
 - `violations[]` — `id`, `severity` (`critical|warning|info`), `article_152fz`,
   `title`, `description`, `evidence[]`, `target_role`
-  (`developer|lawyer|marketer`), `recommendation`.
+  (`developer|lawyer|marketer`), `recommendation`, `fine_rub`
+  (потенциальный штраф за нарушение, ₽; необязателен).
 - `technical_appendix` — `documents_found[]`, `trackers_summary`
   (`total`/`russian`/`foreign`/`list`), `data_collection_points[]`.
 
