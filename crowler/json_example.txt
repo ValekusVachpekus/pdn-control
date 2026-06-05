@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.2",
+
+  "meta": {
+    "scan_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "parser_version": "0.2.0",
+    "requested_url": "klinika-zdorovie.ru",
+    "start_url": "https://klinika-zdorovie.ru/",
+    "base_domain": "klinika-zdorovie.ru",
+    "started_at": "2026-06-05T12:00:00Z",
+    "finished_at": "2026-06-05T12:00:38Z",
+    "duration_ms": 38120,
+    "status": "ok",
+    "config": {
+      "max_pages": 20,
+      "max_depth": 2,
+      "respect_robots": true,
+      "headless": true,
+      "page_timeout_ms": 20000
+    },
+    "robots_respected": true,
+    "pages_requested_limit": 20,
+    "pages_crawled": 3,
+    "errors": []
+  },
+
+  "summary": {
+    "pages_crawled": 3,
+
+    "has_privacy_policy": true,
+    "privacy_policy_urls": ["https://klinika-zdorovie.ru/privacy"],
+    "has_consent_doc": false,
+    "has_cookie_policy": false,
+
+    "has_cookie_banner": true,
+    "cookie_banner_has_reject": false,
+    "tracking_before_consent": true,
+
+    "forms_total": 2,
+    "forms_collecting_pii": 2,
+    "forms_pii_without_consent": 1,
+    "forms_with_prechecked_consent": 1,
+    "pii_kinds_collected": ["email", "name", "phone"],
+
+    "cookies_total": 14,
+    "third_party_cookies": 9,
+
+    "trackers": [
+      { "name": "Яндекс.Метрика", "category": "analytics", "third_party": true, "cross_border": false,
+        "found_on": ["https://klinika-zdorovie.ru/", "https://klinika-zdorovie.ru/contacts"] },
+      { "name": "Google Tag Manager", "category": "tag_manager", "third_party": true, "cross_border": true,
+        "found_on": ["https://klinika-zdorovie.ru/"] },
+      { "name": "JivoSite", "category": "chat_widget", "third_party": true, "cross_border": false,
+        "found_on": ["https://klinika-zdorovie.ru/", "https://klinika-zdorovie.ru/contacts"] }
+    ],
+    "tracker_categories": ["analytics", "tag_manager", "chat_widget"],
+    "has_cross_border_transfer": true,
+    "third_party_domains": ["googletagmanager.com", "jivosite.com", "mc.yandex.ru"],
+    "third_party_domain_count": 3
+  },
+
+  "site_identity": {
+    "legal_name_hints": ["ООО «Клиника Здоровье»"],
+    "inn": ["7701234567"],
+    "ogrn": ["1157746000000"],
+    "contact_emails": ["info@klinika-zdorovie.ru"],
+    "contact_phones": ["+7 (495) 000-00-00"]
+  },
+
+  "policy_documents": [
+    {
+      "url": "https://klinika-zdorovie.ru/privacy",
+      "kind": "privacy_policy",
+      "fetch_status": 200,
+      "word_count": 1240,
+      "truncated": false,
+      "text_path": null,
+      "extracted_text": "Политика обработки персональных данных. 1. Общие положения. Настоящая Политика определяет порядок обработки персональных данных… (полный очищенный от HTML текст документа целиком — это и анализирует LLM)"
+    }
+  ],
+
+  "pages": [
+    {
+      "url": "https://klinika-zdorovie.ru/",
+      "final_url": "https://klinika-zdorovie.ru/",
+      "status": 200,
+      "title": "Клиника Здоровье — запись на приём",
+      "depth": 0,
+      "error": null,
+
+      "forms": [
+        {
+          "action": "/api/lead",
+          "method": "post",
+          "fields": [
+            { "name": "name",  "type": "text",  "required": true,  "pii": "name",  "label": "Ваше имя" },
+            { "name": "phone", "type": "tel",   "required": true,  "pii": "phone", "label": "Телефон" },
+            { "name": "email", "type": "email", "required": false, "pii": "email", "label": "E-mail" },
+            { "name": "symptoms", "type": "textarea", "required": false, "pii": null, "label": "Опишите жалобы и симптомы" }
+          ],
+          "pii_kinds": ["email", "name", "phone"],
+          "has_file_upload": false,
+          "consent_checkboxes": [
+            {
+              "label": "Я согласен на обработку персональных данных",
+              "full_text": "Я согласен на обработку моих персональных данных в соответствии с Политикой конфиденциальности и даю согласие на получение рекламных рассылок.",
+              "pre_checked": true,
+              "links_to_policy": true,
+              "matched_keywords": ["согла", "персональн", "обработк"]
+            }
+          ],
+          "policy_links": ["/privacy"]
+        }
+      ],
+
+      "cookies": [
+        { "name": "_ym_uid", "domain": "klinika-zdorovie.ru", "third_party": false,
+          "http_only": false, "secure": true, "expires": 1781000000.0 },
+        { "name": "_ga", "domain": ".googletagmanager.com", "third_party": true,
+          "http_only": false, "secure": true, "expires": 1781000000.0 }
+      ],
+
+      "cookie_banner": {
+        "present": true,
+        "full_text": "Мы используем файлы cookie, чтобы улучшить работу сайта. Продолжая пользоваться сайтом, вы соглашаетесь с обработкой файлов cookie. Данные могут передаваться сервисам аналитики Яндекс.Метрика и Google.",
+        "text_excerpt": "Мы используем файлы cookie, чтобы улучшить работу сайта…",
+        "has_accept_button": true,
+        "has_reject_button": false,
+        "has_settings": false,
+        "matched_keywords": ["cookie", "файлы cookie"]
+      },
+
+      "trackers": [
+        { "name": "Яндекс.Метрика", "category": "analytics", "third_party": true, "cross_border": false,
+          "evidence": ["network:https://mc.yandex.ru/watch/12345678", "inline"] },
+        { "name": "Google Tag Manager", "category": "tag_manager", "third_party": true, "cross_border": true,
+          "evidence": ["src:https://www.googletagmanager.com/gtm.js?id=GTM-XXXX"] },
+        { "name": "JivoSite", "category": "chat_widget", "third_party": true, "cross_border": false,
+          "evidence": ["src:https://code.jivosite.com/widget/XXXX"] }
+      ],
+
+      "policy_links": [
+        { "url": "https://klinika-zdorovie.ru/privacy", "anchor_text": "Политика конфиденциальности",
+          "kind": "privacy_policy" }
+      ],
+
+      "third_party_domains": ["googletagmanager.com", "jivosite.com", "mc.yandex.ru"]
+    }
+
+    // … ещё 2 страницы (/contacts, /services) в том же формате
+  ]
+}
