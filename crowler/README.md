@@ -58,6 +58,52 @@ python -m pdn_parser example.ru --max-pages 30 --max-depth 2 -o report.json
 Опции: `--max-pages`, `--max-depth`, `--ignore-robots`, `--no-headless`,
 `--timeout`, `--scan-id`, `--policy-text-to-files`, `-o/--output`, `--indent`.
 
+## Запуск как HTTP-микросервис (Docker)
+
+Парсер можно поднять как сервис — бэкенд шлёт URL, получает JSON-конверт в ответ.
+
+```bash
+cd crowler
+docker compose up --build        # поднимет сервис на http://localhost:8000
+```
+
+Эндпоинты:
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| `POST` | `/scan` | Обойти сайт, вернуть JSON-конверт (schema 1.2). |
+| `GET`  | `/health` | Проверка живости + версии. |
+| `GET`  | `/schema` | JSON Schema ответа. |
+| `GET`  | `/docs` | Авто-документация (Swagger UI). |
+
+Пример запроса:
+
+```bash
+curl -X POST http://localhost:8000/scan \
+  -H "Content-Type: application/json" \
+  -d '{"url": "kazan-clinic.ru", "max_pages": 5, "page_timeout_ms": 30000}'
+```
+
+Тело запроса (`/scan`): `url` (обязателен), `max_pages`, `max_depth`,
+`respect_robots`, `page_timeout_ms`, `scan_id` (опционально). В ответ — тот же
+JSON, что у CLI (`meta + summary + site_identity + policy_documents + pages`).
+
+Переменные окружения сервиса:
+- `MAX_CONCURRENT_SCANS` — сколько проверок одновременно (каждая поднимает свой
+  браузер; по умолчанию 2);
+- `SCAN_TIMEOUT_SEC` — жёсткий лимит на одну проверку (по умолчанию 300 c);
+  при превышении сервис вернёт `504`.
+
+> Проверка идёт синхронно и может занимать минуту и больше — бэкенд должен ставить
+> щедрый HTTP-таймаут на запрос к `/scan`. Для масштабирования позже стоит вынести
+> проверки в очередь задач (паттерн scan_id + поллинг статуса заложен в `meta`).
+
+Без Docker сервис запускается так же:
+
+```bash
+uvicorn pdn_parser.api:app --host 0.0.0.0 --port 8000
+```
+
 ## Как использовать из кода
 
 ```python
