@@ -2,3 +2,8 @@
 *.pdf
 *.png
 data.json
+
+# python / uv
+.venv/
+__pycache__/
+*.pyc

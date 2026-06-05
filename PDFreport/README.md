@@ -13,16 +13,47 @@
 
 | Файл | Назначение |
 |------|------------|
+| `service.py` | HTTP-сервис (FastAPI): эндпоинты `/health` и `/render`. |
+| `renderer.py` | `render_pdf(report: dict) -> bytes` — компиляция PDF через Typst. |
+| `models.py` | Pydantic-модели Контракта №2 (валидация входного JSON). |
 | `template.typ` | Шаблон отчёта. Читает данные и рендерит PDF. |
 | `example.json` | Пример входного JSON (Контракт №2) для превью/тестов. |
-| `.gitignore` | Игнорирует сгенерированные `*.pdf`, `*.png`, `data.json`. |
+| `pyproject.toml` | Зависимости и метаданные проекта (управляется `uv`). |
+| `.gitignore` | Игнорирует артефакты (`*.pdf`, `*.png`, `data.json`) и `.venv/`. |
 
 ## Требования
 
-- `typst` ≥ 0.12 (разрабатывалось на 0.14.2).
+- `python` ≥ 3.11 и [`uv`](https://docs.astral.sh/uv/) (управление зависимостями/запуск).
+- `typst` ≥ 0.12 (разрабатывалось на 0.14.2) — бинарь в `PATH`.
 - Шрифты с кириллицей. Шаблон использует стек `Inter → Liberation Sans → DejaVu Sans`;
   если ни один не установлен, Typst подставит свой дефолтный шрифт (тоже с кириллицей).
   Для фирменного вида установите [Inter](https://rsms.me/inter/).
+
+## Запуск сервиса
+
+```sh
+uv sync                                              # установить зависимости
+uv run uvicorn service:app --host 0.0.0.0 --port 8000
+```
+
+### HTTP API
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET`  | `/health` | Живость + доступность typst: `{"status":"ok","typst":true}`. |
+| `POST` | `/render` | Тело — JSON по Контракту №2. Ответ — `application/pdf`. |
+
+Коды ответа `/render`: `200` — PDF; `422` — JSON не прошёл валидацию (детали полей
+в теле ошибки); `500` — ошибка компиляции шаблона; `503` — `typst` недоступен.
+
+```sh
+# сгенерировать отчёт из примера
+curl -X POST http://localhost:8000/render \
+  -H 'Content-Type: application/json' \
+  --data @example.json -o report.pdf
+```
+
+Интерактивная схема и форма для запросов — на `/docs` (Swagger UI).
 
 ## Превью на примере
 
@@ -37,37 +68,19 @@ typst compile --input data=example.json --format png template.typ "page-{n}.png"
 Путь к JSON разрешается относительно `template.typ` либо как абсолютный (в пределах
 `--root`, см. ниже).
 
-## Интеграция в микросервис
+## Как устроен рендеринг
 
-Typst в целях безопасности не читает файлы вне корня проекта (`--root`). Самый
-надёжный паттерн — на каждый запрос создавать рабочую папку, класть туда данные
-и компилировать с `--root` на эту папку:
+Typst в целях безопасности не читает файлы вне корня проекта (`--root`). Поэтому
+`renderer.render_pdf()` на каждый запрос создаёт изолированную рабочую папку, кладёт
+туда `data.json` и копию шаблона и компилирует с `--root` на эту папку — это безопасно
+и корректно работает при параллельных запросах. Функцию можно использовать и напрямую,
+без HTTP:
 
 ```python
-import json, subprocess, tempfile, pathlib, shutil
+from renderer import render_pdf
 
-TEMPLATE = pathlib.Path(__file__).parent / "template.typ"
-
-def render_pdf(report: dict) -> bytes:
-    """report — dict по Контракту №2. Возвращает байты PDF."""
-    with tempfile.TemporaryDirectory() as tmp:
-        job = pathlib.Path(tmp)
-        # данные и шаблон — в одном корне
-        (job / "data.json").write_text(
-            json.dumps(report, ensure_ascii=False), encoding="utf-8"
-        )
-        shutil.copy(TEMPLATE, job / "template.typ")
-        out = job / "report.pdf"
-        subprocess.run(
-            ["typst", "compile", "--root", str(job),
-             str(job / "template.typ"), str(out)],
-            check=True, capture_output=True, text=True,
-        )
-        return out.read_bytes()
+pdf_bytes = render_pdf(report_dict)   # report_dict — данные по Контракту №2
 ```
-
-По умолчанию (без `--input`) шаблон читает `data.json` из своей папки — поэтому в
-примере выше дополнительный `--input` не нужен.
 
 ## Контракт входного JSON
 
