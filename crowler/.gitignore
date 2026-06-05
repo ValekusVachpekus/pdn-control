@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.playwright/
+
+# артефакты прогонов (а не контракт/пример — их коммитим)
+report*.json
+policy_*.txt

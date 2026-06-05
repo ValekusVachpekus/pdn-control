@@ -31,20 +31,6 @@ def test_trackers_list_alias_roundtrip(example):
     ]
 
 
-def test_fine_fields(example):
-    """Суммы штрафов: total_fine_rub и per-violation fine_rub читаются и опциональны."""
-    report = Report.model_validate(example)
-    assert report.executive_summary.total_fine_rub == 2300000
-    assert report.violations[0].fine_rub == 700000
-    # поля необязательны — без них валидация проходит, значения None
-    del example["executive_summary"]["total_fine_rub"]
-    for v in example["violations"]:
-        v.pop("fine_rub", None)
-    report2 = Report.model_validate(example)
-    assert report2.executive_summary.total_fine_rub is None
-    assert report2.violations[0].fine_rub is None
-
-
 def test_extra_fields_allowed(example):
     """Бэкенд может прислать лишние поля — это не должно ломать валидацию."""
     example["document_meta"]["custom_field"] = "value"

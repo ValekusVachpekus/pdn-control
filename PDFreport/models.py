@@ -44,9 +44,6 @@ class Stats(_Base):
 class ExecutiveSummary(_Base):
     verdict: str
     stats: Stats
-    # суммарный потенциальный штраф по КоАП за все нарушения, ₽.
-    # Если не прислан — шаблон считает сумму из violations[].fine_rub.
-    total_fine_rub: int | None = None
 
 
 class InfrastructureAndGeo(_Base):
@@ -67,8 +64,6 @@ class Violation(_Base):
     evidence: list[str] = Field(default_factory=list)
     target_role: str  # developer|lawyer|marketer
     recommendation: str
-    # потенциальный штраф за это нарушение по КоАП ст. 13.11, ₽ (необязательное)
-    fine_rub: int | None = None
 
 
 class DocumentFound(_Base):
