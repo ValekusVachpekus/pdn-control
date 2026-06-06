@@ -6,7 +6,7 @@ import Landing from './Landing.jsx';
 import Scanning from './Scanning.jsx';
 import Report from './Report.jsx';
 import History from './History.jsx';
-import { REPORT } from './data.jsx';
+import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK } from './api.js';
 
 const ACCENTS = {
   '#1F8A5B': { press: '#1A7A50', l: { soft: '#E7F3EC', ink: '#0F5235' }, d: { soft: 'rgba(40,160,105,.18)', ink: '#6FD9A6' } },
@@ -38,11 +38,23 @@ function Toasts({ items }) {
   );
 }
 
+function ReportLoading() {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 14, color: 'var(--muted)', padding: 40 }}>
+      <Icon name="scan" size={28} stroke={1.8} style={{ color: 'var(--accent)' }} />
+      <div style={{ fontSize: 15, fontWeight: 500 }}>Загрузка отчёта…</div>
+    </div>
+  );
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [screen, setScreen] = useState('landing'); // landing | scanning | app
   const [nav, setNav] = useState('report');
-  const [domain, setDomain] = useState('klinika-zdorovie.ru');
+  const [domain, setDomain] = useState('');
+  const [reportId, setReportId] = useState(null);
+  const [report, setReport] = useState(null); // модель UI из api.fetchReport
   const [toasts, setToasts] = useState([]);
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
@@ -65,10 +77,30 @@ function App() {
     setTimeout(() => setToasts(x => x.filter(i => i.id !== id)), 2800);
   };
 
+  // загрузка отчёта по reportId (единый JSON Контракта №2 → модель UI)
+  useEffect(() => {
+    if (!reportId) return;
+    let alive = true;
+    setReport(null);
+    fetchReport(reportId)
+      .then(r => { if (alive) setReport(r); })
+      .catch(() => { if (alive) toast('Не удалось загрузить отчёт', 'info'); });
+    return () => { alive = false; };
+  }, [reportId]);
+
   const startScan = (d, skip) => {
-    setDomain(d);
+    const dom = normalizeDomain(d);
+    setDomain(dom);
+    apiStartScan(dom)
+      .then(({ reportId }) => setReportId(reportId))
+      .catch(() => toast('Не удалось запустить проверку', 'info'));
     if (skip) { setScreen('app'); setNav('report'); return; }
     setScreen('scanning');
+  };
+
+  const downloadPdf = () => {
+    if (IS_MOCK || !reportId) { toast('Отчёт сформирован — PDF загружается', 'ok'); return; }
+    window.open(reportPdfUrl(reportId), '_blank');
   };
 
   const toggleDark = () => setTweak('dark', !t.dark);
@@ -80,8 +112,10 @@ function App() {
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
-          {nav === 'report' && <Report r={REPORT} detail={detail} onToast={toast}
-            onRescan={() => setScreen('scanning')} />}
+          {nav === 'report' && (report
+            ? <Report r={report} detail={detail} onToast={toast}
+                onDownload={downloadPdf} onRescan={() => setScreen('scanning')} />
+            : <ReportLoading />)}
           {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
         </AppShell>
       )}

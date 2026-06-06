@@ -273,6 +273,25 @@
 }
 
 // ============================================================================
+// ПРОЙДЕННЫЕ ПРОВЕРКИ
+// ============================================================================
+#let passed = es.at("passed_checks", default: ())
+#if passed.len() > 0 {
+  sec[Пройдено проверок]
+  for chk in passed {
+    block(width: 100%, inset: 9pt, radius: 4pt, breakable: true,
+      fill: ok-green.lighten(94%), stroke: (left: 3pt + ok-green))[
+      #text(weight: "bold", size: 9.5pt)[✓ #chk.title]
+      #if chk.at("detail", default: none) != none {
+        v(2pt)
+        text(size: 8.5pt, fill: luma(90))[#chk.detail]
+      }
+    ]
+    v(5pt)
+  }
+}
+
+// ============================================================================
 // ТЕХНИЧЕСКОЕ ПРИЛОЖЕНИЕ
 // ============================================================================
 #let ta = data.technical_appendix
@@ -301,7 +320,16 @@
 )
 #if tr.list != none and tr.list.len() > 0 {
   v(5pt)
-  text(size: 9pt)[#tr.list.join(", ")]
+  table(columns: (1.4fr, 1fr, 1fr), stroke: 0.5pt + luma(220), inset: 7pt,
+    text(weight: "bold")[Трекер], text(weight: "bold")[Категория], text(weight: "bold")[Происхождение],
+    ..tr.list.map(t => (
+      dash(t.at("name", default: none)),
+      dash(t.at("kind", default: none)),
+      if t.at("origin", default: none) == "ru" { [Российский] }
+      else if t.at("origin", default: none) == "foreign" { text(fill: rgb("#d93f0b"))[Зарубежный] }
+      else { [—] },
+    )).flatten()
+  )
 }
 
 #v(10pt)
@@ -317,3 +345,30 @@
     )).flatten()
   )
 } else [ #text(size: 9pt, fill: luma(110))[Формы сбора ПДн не обнаружены.] ]
+
+#let ai-verdict = (
+  "good": (ru: "OK", color: ok-green),
+  "partial": (ru: "Частично", color: rgb("#e8a000")),
+  "bad": (ru: "Риск", color: rgb("#b3261e")),
+)
+#let ai = ta.at("ai_analysis", default: ())
+#if ai.len() > 0 {
+  v(10pt)
+  text(weight: "bold", size: 10pt)[AI-анализ текстов]
+  v(3pt)
+  for note in ai {
+    let vd = ai-verdict.at(note.at("verdict", default: ""), default: (ru: "—", color: luma(120)))
+    block(width: 100%, inset: 9pt, radius: 4pt, breakable: true,
+      fill: luma(249), stroke: 0.5pt + luma(222))[
+      #grid(columns: (1fr, auto), align: (left + horizon, right + horizon),
+        text(weight: "bold", size: 9.5pt)[#note.doc],
+        badge(vd.ru, color: vd.color),
+      )
+      #if note.at("text", default: none) != none {
+        v(3pt)
+        text(size: 9pt)[#note.text]
+      }
+    ]
+    v(5pt)
+  }
+}

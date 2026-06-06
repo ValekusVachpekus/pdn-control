@@ -17,6 +17,8 @@ function StatTile({ severity, value, label }) {
   );
 }
 
+const formatFine = n => n.toLocaleString('ru-RU') + ' ₽';
+
 function ViolationCard({ v, detail, open, onToggle }) {
   const s = SEV[v.severity];
   const isSpec = detail === 'specialist';
@@ -64,6 +66,15 @@ function ViolationCard({ v, detail, open, onToggle }) {
               </div>
             </div>
           )}
+          {v.fine_rub && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12,
+              padding: '10px 13px', background: 'var(--crit-soft)', borderRadius: 9 }}>
+              <Icon name="alert" size={15} stroke={2} style={{ color: 'var(--crit-ink)', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: 'var(--crit-ink)' }}>
+                <strong>Потенциальный штраф по КоАП РФ ст. 13.11:</strong> до {formatFine(v.fine_rub)}
+              </span>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 11, background: 'var(--accent-soft)', borderRadius: 11, padding: '13px 15px' }}>
             <Icon name="bolt" size={18} stroke={2} style={{ color: 'var(--accent-ink)', flexShrink: 0, marginTop: 1 }} />
             <div>
@@ -77,7 +88,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
   );
 }
 
-function Report({ r, detail, onToast, onRescan }) {
+function Report({ r, detail, onToast, onRescan, onDownload }) {
   const bands = RISK_BANDS[r.band];
   const isSpec = detail === 'specialist';
   const [sev, setSev] = useState('all');
@@ -123,7 +134,8 @@ function Report({ r, detail, onToast, onRescan }) {
           <button className="btn btn-ghost" style={{ height: 40 }} onClick={onRescan}>
             <Icon name="scan" size={17} /> Повторить
           </button>
-          <button className="btn btn-primary" style={{ height: 40 }} onClick={() => onToast('Отчёт сформирован — PDF загружается', 'ok')}>
+          <button className="btn btn-primary" style={{ height: 40 }}
+            onClick={onDownload || (() => onToast('Отчёт сформирован — PDF загружается', 'ok'))}>
             <Icon name="download" size={17} /> Скачать PDF
           </button>
         </div>
@@ -150,6 +162,24 @@ function Report({ r, detail, onToast, onRescan }) {
               <StatTile severity="info" value={r.counts.info} label="Информационных" />
               <StatTile severity="ok" value={r.counts.passed} label="Пройдено" />
             </div>
+            {r.totalFine > 0 && (
+              <div style={{ marginTop: 10, padding: '12px 15px', background: 'var(--crit-soft)',
+                borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Icon name="alert" size={20} stroke={2} style={{ color: 'var(--crit-ink)', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--crit-ink)', opacity: .75,
+                    textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>
+                    Суммарный потенциальный штраф
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--crit-ink)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
+                    до {formatFine(r.totalFine)}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--crit-ink)', opacity: .65, marginTop: 1 }}>
+                    по КоАП РФ ст. 13.11
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
