@@ -1,0 +1,145 @@
+/* ===== ПДн Контроль — design system ===== */
+@import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* accent — overridable by tweak */
+  --accent: #1F8A5B;
+  --accent-press: #1A7A50;
+  --accent-soft: #E7F3EC;
+  --accent-ink: #0F5235;
+
+  /* risk severity */
+  --crit: #C5453B;
+  --crit-soft: #FBEAE8;
+  --crit-ink: #8F2A22;
+  --warn: #C2790C;
+  --warn-soft: #FAF0DD;
+  --warn-ink: #8A5407;
+  --info: #2A6FDB;
+  --info-soft: #E8F0FC;
+  --info-ink: #1B4C9E;
+  --ok: #1F8A5B;
+  --ok-soft: #E7F3EC;
+  --ok-ink: #0F5235;
+
+  /* light neutrals (cool) */
+  --bg: #F4F6F8;
+  --surface: #FFFFFF;
+  --surface-2: #FBFCFD;
+  --surface-3: #F0F3F5;
+  --ink: #15191E;
+  --ink-2: #404952;
+  --muted: #6B7680;
+  --faint: #97A1AB;
+  --border: #E4E8EC;
+  --border-2: #D5DBE1;
+  --shadow-sm: 0 1px 2px rgba(20,30,40,.05), 0 1px 1px rgba(20,30,40,.04);
+  --shadow-md: 0 4px 16px rgba(20,30,40,.07), 0 1px 3px rgba(20,30,40,.05);
+  --shadow-lg: 0 18px 50px rgba(20,30,40,.13), 0 4px 12px rgba(20,30,40,.06);
+  --ring: rgba(31,138,91,.16);
+}
+
+[data-theme="dark"] {
+  --accent-soft: rgba(40,160,105,.14);
+  --accent-ink: #6FD9A6;
+  --crit-soft: rgba(220,90,80,.14);
+  --crit-ink: #F0A29A;
+  --warn-soft: rgba(200,140,30,.15);
+  --warn-ink: #F0C780;
+  --info-soft: rgba(70,130,230,.15);
+  --info-ink: #9CC0F5;
+  --ok-soft: rgba(40,160,105,.14);
+  --ok-ink: #6FD9A6;
+
+  --bg: #0E1217;
+  --surface: #161B22;
+  --surface-2: #1B212A;
+  --surface-3: #222A34;
+  --ink: #EAEEF2;
+  --ink-2: #C2CAD2;
+  --muted: #8B96A1;
+  --faint: #6A7682;
+  --border: #2A323C;
+  --border-2: #36404B;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 6px 20px rgba(0,0,0,.4);
+  --shadow-lg: 0 22px 60px rgba(0,0,0,.55);
+  --ring: rgba(40,160,105,.28);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Golos Text', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
+}
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: "ss01"; }
+
+#root { min-height: 100vh; }
+
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* scrollbars */
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 8px; border: 3px solid var(--bg); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- primitives ---------- */
+.btn {
+  font-family: inherit; font-weight: 600; font-size: 14px;
+  border-radius: 10px; border: 1px solid transparent;
+  padding: 0 18px; height: 44px; display: inline-flex; align-items: center; gap: 9px;
+  cursor: pointer; transition: all .16s ease; white-space: nowrap; letter-spacing: -.01em;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.btn-primary:hover { background: var(--accent-press); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:active { transform: translateY(0); }
+.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--border-2); }
+.btn-ghost:hover { background: var(--surface-3); border-color: var(--faint); }
+.btn-quiet { background: transparent; color: var(--ink-2); }
+.btn-quiet:hover { background: var(--surface-3); color: var(--ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow-sm);
+}
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  padding: 4px 10px; border-radius: 999px; line-height: 1.4;
+}
+.chip-crit { background: var(--crit-soft); color: var(--crit-ink); }
+.chip-warn { background: var(--warn-soft); color: var(--warn-ink); }
+.chip-info { background: var(--info-soft); color: var(--info-ink); }
+.chip-ok   { background: var(--ok-soft);   color: var(--ok-ink); }
+.chip-neutral { background: var(--surface-3); color: var(--muted); }
+
+.kbd {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+  padding: 2px 7px; border-radius: 6px; background: var(--surface-3);
+  border: 1px solid var(--border); color: var(--ink-2);
+}
+
+.label-eyebrow {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.fade-up { animation: fadeUp .5s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+@keyframes logIn { from { transform: translateY(5px); } to { transform: none; } }
+.log-in { animation: logIn .3s ease both; }
+
+.hairline { height: 1px; background: var(--border); border: 0; margin: 0; }
