@@ -53,8 +53,14 @@ function Scanning({ domain, onDone }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ position: 'relative', width: 46, height: 46, flexShrink: 0 }}>
               <div style={{ position: 'absolute', inset: 0, borderRadius: 12, background: 'var(--accent-soft)' }}></div>
-              {!finished && <div style={{ position: 'absolute', inset: -3, borderRadius: 14, border: '2px solid var(--accent)',
-                borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }}></div>}
+              {!finished && (
+                <svg style={{ position: 'absolute', inset: 0, width: 46, height: 46 }} viewBox="0 0 46 46">
+                  <rect x="1" y="1" width="44" height="44" rx="11" ry="11"
+                    fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"
+                    strokeDasharray="39 118"
+                    style={{ animation: 'tracePerimeter 1.1s linear infinite' }} />
+                </svg>
+              )}
               <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--accent-ink)' }}>
                 <Icon name={finished ? 'checkcircle' : 'scan'} size={22} stroke={2} />
               </div>

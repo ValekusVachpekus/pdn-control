@@ -102,7 +102,7 @@ function RiskGauge({ score, band, size = 260 }) {
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-end', paddingBottom: h * 0.03 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-          <span style={{ fontSize: w * 0.27, fontWeight: 800, lineHeight: 1, letterSpacing: '-.03em', color: bands.color }}>{shown}</span>
+          <span style={{ fontSize: w * 0.19, fontWeight: 800, lineHeight: 1, letterSpacing: '-.03em', color: bands.color }}>{shown}</span>
           <span style={{ fontSize: w * 0.072, fontWeight: 600, color: 'var(--faint)' }}>/ 100</span>
         </div>
         <span className="chip" style={{ marginTop: 8, background: bands.soft, color: bands.ink, fontSize: 12.5, padding: '5px 12px' }}>
@@ -136,23 +136,22 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
   const items = [
     { id: 'report', icon: 'shield', label: 'Отчёт' },
     { id: 'history', icon: 'history', label: 'История' },
-    { id: 'rules', icon: 'rules', label: 'Правила', soon: true },
   ];
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside style={{ width: 248, flexShrink: 0, background: 'var(--surface)', borderRight: '1px solid var(--border)',
+    <div className="app-layout" style={{ display: 'flex', minHeight: '100vh' }}>
+      <aside className="sidebar" style={{ width: 248, flexShrink: 0, background: 'var(--surface)', borderRight: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' }}>
-        <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 11 }}>
+        <div className="sidebar-logo" style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 11 }}>
           <Logo size={30} />
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontWeight: 700, fontSize: 15.5, letterSpacing: '-.01em' }}>ПДн Контроль</div>
             <div style={{ fontSize: 11, color: 'var(--faint)', fontWeight: 500 }}>аудит 152-ФЗ</div>
           </div>
         </div>
-        <button className="btn btn-primary" style={{ margin: '4px 16px 14px', height: 42 }} onClick={onNewScan}>
+        <button className="btn btn-primary sidebar-new-scan" style={{ margin: '4px 16px 14px', height: 42 }} onClick={onNewScan}>
           <Icon name="scan" size={18} /> Новая проверка
         </button>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 12px' }}>
+        <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 12px' }}>
           {items.map(it => (
             <button key={it.id} onClick={() => !it.soon && setNav(it.id)} disabled={it.soon}
               style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 10,
@@ -169,7 +168,7 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: 'auto', padding: '0 16px 16px' }}>
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '0 16px 16px' }}>
           <button
             className="btn btn-ghost"
             onClick={onToggleTheme}

@@ -113,7 +113,7 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       {/* sticky header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in oklch, var(--bg), transparent 8%)',
+      <div className="report-header" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in oklch, var(--bg), transparent 8%)',
         backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '16px 32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <div style={{ minWidth: 0 }}>
@@ -142,10 +142,10 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
       </div>
 
       {/* body */}
-      <div style={{ padding: '26px 32px 60px', maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+      <div className="report-body" style={{ padding: '26px 32px 60px', maxWidth: 1000, width: '100%', margin: '0 auto' }}>
         {/* score overview */}
-        <div className="fade-up card" style={{ padding: 24, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 28, alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid var(--border)', paddingRight: 8 }}>
+        <div className="fade-up card score-overview" style={{ padding: 24, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 28, alignItems: 'center' }}>
+          <div className="score-gauge-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid var(--border)', paddingRight: 8 }}>
             <RiskGauge score={r.score} band={r.band} size={250} />
             <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--muted)', textAlign: 'center' }}>
               Оценка рисков · {isSpec ? `сканер v${r.scannerVersion}` : 'чем ниже — тем выше риск'}
@@ -156,7 +156,7 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
               <Meter label="Юридическая часть" value={r.legalScore} color="var(--info)" />
               <Meter label="Техническая часть" value={r.techScore} color="var(--accent)" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+            <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
               <StatTile severity="critical" value={r.counts.critical} label="Критичных" />
               <StatTile severity="warning" value={r.counts.warning} label="Предупреждений" />
               <StatTile severity="info" value={r.counts.info} label="Информационных" />
@@ -282,13 +282,13 @@ function InfraCard({ r, isSpec }) {
     { icon: 'building', label: 'Хостинг-провайдер', value: r.infra.hosting },
   ];
   return (
-    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: 'var(--crit)', borderLeftWidth: 3 }}>
+    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: 'var(--crit)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
         <Icon name="server" size={18} style={{ color: 'var(--ink-2)' }} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Инфраструктура и геолокация</h2>
         <span className="chip chip-crit" style={{ marginLeft: 'auto' }}><Icon name="xcircle" size={13} stroke={2} /> Нарушение</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${rows.filter(row => isSpec || !row.hideOwner).length},1fr)`, gap: 1, background: 'var(--border)',
+      <div className="infra-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${rows.filter(row => isSpec || !row.hideOwner).length},1fr)`, gap: 1, background: 'var(--border)',
         borderRadius: 11, overflow: 'hidden', border: '1px solid var(--border)' }}>
         {rows.filter(row => isSpec || !row.hideOwner).map((row, i) => (
           <div key={i} style={{ background: 'var(--surface-2)', padding: '13px 15px' }}>
