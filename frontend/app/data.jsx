@@ -1,6 +1,6 @@
 /* ===== ПДн Контроль — mock data ===== */
 
-window.REPORT = {
+export const REPORT = {
   org: 'ООО «Клиника Здоровье»',
   url: 'https://klinika-zdorovie.ru/',
   domain: 'klinika-zdorovie.ru',
@@ -129,7 +129,7 @@ window.REPORT = {
 };
 
 // scan steps for the live crawler
-window.SCAN_STEPS = [
+export const SCAN_STEPS = [
   { t: 0.5,  type: 'dns',    text: 'Резолвинг DNS klinika-zdorovie.ru → 104.21.34.117' },
   { t: 1.2,  type: 'geo',    text: 'Геолокация сервера: США (US), Cloudflare, Inc.', flag: 'crit' },
   { t: 2.0,  type: 'page',   text: 'Загрузка страницы / (главная)' },
@@ -149,7 +149,7 @@ window.SCAN_STEPS = [
   { t: 13.4, type: 'done',   text: 'Сканирование завершено: 2 критичных, 3 предупреждения, 1 инфо' },
 ];
 
-window.HISTORY = [
+export const HISTORY = [
   { id: 'rep_01HZX9K3Q7M2', domain: 'klinika-zdorovie.ru', org: 'ООО «Клиника Здоровье»', date: '5 июня 2026, 15:05', score: 42, band: 'HIGH', critical: 2, warning: 3, current: true },
   { id: 'rep_01HZW7B1A4', domain: 'klinika-zdorovie.ru', org: 'ООО «Клиника Здоровье»', date: '12 мая 2026, 10:22', score: 35, band: 'HIGH', critical: 3, warning: 4 },
   { id: 'rep_01HZT5N9C2', domain: 'mebel-uyut.ru', org: 'ИП Соколова Е. В.', date: '28 апреля 2026, 18:40', score: 71, band: 'MEDIUM', critical: 0, warning: 3 },
@@ -157,7 +157,7 @@ window.HISTORY = [
   { id: 'rep_01HZN0F6G3', domain: 'autoservice-profi.ru', org: 'ООО «Авто-Профи»', date: '2 апреля 2026, 14:55', score: 54, band: 'MEDIUM', critical: 1, warning: 5 },
 ];
 
-window.RISK_BANDS = {
+export const RISK_BANDS = {
   HIGH:   { label: 'Высокий риск',  color: 'var(--crit)', soft: 'var(--crit-soft)', ink: 'var(--crit-ink)' },
   MEDIUM: { label: 'Средний риск',  color: 'var(--warn)', soft: 'var(--warn-soft)', ink: 'var(--warn-ink)' },
   LOW:    { label: 'Низкий риск',   color: 'var(--ok)',   soft: 'var(--ok-soft)',   ink: 'var(--ok-ink)' },

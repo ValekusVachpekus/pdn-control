@@ -1,4 +1,7 @@
 /* ===== ПДн Контроль — Landing ===== */
+import { useState, useRef } from 'react';
+import { Icon, Logo } from './shared.jsx';
+
 function Landing({ onStart }) {
   const [url, setUrl] = useState('');
   const [focus, setFocus] = useState(false);
@@ -106,4 +109,4 @@ function Landing({ onStart }) {
     </div>
   );
 }
-window.Landing = Landing;
+export default Landing;

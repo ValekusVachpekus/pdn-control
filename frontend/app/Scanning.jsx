@@ -1,6 +1,10 @@
 /* ===== ПДн Контроль — Scanning ===== */
+import { useState, useEffect, useRef } from 'react';
+import { Icon } from './shared.jsx';
+import { SCAN_STEPS } from './data.jsx';
+
 function Scanning({ domain, onDone }) {
-  const steps = window.SCAN_STEPS;
+  const steps = SCAN_STEPS;
   const SPEED = 0.62; // time compression
   const total = steps[steps.length - 1].t;
   const [elapsed, setElapsed] = useState(0);
@@ -125,4 +129,4 @@ function Scanning({ domain, onDone }) {
     </div>
   );
 }
-window.Scanning = Scanning;
+export default Scanning;

@@ -1,6 +1,11 @@
 /* ===== ПДн Контроль — Report dashboard ===== */
+import { useState } from 'react';
+import { Icon, Badge, RiskGauge, Meter, SEV, FOR_ICON } from './shared.jsx';
+import { RISK_BANDS } from './data.jsx';
+import ReportAppendix from './ReportAppendix.jsx';
+
 function StatTile({ severity, value, label }) {
-  const s = window.SEV[severity];
+  const s = SEV[severity];
   return (
     <div style={{ padding: '14px 14px', borderRadius: 12, background: s.soft, display: 'flex', alignItems: 'center', gap: 11 }}>
       <Icon name={s.icon} size={22} stroke={2} style={{ color: s.color }} />
@@ -13,7 +18,7 @@ function StatTile({ severity, value, label }) {
 }
 
 function ViolationCard({ v, detail, open, onToggle }) {
-  const s = window.SEV[v.severity];
+  const s = SEV[v.severity];
   const isSpec = detail === 'specialist';
   return (
     <div className="card" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
@@ -32,7 +37,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           <span className="chip chip-neutral" style={{ fontSize: 11.5 }}>
-            <Icon name={window.FOR_ICON[v.for]} size={13} /> {v.for}
+            <Icon name={FOR_ICON[v.for]} size={13} /> {v.for}
           </span>
           {isSpec && <span className="kbd">{v.articleShort}</span>}
           <Icon name="chevdown" size={18} style={{ color: 'var(--faint)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
@@ -43,7 +48,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
           <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{v.desc}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             <span className="chip chip-neutral"><Icon name="doc" size={13} /> {v.article}</span>
-            <span className="chip chip-neutral"><Icon name={window.FOR_ICON[v.for]} size={13} /> Адресовано: {v.for}</span>
+            <span className="chip chip-neutral"><Icon name={FOR_ICON[v.for]} size={13} /> Адресовано: {v.for}</span>
           </div>
           {isSpec && (
             <div style={{ marginBottom: 14 }}>
@@ -73,7 +78,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
 }
 
 function Report({ r, detail, onToast, onRescan }) {
-  const bands = window.RISK_BANDS[r.band];
+  const bands = RISK_BANDS[r.band];
   const isSpec = detail === 'specialist';
   const [sev, setSev] = useState('all');
   const [role, setRole] = useState('all');
@@ -273,4 +278,4 @@ function InfraCard({ r, isSpec }) {
   );
 }
 
-window.Report = Report;
+export default Report;

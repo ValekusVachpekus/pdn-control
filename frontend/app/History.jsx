@@ -1,6 +1,10 @@
 /* ===== ПДн Контроль — History ===== */
+import { useState } from 'react';
+import { Icon, Badge } from './shared.jsx';
+import { HISTORY, RISK_BANDS } from './data.jsx';
+
 function ScorePill({ score, band }) {
-  const b = window.RISK_BANDS[band];
+  const b = RISK_BANDS[band];
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span style={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
@@ -17,7 +21,7 @@ function ScorePill({ score, band }) {
 }
 
 function History({ onOpen, onToast }) {
-  const items = window.HISTORY;
+  const items = HISTORY;
   const [q, setQ] = useState('');
   const list = items.filter(i => i.domain.includes(q.toLowerCase()) || i.org.toLowerCase().includes(q.toLowerCase()));
 
@@ -79,4 +83,4 @@ function History({ onOpen, onToast }) {
     </div>
   );
 }
-window.History = History;
+export default History;

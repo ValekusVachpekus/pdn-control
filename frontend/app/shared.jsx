@@ -1,5 +1,6 @@
 /* ===== ПДн Контроль — shared UI ===== */
-const { useState, useEffect, useRef } = React;
+import { useState, useEffect, useRef } from 'react';
+import { RISK_BANDS } from './data.jsx';
 
 /* ---------- icon set (simple line icons) ---------- */
 const ICON_PATHS = {
@@ -67,7 +68,7 @@ function Badge({ severity, withLabel = true, size = 13 }) {
 
 /* ---------- Risk gauge (semicircle arc) ---------- */
 function RiskGauge({ score, band, size = 260 }) {
-  const bands = window.RISK_BANDS[band];
+  const bands = RISK_BANDS[band];
   const [shown, setShown] = useState(0);
   useEffect(() => {
     let raf, start;
@@ -193,4 +194,4 @@ function Logo({ size = 32 }) {
   );
 }
 
-Object.assign(window, { Icon, Badge, RiskGauge, Meter, AppShell, Logo, SEV, FOR_ICON });
+export { Icon, Badge, RiskGauge, Meter, AppShell, Logo, SEV, FOR_ICON };

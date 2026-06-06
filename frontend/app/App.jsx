@@ -1,4 +1,13 @@
 /* ===== ПДн Контроль — App orchestrator ===== */
+import { useState, useEffect } from 'react';
+import { Icon, AppShell } from './shared.jsx';
+import { useTweaks, TweaksPanel, TweakSection, TweakToggle, TweakColor, TweakRadio } from './tweaks-panel.jsx';
+import Landing from './Landing.jsx';
+import Scanning from './Scanning.jsx';
+import Report from './Report.jsx';
+import History from './History.jsx';
+import { REPORT } from './data.jsx';
+
 const ACCENTS = {
   '#1F8A5B': { press: '#1A7A50', l: { soft: '#E7F3EC', ink: '#0F5235' }, d: { soft: 'rgba(40,160,105,.18)', ink: '#6FD9A6' } },
   '#2A6FDB': { press: '#2360C2', l: { soft: '#E8F0FC', ink: '#1B4C9E' }, d: { soft: 'rgba(70,130,230,.20)', ink: '#9CC0F5' } },
@@ -63,13 +72,13 @@ function App() {
   };
 
   return (
-    <React.Fragment>
+    <>
       {screen === 'landing' && <Landing onStart={startScan} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           onNewScan={() => setScreen('landing')}>
-          {nav === 'report' && <Report r={window.REPORT} detail={detail} onToast={toast}
+          {nav === 'report' && <Report r={REPORT} detail={detail} onToast={toast}
             onRescan={() => setScreen('scanning')} />}
           {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
         </AppShell>
@@ -78,6 +87,7 @@ function App() {
       <Toasts items={toasts} />
 
       <TweaksPanel>
+
         <TweakSection label="Тема" />
         <TweakToggle label="Тёмная тема" value={t.dark} onChange={v => setTweak('dark', v)} />
         <TweakColor label="Акцент" value={t.accent}
@@ -90,8 +100,8 @@ function App() {
           «Владелец» — кратко и без жаргона. «Специалист» — статьи, селекторы, IP, AI-анализ текстов.
         </div>
       </TweaksPanel>
-    </React.Fragment>
+    </>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+export default App;

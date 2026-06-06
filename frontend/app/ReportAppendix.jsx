@@ -1,4 +1,6 @@
 /* ===== ПДн Контроль — Report technical appendix ===== */
+import { Icon } from './shared.jsx';
+
 function ReportAppendix({ r, isSpec, onToast }) {
   const t = r.trackers;
   const aiVerdict = { partial: { c: 'chip-warn', l: 'Частично' }, bad: { c: 'chip-crit', l: 'Риск' }, good: { c: 'chip-ok', l: 'OK' } };
@@ -109,4 +111,4 @@ function ReportAppendix({ r, isSpec, onToast }) {
   );
 }
 
-window.ReportAppendix = ReportAppendix;
+export default ReportAppendix;
