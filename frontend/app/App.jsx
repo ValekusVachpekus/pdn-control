@@ -71,17 +71,33 @@ function App() {
     setScreen('scanning');
   };
 
+  const toggleDark = () => setTweak('dark', !t.dark);
+
   return (
     <>
       {screen === 'landing' && <Landing onStart={startScan} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
-          onNewScan={() => setScreen('landing')}>
+          onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && <Report r={REPORT} detail={detail} onToast={toast}
             onRescan={() => setScreen('scanning')} />}
           {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
         </AppShell>
+      )}
+
+      {screen !== 'app' && (
+        <button onClick={toggleDark}
+          title={t.dark ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
+          style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000,
+            width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border-2)',
+            background: 'var(--surface)', color: 'var(--ink-2)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: 'var(--shadow-sm)', transition: 'all .16s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; }}>
+          <Icon name={t.dark ? 'sun' : 'moon'} size={18} stroke={1.8} />
+        </button>
       )}
 
       <Toasts items={toasts} />

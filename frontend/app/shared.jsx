@@ -34,6 +34,7 @@ const ICON_PATHS = {
   bolt: 'M13 3L5 13h6l-1 8 8-10h-6l1-8z',
   filter: 'M4 5h16l-6 7v6l-4 2v-8L4 5z',
   copy: 'M9 9h11v11H9z M5 15H4V4h11v1',
+  moon: 'M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z',
 };
 
 function Icon({ name, size = 20, stroke = 1.7, className = '', style = {} }) {
@@ -131,7 +132,7 @@ function Meter({ label, value, color }) {
 }
 
 /* ---------- App shell (sidebar + topbar) ---------- */
-function AppShell({ nav, setNav, children, onNewScan, detail, theme }) {
+function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleTheme }) {
   const items = [
     { id: 'report', icon: 'shield', label: 'Отчёт' },
     { id: 'history', icon: 'history', label: 'История' },
@@ -168,7 +169,16 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme }) {
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: 'auto', padding: 16 }}>
+        <div style={{ marginTop: 'auto', padding: '0 16px 16px' }}>
+          <button
+            className="btn btn-ghost"
+            onClick={onToggleTheme}
+            title={theme ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
+            style={{ width: '100%', justifyContent: 'flex-start', height: 40, marginBottom: 10,
+              gap: 9, color: 'var(--ink-2)', fontSize: 13.5 }}>
+            <Icon name={theme ? 'sun' : 'moon'} size={17} stroke={1.8} />
+            {theme ? 'Светлая тема' : 'Тёмная тема'}
+          </button>
           <div className="card" style={{ padding: '12px 13px', background: 'var(--surface-2)', borderRadius: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <Icon name="info" size={17} style={{ color: 'var(--faint)', marginTop: 1 }} />
             <p style={{ margin: 0, fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.45 }}>
