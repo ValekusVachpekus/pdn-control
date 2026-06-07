@@ -21,14 +21,20 @@ def test_missing_required_field(example):
 
 
 def test_trackers_list_alias_roundtrip(example):
-    """Ключ контракта `list` сохраняется при сериализации (внутри он `names`)."""
+    """Ключ контракта `list` сохраняется при сериализации (внутри он `items`).
+
+    Элементы списка — объекты-трекеры {name, host, origin, kind}.
+    """
     report = Report.model_validate(example)
     dumped = report.model_dump(mode="json", by_alias=True)
-    assert dumped["technical_appendix"]["trackers_summary"]["list"] == [
+    tracker_list = dumped["technical_appendix"]["trackers_summary"]["list"]
+    assert [t["name"] for t in tracker_list] == [
         "Яндекс.Метрика",
         "Google Tag Manager",
         "JivoSite",
     ]
+    assert tracker_list[0]["origin"] == "ru"
+    assert tracker_list[1]["origin"] == "foreign"
 
 
 def test_fine_fields(example):

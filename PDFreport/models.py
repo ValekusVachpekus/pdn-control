@@ -41,12 +41,21 @@ class Stats(_Base):
     passed_count: int = 0
 
 
+class PassedCheck(_Base):
+    title: str
+    detail: str | None = None
+
+
 class ExecutiveSummary(_Base):
     verdict: str
+    # упрощённый вердикт без юр-жаргона для режима «Владелец» во фронте (необязателен)
+    verdict_plain: str | None = None
     stats: Stats
     # суммарный потенциальный штраф по КоАП за все нарушения, ₽.
     # Если не прислан — шаблон считает сумму из violations[].fine_rub.
     total_fine_rub: int | None = None
+    # пройденные проверки (что на сайте сделано правильно)
+    passed_checks: list[PassedCheck] = Field(default_factory=list)
 
 
 class InfrastructureAndGeo(_Base):
@@ -77,12 +86,20 @@ class DocumentFound(_Base):
     status: str | None = None
 
 
+class TrackerItem(_Base):
+    name: str
+    host: str | None = None
+    origin: str | None = None  # "ru" | "foreign"
+    kind: str | None = None  # категория: «Аналитика», «Чат-виджет», …
+
+
 class TrackersSummary(_Base):
     total: int = 0
     russian: int = 0
     foreign: int = 0
-    # ключ контракта — "list"; в Python переименовано, чтобы не затенять builtin
-    names: list[str] = Field(default_factory=list, alias="list")
+    # ключ контракта — "list"; в Python переименовано, чтобы не затенять builtin.
+    # Элементы — объекты с деталями трекера (имя/хост/происхождение/категория).
+    items: list[TrackerItem] = Field(default_factory=list, alias="list")
 
 
 class DataCollectionPoint(_Base):
@@ -91,10 +108,18 @@ class DataCollectionPoint(_Base):
     fields: list[str] = Field(default_factory=list)
 
 
+class AiNote(_Base):
+    doc: str
+    verdict: str | None = None  # "good" | "partial" | "bad"
+    text: str | None = None
+
+
 class TechnicalAppendix(_Base):
     documents_found: list[DocumentFound] = Field(default_factory=list)
     trackers_summary: TrackersSummary = Field(default_factory=TrackersSummary)
     data_collection_points: list[DataCollectionPoint] = Field(default_factory=list)
+    # AI-анализ текстов документов (политика, cookie-уведомление, согласие)
+    ai_analysis: list[AiNote] = Field(default_factory=list)
 
 
 class Report(_Base):

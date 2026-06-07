@@ -114,16 +114,21 @@ pdf_bytes = render_pdf(report_dict)   # report_dict — данные по Кон
 
 ## Контракт входного JSON
 
-Полное описание полей — в `CLAUDE.md` проекта (раздел «Контракт №2»). Кратко:
+**Единый JSON:** тот же `example.json` потребляет и фронтенд (его копия —
+`frontend/app/example-report.json`, маппинг в модель UI — `frontend/app/mapReport.js`).
+При правке контракта синхронизировать обе копии. Полное описание полей — в `CLAUDE.md`
+проекта (раздел «Контракт №2»). Кратко:
 
 - `document_meta` — метаданные отчёта (`report_id`, `generated_at`, `target_url`,
   `domain`, `organization_name`, `scan_duration_sec`, `pages_scanned`, `scanner_version`).
 - `scoring` — `overall_score` (0–100), `risk_level`
   (`CRITICAL|HIGH|MEDIUM|LOW|SAFE`), `risk_label_ru`, `legal_score`, `technical_score`.
-- `executive_summary` — `verdict` + `stats`
+- `executive_summary` — `verdict` + `verdict_plain` (упрощённый вердикт для фронта;
+  необязателен) + `stats`
   (`critical_count`, `warning_count`, `info_count`, `passed_count`) +
   `total_fine_rub` (суммарный потенциальный штраф, ₽; необязателен — если не
-  прислан, шаблон складывает `violations[].fine_rub`).
+  прислан, шаблон складывает `violations[].fine_rub`) +
+  `passed_checks[]` (`title`, `detail` — пройденные проверки).
 - `infrastructure_and_geo` — IP/страна/хостинг, `localization_compliant` (bool),
   `localization_note`.
 - `violations[]` — `id`, `severity` (`critical|warning|info`), `article_152fz`,
@@ -131,7 +136,10 @@ pdf_bytes = render_pdf(report_dict)   # report_dict — данные по Кон
   (`developer|lawyer|marketer`), `recommendation`, `fine_rub`
   (потенциальный штраф за нарушение, ₽; необязателен).
 - `technical_appendix` — `documents_found[]`, `trackers_summary`
-  (`total`/`russian`/`foreign`/`list`), `data_collection_points[]`.
+  (`total`/`russian`/`foreign`/`list`), `data_collection_points[]`,
+  `ai_analysis[]` (`doc`, `verdict` = `good|partial|bad`, `text`).
+  - **`trackers_summary.list[]` — объекты** `{ name, host, origin (ru|foreign), kind }`,
+    не строки.
 
 ### Устойчивость шаблона
 
