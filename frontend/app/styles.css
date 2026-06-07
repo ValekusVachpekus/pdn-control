@@ -102,6 +102,8 @@ body {
 .btn-ghost:hover { background: var(--surface-3); border-color: var(--faint); }
 .btn-quiet { background: transparent; color: var(--ink-2); }
 .btn-quiet:hover { background: var(--surface-3); color: var(--ink); }
+.btn-pro { background: var(--ok-soft); color: var(--ok-ink); border-color: transparent; }
+.btn-pro:hover { background: var(--ok-soft); filter: brightness(.97); }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
 
 .card {
