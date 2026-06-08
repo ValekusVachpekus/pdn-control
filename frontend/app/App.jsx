@@ -8,6 +8,8 @@ import Report from './Report.jsx';
 import History from './History.jsx';
 import Auth from './Auth.jsx';
 import Pricing from './Pricing.jsx';
+import Policy from './Policy.jsx';
+import CookieBanner from './CookieBanner.jsx';
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK } from './api.js';
 
 const ACCENTS = {
@@ -52,7 +54,8 @@ function ReportLoading() {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState('landing'); // landing | scanning | app
+  const [screen, setScreen] = useState('landing'); // landing | scanning | app | policy
+  const [prevScreen, setPrevScreen] = useState('landing'); // куда вернуться с экрана политики
   const [nav, setNav] = useState('report');
   const [domain, setDomain] = useState('');
   const [reportId, setReportId] = useState(null);
@@ -60,8 +63,7 @@ function App() {
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
   const [user, setUser] = useState(null);   // текущий пользователь (после входа)
-  const [plan, setPlan] = useState('free'); // тариф: free | pro | team (с бэкенда — user.plan)
-  const isPro = plan === 'pro' || plan === 'team';
+  const [paid, setPaid] = useState(false);  // оплачен ли ТЕКУЩИЙ отчёт (разовая оплата, per-report)
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
   // apply theme + accent
@@ -97,6 +99,7 @@ function App() {
   const startScan = (d, skip) => {
     const dom = normalizeDomain(d);
     setDomain(dom);
+    setPaid(false); // новый отчёт — снова бесплатный тизер до оплаты
     apiStartScan(dom)
       .then(({ reportId }) => setReportId(reportId))
       .catch(() => toast('Не удалось запустить проверку', 'info'));
@@ -111,17 +114,26 @@ function App() {
 
   const toggleDark = () => setTweak('dark', !t.dark);
 
+  // открыть экран политики обработки ПДн (запоминаем, откуда пришли, и закрываем модалку)
+  const openPolicy = () => {
+    setPrevScreen(s => (screen === 'policy' ? s : screen));
+    setScreen('policy');
+    setModal(null);
+  };
+
   return (
     <>
-      {screen === 'landing' && <Landing onStart={startScan} user={user} isPro={isPro}
-        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} />}
+      {screen === 'landing' && <Landing onStart={startScan} user={user}
+        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
+      {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && (report
-            ? <Report r={report} detail={detail} onToast={toast}
-                onDownload={downloadPdf} onRescan={() => setScreen('scanning')} />
+            ? <Report r={report} detail={detail} onToast={toast} paid={paid}
+                onUnlock={() => setModal('pricing')}
+                onDownload={downloadPdf} onRescan={() => { setPaid(false); setScreen('scanning'); }} />
             : <ReportLoading />)}
           {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
         </AppShell>
@@ -142,12 +154,13 @@ function App() {
       )}
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
-        onAuth={u => { setUser(u); if (u && u.plan) setPlan(u.plan); }} onToast={toast} />
+        onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
       <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
-        currentPlan={plan} onSubscribed={setPlan} user={user}
+        paid={paid} onPaid={() => setPaid(true)} user={user}
         onRequireAuth={() => setModal('auth')} />
 
       <Toasts items={toasts} />
+      <CookieBanner onOpenPolicy={openPolicy} />
 
       <TweaksPanel>
 
