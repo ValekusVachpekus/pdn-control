@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { Icon, Logo } from './shared.jsx';
 import { isValidDomain, normalizeDomain } from './api.js';
 
-function Landing({ onStart, onLogin, onUpgrade, user }) {
+function Landing({ onStart, onLogin, onUpgrade, user, onOpenPolicy }) {
   const [url, setUrl] = useState('');
   const [focus, setFocus] = useState(false);
   const [err, setErr] = useState(false);
@@ -116,6 +116,10 @@ function Landing({ onStart, onLogin, onUpgrade, user }) {
           ПДн Контроль выполняет предварительный технический аудит и помогает снизить типовые риски.
           Сервис не гарантирует полное соответствие 152-ФЗ и не заменяет консультацию юриста.
         </p>
+        <button className="btn btn-quiet" onClick={onOpenPolicy}
+          style={{ marginTop: 14, height: 30, padding: '0 8px', fontSize: 13, color: 'var(--accent-ink)' }}>
+          Политика обработки персональных данных
+        </button>
       </div>
     </div>
   );

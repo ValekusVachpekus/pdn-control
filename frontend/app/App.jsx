@@ -8,6 +8,8 @@ import Report from './Report.jsx';
 import History from './History.jsx';
 import Auth from './Auth.jsx';
 import Pricing from './Pricing.jsx';
+import Policy from './Policy.jsx';
+import CookieBanner from './CookieBanner.jsx';
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK } from './api.js';
 
 const ACCENTS = {
@@ -52,7 +54,8 @@ function ReportLoading() {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState('landing'); // landing | scanning | app
+  const [screen, setScreen] = useState('landing'); // landing | scanning | app | policy
+  const [prevScreen, setPrevScreen] = useState('landing'); // куда вернуться с экрана политики
   const [nav, setNav] = useState('report');
   const [domain, setDomain] = useState('');
   const [reportId, setReportId] = useState(null);
@@ -111,11 +114,19 @@ function App() {
 
   const toggleDark = () => setTweak('dark', !t.dark);
 
+  // открыть экран политики обработки ПДн (запоминаем, откуда пришли, и закрываем модалку)
+  const openPolicy = () => {
+    setPrevScreen(s => (screen === 'policy' ? s : screen));
+    setScreen('policy');
+    setModal(null);
+  };
+
   return (
     <>
       {screen === 'landing' && <Landing onStart={startScan} user={user}
-        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} />}
+        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
+      {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
@@ -143,12 +154,13 @@ function App() {
       )}
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
-        onAuth={setUser} onToast={toast} />
+        onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
       <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
         paid={paid} onPaid={() => setPaid(true)} user={user}
         onRequireAuth={() => setModal('auth')} />
 
       <Toasts items={toasts} />
+      <CookieBanner onOpenPolicy={openPolicy} />
 
       <TweaksPanel>
 

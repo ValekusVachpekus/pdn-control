@@ -40,26 +40,38 @@ function Field({ icon, type = 'text', value, onChange, placeholder, autoComplete
   );
 }
 
-function Auth({ open, onClose, onAuth, onToast }) {
+function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
   const [mode, setMode] = useState('login'); // login | register
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [consent, setConsent] = useState(false); // согласие на обработку ПДн — снято по умолчанию (ст. 9)
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   const isRegister = mode === 'register';
 
+  // Auth остаётся смонтированным между открытиями — чистим состояние при закрытии,
+  // чтобы галочка согласия и ошибки не «протекали» в следующую сессию (ст. 9: по умолчанию снято).
+  const handleClose = () => {
+    setErr('');
+    setConsent(false);
+    setPassword('');
+    onClose();
+  };
+
   const submit = async () => {
     setErr('');
     if (!EMAIL_RE.test(email.trim())) { setErr('Введите корректный e-mail'); return; }
     if (password.length < 8) { setErr('Пароль — минимум 8 символов'); return; }
+    if (isRegister && !consent) { setErr('Подтвердите согласие на обработку персональных данных'); return; }
     setBusy(true);
     try {
-      const fn = isRegister ? register : login;
-      const { user } = await fn({ email: email.trim(), password });
+      const { user } = isRegister
+        ? await register({ email: email.trim(), password, consent })
+        : await login({ email: email.trim(), password });
       onToast && onToast(isRegister ? 'Аккаунт создан' : 'Вы вошли', 'ok');
       onAuth && onAuth(user);
-      onClose();
+      handleClose();
     } catch {
       setErr(isRegister ? 'Не удалось зарегистрироваться' : 'Неверный e-mail или пароль');
     } finally {
@@ -69,12 +81,13 @@ function Auth({ open, onClose, onAuth, onToast }) {
 
   const oauth = async (provider) => {
     setErr('');
+    if (isRegister && !consent) { setErr('Подтвердите согласие на обработку персональных данных'); return; }
     setBusy(true);
     try {
-      const { user } = await loginWithProvider(provider);
+      const { user } = await loginWithProvider(provider, isRegister ? consent : undefined);
       onToast && onToast('Вы вошли', 'ok');
       onAuth && onAuth(user);
-      onClose();
+      handleClose();
     } catch {
       setErr('Не удалось войти через провайдера');
     } finally {
@@ -83,7 +96,7 @@ function Auth({ open, onClose, onAuth, onToast }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} width={420}>
+    <Modal open={open} onClose={handleClose} width={420}>
       <div style={{ padding: '32px 30px 28px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 22 }}>
           <Logo size={40} />
@@ -110,6 +123,22 @@ function Auth({ open, onClose, onAuth, onToast }) {
             </div>
           )}
 
+          {isRegister && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 4,
+              fontSize: 13, color: 'var(--muted)', lineHeight: 1.45, cursor: 'pointer' }}>
+              <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
+                style={{ width: 17, height: 17, marginTop: 1, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+              <span>
+                Я даю согласие на обработку моих персональных данных и принимаю{' '}
+                <button type="button" className="btn btn-quiet" onClick={onOpenPolicy}
+                  style={{ height: 'auto', padding: 0, fontSize: 13, color: 'var(--accent-ink)',
+                    textDecoration: 'underline', display: 'inline' }}>
+                  политику обработки ПДн
+                </button>.
+              </span>
+            </label>
+          )}
+
           <button className="btn btn-primary" disabled={busy}
             style={{ height: 46, marginTop: 4, justifyContent: 'center' }} onClick={submit}>
             {busy ? 'Подождите…' : isRegister ? 'Зарегистрироваться' : 'Войти'}
@@ -118,13 +147,13 @@ function Auth({ open, onClose, onAuth, onToast }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '6px 0 2px' }}>
             <div className="hairline" style={{ flex: 1 }} />
-            <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>или войти через</span>
+            <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>{isRegister ? 'или зарегистрироваться через' : 'или войти через'}</span>
             <div className="hairline" style={{ flex: 1 }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <ProviderButton mark="Я" color="#FC3F1D" label="Войти через Яндекс"
+            <ProviderButton mark="Я" color="#FC3F1D" label={`${isRegister ? 'Регистрация' : 'Войти'} через Яндекс`}
               disabled={busy} onClick={() => oauth('yandex')} />
-            <ProviderButton mark="VK" color="#0077FF" label="Войти через ВКонтакте"
+            <ProviderButton mark="VK" color="#0077FF" label={`${isRegister ? 'Регистрация' : 'Войти'} через ВКонтакте`}
               disabled={busy} onClick={() => oauth('vk')} />
           </div>
         </div>
@@ -132,7 +161,7 @@ function Auth({ open, onClose, onAuth, onToast }) {
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 13.5, color: 'var(--muted)' }}>
           {isRegister ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
           <button className="btn btn-quiet" style={{ height: 26, padding: '0 6px', fontSize: 13.5, color: 'var(--accent-ink)' }}
-            onClick={() => { setMode(isRegister ? 'login' : 'register'); setErr(''); }}>
+            onClick={() => { setMode(isRegister ? 'login' : 'register'); setErr(''); setConsent(false); }}>
             {isRegister ? 'Войти' : 'Создать'}
           </button>
         </div>

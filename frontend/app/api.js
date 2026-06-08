@@ -65,9 +65,14 @@ export function reportPdfUrl(reportId) {
 /* ===== Auth (шаблон — подключить к бэкенду) =====
  * Предполагаемые эндпоинты:
  *   POST /api/auth/login    { email, password } -> { token, user }
- *   POST /api/auth/register { email, password } -> { token, user }
+ *   POST /api/auth/register { email, password, consent } -> { token, user }
  * Токен хранить в httpOnly-cookie (выставляет бэкенд) либо здесь в памяти —
- * НЕ кладите JWT в localStorage. В MOCK возвращаем фиктивного пользователя. */
+ * НЕ кладите JWT в localStorage. В MOCK возвращаем фиктивного пользователя.
+ *
+ * 152-ФЗ (ст. 9): при регистрации передаётся флаг `consent` — бэкенд ОБЯЗАН
+ * зафиксировать факт согласия на обработку ПДн (timestamp + версия политики),
+ * чтобы суметь его доказать. Фронтовая галочка — лишь UX, источник истины —
+ * запись на сервере. При отсутствии consent сервер должен ответить 4xx. */
 export async function login({ email, password }) {
   if (IS_MOCK) return { token: 'mock', user: { email } };
   const res = await http('/api/auth/login', {
@@ -78,26 +83,32 @@ export async function login({ email, password }) {
   return res.json();
 }
 
-export async function register({ email, password }) {
+export async function register({ email, password, consent }) {
   if (IS_MOCK) return { token: 'mock', user: { email } };
   const res = await http('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, consent }),
   });
   return res.json();
 }
 
-/* Вход через внешнего провайдера (Яндекс / ВКонтакте) — ТОЛЬКО UI/мок.
+/* Вход / регистрация через внешнего провайдера (Яндекс / ВКонтакте) — ТОЛЬКО UI/мок.
  * В проде это OAuth: фронт открывает /api/auth/oauth/:provider (redirect на
  * провайдера), бэкенд обрабатывает callback, ставит сессию (httpOnly-cookie)
- * и возвращает user. Реальный обмен токенами и проверка — на бэкенде. */
-export async function loginWithProvider(provider) {
+ * и возвращает user. Реальный обмен токенами и проверка — на бэкенде.
+ * `consent` передаётся при регистрации через провайдера — бэкенд должен
+ * зафиксировать согласие так же, как при обычной регистрации (ст. 9). */
+export async function loginWithProvider(provider, consent) {
   if (IS_MOCK) {
     const email = provider === 'yandex' ? 'user@yandex.ru' : 'user@vk.com';
     return { token: 'mock', user: { email, provider } };
   }
-  const res = await http(`/api/auth/oauth/${provider}`, { method: 'POST' });
+  const res = await http(`/api/auth/oauth/${provider}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ consent }),
+  });
   return res.json();
 }
 
