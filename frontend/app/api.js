@@ -65,11 +65,16 @@ export function reportPdfUrl(reportId) {
 /* ===== Auth (шаблон — подключить к бэкенду) =====
  * Предполагаемые эндпоинты:
  *   POST /api/auth/login    { email, password } -> { token, user }
- *   POST /api/auth/register { email, password } -> { token, user }
+ *   POST /api/auth/register { email, password, consent } -> { token, user }
  * Токен хранить в httpOnly-cookie (выставляет бэкенд) либо здесь в памяти —
- * НЕ кладите JWT в localStorage. В MOCK возвращаем фиктивного пользователя. */
+ * НЕ кладите JWT в localStorage. В MOCK возвращаем фиктивного пользователя.
+ *
+ * 152-ФЗ (ст. 9): при регистрации передаётся флаг `consent` — бэкенд ОБЯЗАН
+ * зафиксировать факт согласия на обработку ПДн (timestamp + версия политики),
+ * чтобы суметь его доказать. Фронтовая галочка — лишь UX, источник истины —
+ * запись на сервере. При отсутствии consent сервер должен ответить 4xx. */
 export async function login({ email, password }) {
-  if (IS_MOCK) return { token: 'mock', user: { email, plan: 'free' } };
+  if (IS_MOCK) return { token: 'mock', user: { email } };
   const res = await http('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,41 +83,61 @@ export async function login({ email, password }) {
   return res.json();
 }
 
-export async function register({ email, password }) {
-  if (IS_MOCK) return { token: 'mock', user: { email, plan: 'free' } };
+export async function register({ email, password, consent }) {
+  if (IS_MOCK) return { token: 'mock', user: { email } };
   const res = await http('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, consent }),
   });
   return res.json();
 }
 
-/* ===== Billing (шаблон — подключить к платёжному провайдеру через бэкенд) =====
+/* Вход / регистрация через внешнего провайдера (Яндекс / ВКонтакте) — ТОЛЬКО UI/мок.
+ * В проде это OAuth: фронт открывает /api/auth/oauth/:provider (redirect на
+ * провайдера), бэкенд обрабатывает callback, ставит сессию (httpOnly-cookie)
+ * и возвращает user. Реальный обмен токенами и проверка — на бэкенде.
+ * `consent` передаётся при регистрации через провайдера — бэкенд должен
+ * зафиксировать согласие так же, как при обычной регистрации (ст. 9). */
+export async function loginWithProvider(provider, consent) {
+  if (IS_MOCK) {
+    const email = provider === 'yandex' ? 'user@yandex.ru' : 'user@vk.com';
+    return { token: 'mock', user: { email, provider } };
+  }
+  const res = await http(`/api/auth/oauth/${provider}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ consent }),
+  });
+  return res.json();
+}
+
+/* ===== Billing (шаблон — подключить к CloudPayments через бэкенд) =====
  *
- * Каталог тарифов — ВИТРИНА. В MOCK отдаётся дефолт ниже; в проде заменяется
- * ответом бэкенда (GET /api/billing/plans), чтобы цены/фичи/лимиты не были
- * захардкожены во фронте. Источник истины по суммам и проверке оплаты — бэкенд. */
+ * Подписок НЕТ. Два продукта с РАЗОВОЙ оплатой: бесплатный отчёт (тизер) и
+ * полный отчёт (разблокирует один текущий отчёт). Каталог — ВИТРИНА: в MOCK
+ * отдаётся дефолт ниже, в проде заменяется ответом бэкенда (GET /api/billing/plans),
+ * чтобы цены/фичи не были захардкожены во фронте. Источник истины по сумме и
+ * проверке оплаты — бэкенд. */
 const MOCK_PLANS = [
-  { id: 'free', name: 'Бесплатно', price: 0, period: '', highlight: false,
-    features: ['1 проверка сайта', 'Риск-скоринг и нарушения', 'Отчёт в браузере'] },
-  { id: 'pro', name: 'Pro', price: 1490, period: '/ мес', highlight: true,
-    features: ['Безлимит проверок', 'PDF-отчёты', 'AI-анализ текстов политик',
-      'История и повторные проверки', 'Приоритеты для юриста/маркетолога/разработчика'] },
-  { id: 'team', name: 'Team', price: 4900, period: '/ мес', highlight: false,
-    features: ['Всё из Pro', 'До 10 пользователей', 'Мониторинг сайтов по расписанию', 'Экспорт и API-доступ'] },
+  { id: 'free', name: 'Бесплатный отчёт', price: 0, highlight: false,
+    features: ['Риск-скоринг сайта', 'Число нарушений по категориям', 'Краткое заключение'] },
+  { id: 'paid', name: 'Полный отчёт', price: 990, highlight: true,
+    features: ['Все нарушения с деталями и пруфами', 'Инфраструктура и геолокация (ст. 18 ч. 5)',
+      'AI-анализ текстов политик и согласий', 'Техническое приложение: трекеры и формы', 'Скачивание PDF-отчёта'] },
 ];
 
-/* Получить каталог тарифов. Предполагаемый эндпоинт: GET /api/billing/plans -> Plan[] */
+/* Получить каталог продуктов. Предполагаемый эндпоинт: GET /api/billing/plans -> Plan[] */
 export async function fetchPlans() {
   if (IS_MOCK) return MOCK_PLANS;
   const res = await http('/api/billing/plans');
   return res.json();
 }
 
-/* Создать сессию оплаты.
- * Предполагаемый эндпоинт: POST /api/billing/checkout { plan } -> { checkout_url }
- * Фронт лишь редиректит на checkout_url; ключи/цены/проверки — на бэкенде. */
+/* Создать сессию разовой оплаты в CloudPayments.
+ * Предполагаемый эндпоинт: POST /api/billing/checkout { plan, report_id } -> { checkout_url }
+ * Фронт лишь редиректит на checkout_url (виджет/страница CloudPayments);
+ * сумма, ключи и подтверждение оплаты — на бэкенде. В MOCK оплата имитируется. */
 export async function createCheckout(plan) {
   if (IS_MOCK) return { checkout_url: null };
   const res = await http('/api/billing/checkout', {

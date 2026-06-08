@@ -88,7 +88,38 @@ function ViolationCard({ v, detail, open, onToggle }) {
   );
 }
 
-function Report({ r, detail, onToast, onRescan, onDownload }) {
+/* Оверлей поверх заблюренных премиум-блоков на бесплатном тарифе.
+ * Sticky-контейнер высотой во весь экран центрирует карточку по вертикали
+ * вьюпорта, и она остаётся по центру при скролле в пределах заблюренной зоны. */
+function LockedOverlay({ onUnlock }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex',
+        alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card fade-up" style={{ pointerEvents: 'auto', maxWidth: 420, width: '90%',
+          padding: '26px 26px 24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, margin: '0 auto 14px',
+            background: 'var(--accent-soft)', display: 'grid', placeItems: 'center' }}>
+            <Icon name="lock" size={26} stroke={2} style={{ color: 'var(--accent-ink)' }} />
+          </div>
+          <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, letterSpacing: '-.01em' }}>
+            Полный отчёт доступен после оплаты
+          </h3>
+          <p style={{ margin: '0 0 18px', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+            Детали нарушений, инфраструктура и геолокация, AI-анализ текстов,
+            техническое приложение и PDF-отчёт — в полной версии.
+          </p>
+          <button className="btn btn-primary" style={{ height: 44, padding: '0 22px', justifyContent: 'center' }}
+            onClick={onUnlock}>
+            <Icon name="lock" size={17} stroke={2} /> Разблокировать отчёт
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnlock }) {
   const bands = RISK_BANDS[r.band];
   const isSpec = detail === 'specialist';
   const [sev, setSev] = useState('all');
@@ -134,10 +165,16 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
           <button className="btn btn-ghost" style={{ height: 40 }} onClick={onRescan}>
             <Icon name="scan" size={17} /> Повторить
           </button>
-          <button className="btn btn-primary" style={{ height: 40 }}
-            onClick={onDownload || (() => onToast('Отчёт сформирован — PDF загружается', 'ok'))}>
-            <Icon name="download" size={17} /> Скачать PDF
-          </button>
+          {paid ? (
+            <button className="btn btn-primary" style={{ height: 40 }}
+              onClick={onDownload || (() => onToast('Отчёт сформирован — PDF загружается', 'ok'))}>
+              <Icon name="download" size={17} /> Скачать PDF
+            </button>
+          ) : (
+            <button className="btn btn-primary" style={{ height: 40 }} onClick={onUnlock}>
+              <Icon name="lock" size={17} stroke={2} /> Разблокировать PDF
+            </button>
+          )}
         </div>
       </div>
 
@@ -201,6 +238,9 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
           </p>
         </section>
 
+        {/* премиум-блоки: на бесплатном тарифе заблюрены под оверлеем */}
+        <div style={{ position: 'relative' }}>
+        <div style={paid ? undefined : { filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none', opacity: .9 }}>
         {/* infrastructure */}
         <InfraCard r={r} isSpec={isSpec} />
 
@@ -270,6 +310,9 @@ function Report({ r, detail, onToast, onRescan, onDownload }) {
 
         {/* technical appendix */}
         <ReportAppendix r={r} isSpec={isSpec} onToast={onToast} />
+        </div>
+        {!paid && <LockedOverlay onUnlock={onUnlock} />}
+        </div>
       </div>
     </div>
   );
