@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { Icon, Logo } from './shared.jsx';
 import { isValidDomain, normalizeDomain } from './api.js';
 
-function Landing({ onStart, onLogin, onUpgrade, user, isPro }) {
+function Landing({ onStart, onLogin, onUpgrade, user }) {
   const [url, setUrl] = useState('');
   const [focus, setFocus] = useState(false);
   const [err, setErr] = useState(false);
@@ -39,8 +39,8 @@ function Landing({ onStart, onLogin, onUpgrade, user, isPro }) {
           <button className="btn btn-quiet" style={{ height: 38 }} onClick={() => onStart('klinika-zdorovie.ru', true)}>
             <Icon name="history" size={17} /> Пример отчёта
           </button>
-          <button className={`btn ${isPro ? 'btn-pro' : 'btn-quiet'}`} style={{ height: 38 }} onClick={onUpgrade}>
-            <Icon name={isPro ? 'checkcircle' : 'bolt'} size={17} /> Pro{isPro ? ' активна' : ''}
+          <button className="btn btn-quiet" style={{ height: 38 }} onClick={onUpgrade}>
+            <Icon name="bolt" size={17} /> Тарифы
           </button>
           <button className="btn btn-ghost" style={{ height: 38 }} onClick={onLogin}>
             {user ? <><Icon name="user" size={16} /> {user.email}</> : 'Войти'}
@@ -82,14 +82,11 @@ function Landing({ onStart, onLogin, onUpgrade, user, isPro }) {
             </button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
-            <span style={{ fontSize: 13, color: err ? 'var(--crit)' : isPro ? 'var(--accent-ink)' : 'var(--faint)',
+            <span style={{ fontSize: 13, color: err ? 'var(--crit)' : 'var(--faint)',
               display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {isPro && !err && <Icon name="checkcircle" size={14} stroke={2} />}
               {err
                 ? 'Введите корректный адрес сайта'
-                : isPro
-                  ? 'Подписка Pro активна · безлимит проверок и PDF-отчёты'
-                  : 'Бесплатно для первой проверки · без регистрации'}
+                : 'Проверка бесплатно · полный отчёт — разовая оплата'}
             </span>
             <button className="btn btn-quiet" style={{ height: 30, padding: '0 8px', fontSize: 13, color: 'var(--accent-ink)' }}
               onClick={() => { setUrl('klinika-zdorovie.ru'); inputRef.current && inputRef.current.focus(); }}>

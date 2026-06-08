@@ -60,8 +60,7 @@ function App() {
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
   const [user, setUser] = useState(null);   // текущий пользователь (после входа)
-  const [plan, setPlan] = useState('free'); // тариф: free | pro | team (с бэкенда — user.plan)
-  const isPro = plan === 'pro' || plan === 'team';
+  const [paid, setPaid] = useState(false);  // оплачен ли ТЕКУЩИЙ отчёт (разовая оплата, per-report)
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
   // apply theme + accent
@@ -97,6 +96,7 @@ function App() {
   const startScan = (d, skip) => {
     const dom = normalizeDomain(d);
     setDomain(dom);
+    setPaid(false); // новый отчёт — снова бесплатный тизер до оплаты
     apiStartScan(dom)
       .then(({ reportId }) => setReportId(reportId))
       .catch(() => toast('Не удалось запустить проверку', 'info'));
@@ -113,15 +113,16 @@ function App() {
 
   return (
     <>
-      {screen === 'landing' && <Landing onStart={startScan} user={user} isPro={isPro}
+      {screen === 'landing' && <Landing onStart={startScan} user={user}
         onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && (report
-            ? <Report r={report} detail={detail} onToast={toast}
-                onDownload={downloadPdf} onRescan={() => setScreen('scanning')} />
+            ? <Report r={report} detail={detail} onToast={toast} paid={paid}
+                onUnlock={() => setModal('pricing')}
+                onDownload={downloadPdf} onRescan={() => { setPaid(false); setScreen('scanning'); }} />
             : <ReportLoading />)}
           {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
         </AppShell>
@@ -142,9 +143,9 @@ function App() {
       )}
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
-        onAuth={u => { setUser(u); if (u && u.plan) setPlan(u.plan); }} onToast={toast} />
+        onAuth={setUser} onToast={toast} />
       <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
-        currentPlan={plan} onSubscribed={setPlan} user={user}
+        paid={paid} onPaid={() => setPaid(true)} user={user}
         onRequireAuth={() => setModal('auth')} />
 
       <Toasts items={toasts} />

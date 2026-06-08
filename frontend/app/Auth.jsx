@@ -4,9 +4,22 @@
  * При интеграции: после успеха пробросить user наверх через onAuth(user). */
 import { useState } from 'react';
 import { Icon, Logo, Modal } from './shared.jsx';
-import { login, register } from './api.js';
+import { login, register, loginWithProvider } from './api.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/* Кнопка входа через внешнего провайдера (UI-only, мок). Бренд-марка —
+ * цветной квадрат с буквой, чтобы не тащить внешние логотипы. */
+function ProviderButton({ mark, color, label, disabled, onClick }) {
+  return (
+    <button className="btn btn-ghost" disabled={disabled} onClick={onClick}
+      style={{ height: 46, justifyContent: 'center', gap: 10, fontSize: 14 }}>
+      <span style={{ width: 22, height: 22, borderRadius: 6, background: color, color: '#fff',
+        display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{mark}</span>
+      {label}
+    </button>
+  );
+}
 
 function Field({ icon, type = 'text', value, onChange, placeholder, autoComplete, onEnter }) {
   const [focus, setFocus] = useState(false);
@@ -54,6 +67,21 @@ function Auth({ open, onClose, onAuth, onToast }) {
     }
   };
 
+  const oauth = async (provider) => {
+    setErr('');
+    setBusy(true);
+    try {
+      const { user } = await loginWithProvider(provider);
+      onToast && onToast('Вы вошли', 'ok');
+      onAuth && onAuth(user);
+      onClose();
+    } catch {
+      setErr('Не удалось войти через провайдера');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} width={420}>
       <div style={{ padding: '32px 30px 28px' }}>
@@ -87,6 +115,18 @@ function Auth({ open, onClose, onAuth, onToast }) {
             {busy ? 'Подождите…' : isRegister ? 'Зарегистрироваться' : 'Войти'}
             {!busy && <Icon name="arrow" size={18} />}
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '6px 0 2px' }}>
+            <div className="hairline" style={{ flex: 1 }} />
+            <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>или войти через</span>
+            <div className="hairline" style={{ flex: 1 }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <ProviderButton mark="Я" color="#FC3F1D" label="Войти через Яндекс"
+              disabled={busy} onClick={() => oauth('yandex')} />
+            <ProviderButton mark="VK" color="#0077FF" label="Войти через ВКонтакте"
+              disabled={busy} onClick={() => oauth('vk')} />
+          </div>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 13.5, color: 'var(--muted)' }}>
