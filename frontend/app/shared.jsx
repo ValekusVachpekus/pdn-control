@@ -193,6 +193,37 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
   );
 }
 
+/* ---------- Modal (overlay + centered card, ESC/backdrop to close) ---------- */
+function Modal({ open, onClose, children, width = 440 }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div onMouseDown={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', padding: 20, background: 'rgba(15,20,28,.55)', backdropFilter: 'blur(3px)' }}>
+      <div className="card fade-up" onMouseDown={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: width, boxShadow: 'var(--shadow-lg)', position: 'relative',
+          maxHeight: '90vh', overflowY: 'auto' }}>
+        <button onClick={onClose} aria-label="Закрыть"
+          style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: 8,
+            border: 0, background: 'transparent', color: 'var(--faint)', cursor: 'pointer',
+            display: 'grid', placeItems: 'center', transition: 'all .14s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-3)'; e.currentTarget.style.color = 'var(--ink)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--faint)'; }}>
+          <Icon name="xcircle" size={20} />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Logo mark ---------- */
 function Logo({ size = 32 }) {
   return (
@@ -203,4 +234,4 @@ function Logo({ size = 32 }) {
   );
 }
 
-export { Icon, Badge, RiskGauge, Meter, AppShell, Logo, SEV, FOR_ICON };
+export { Icon, Badge, RiskGauge, Meter, AppShell, Logo, Modal, SEV, FOR_ICON };

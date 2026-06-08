@@ -1,17 +1,20 @@
 /* ===== ПДн Контроль — Landing ===== */
 import { useState, useRef } from 'react';
 import { Icon, Logo } from './shared.jsx';
+import { isValidDomain, normalizeDomain } from './api.js';
 
-function Landing({ onStart }) {
+function Landing({ onStart, onLogin, onUpgrade, user, isPro }) {
   const [url, setUrl] = useState('');
   const [focus, setFocus] = useState(false);
   const [err, setErr] = useState(false);
   const inputRef = useRef(null);
 
   const submit = () => {
-    const v = url.trim() || 'klinika-zdorovie.ru';
-    if (url.trim() && !/\./.test(url.trim())) { setErr(true); return; }
-    onStart(v.replace(/^https?:\/\//, '').replace(/\/$/, ''));
+    const raw = url.trim();
+    // пустой ввод → демо-домен; иначе строго валидируем (отсекает SQL/инъекционные символы)
+    if (!raw) { onStart('klinika-zdorovie.ru'); return; }
+    if (!isValidDomain(raw)) { setErr(true); return; }
+    onStart(normalizeDomain(raw));
   };
 
   const checks = [
@@ -36,7 +39,12 @@ function Landing({ onStart }) {
           <button className="btn btn-quiet" style={{ height: 38 }} onClick={() => onStart('klinika-zdorovie.ru', true)}>
             <Icon name="history" size={17} /> Пример отчёта
           </button>
-          <button className="btn btn-ghost" style={{ height: 38 }}>Войти</button>
+          <button className={`btn ${isPro ? 'btn-pro' : 'btn-quiet'}`} style={{ height: 38 }} onClick={onUpgrade}>
+            <Icon name={isPro ? 'checkcircle' : 'bolt'} size={17} /> Pro{isPro ? ' активна' : ''}
+          </button>
+          <button className="btn btn-ghost" style={{ height: 38 }} onClick={onLogin}>
+            {user ? <><Icon name="user" size={16} /> {user.email}</> : 'Войти'}
+          </button>
         </div>
       </header>
 
@@ -66,7 +74,7 @@ function Landing({ onStart }) {
               onChange={e => { setUrl(e.target.value); setErr(false); }}
               onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
               onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="klinika-zdorovie.ru"
+              placeholder="example.ru"
               style={{ flex: 1, border: 0, outline: 0, background: 'transparent', font: 'inherit',
                 fontSize: 17, color: 'var(--ink)', padding: '0 6px', minWidth: 0 }} />
             <button className="btn btn-primary" style={{ height: 48, padding: '0 22px', fontSize: 15 }} onClick={submit}>
@@ -74,8 +82,14 @@ function Landing({ onStart }) {
             </button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
-            <span style={{ fontSize: 13, color: err ? 'var(--crit)' : 'var(--faint)' }}>
-              {err ? 'Введите корректный адрес сайта' : 'Бесплатно для первой проверки · без регистрации'}
+            <span style={{ fontSize: 13, color: err ? 'var(--crit)' : isPro ? 'var(--accent-ink)' : 'var(--faint)',
+              display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {isPro && !err && <Icon name="checkcircle" size={14} stroke={2} />}
+              {err
+                ? 'Введите корректный адрес сайта'
+                : isPro
+                  ? 'Подписка Pro активна · безлимит проверок и PDF-отчёты'
+                  : 'Бесплатно для первой проверки · без регистрации'}
             </span>
             <button className="btn btn-quiet" style={{ height: 30, padding: '0 8px', fontSize: 13, color: 'var(--accent-ink)' }}
               onClick={() => { setUrl('klinika-zdorovie.ru'); inputRef.current && inputRef.current.focus(); }}>

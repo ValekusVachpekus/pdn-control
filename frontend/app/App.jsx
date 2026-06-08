@@ -6,6 +6,8 @@ import Landing from './Landing.jsx';
 import Scanning from './Scanning.jsx';
 import Report from './Report.jsx';
 import History from './History.jsx';
+import Auth from './Auth.jsx';
+import Pricing from './Pricing.jsx';
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK } from './api.js';
 
 const ACCENTS = {
@@ -56,6 +58,10 @@ function App() {
   const [reportId, setReportId] = useState(null);
   const [report, setReport] = useState(null); // модель UI из api.fetchReport
   const [toasts, setToasts] = useState([]);
+  const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
+  const [user, setUser] = useState(null);   // текущий пользователь (после входа)
+  const [plan, setPlan] = useState('free'); // тариф: free | pro | team (с бэкенда — user.plan)
+  const isPro = plan === 'pro' || plan === 'team';
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
   // apply theme + accent
@@ -107,7 +113,8 @@ function App() {
 
   return (
     <>
-      {screen === 'landing' && <Landing onStart={startScan} />}
+      {screen === 'landing' && <Landing onStart={startScan} user={user} isPro={isPro}
+        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
@@ -133,6 +140,12 @@ function App() {
           <Icon name={t.dark ? 'sun' : 'moon'} size={18} stroke={1.8} />
         </button>
       )}
+
+      <Auth open={modal === 'auth'} onClose={() => setModal(null)}
+        onAuth={u => { setUser(u); if (u && u.plan) setPlan(u.plan); }} onToast={toast} />
+      <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
+        currentPlan={plan} onSubscribed={setPlan} user={user}
+        onRequireAuth={() => setModal('auth')} />
 
       <Toasts items={toasts} />
 
