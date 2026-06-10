@@ -1,3 +1,35 @@
+# --- Секреты и локальная конфигурация ---
 .env
+.env.*
+!.env.example
+*.local
+
+# --- Заметки агента ---
 CLAUDE.md
+
+# --- ОС ---
 .DS_Store
+Thumbs.db
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+# Случайный экспорт дизайн-инструмента, не часть сборки
+/frontend/ПДн Контроль.html
+
+# --- Python / crowler, PDFreport ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Сгенерированные артефакты отчётов ---
+*.pdf
+*.png
+data.json
