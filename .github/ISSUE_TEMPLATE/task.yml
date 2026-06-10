@@ -1,0 +1,35 @@
+name: Задача / PBI
+description: Прочий элемент бэклога или курсовая задача (не User Story и не баг)
+title: "[TASK] "
+labels: ["task"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Тип задачи
+      options:
+        - Техническая задача
+        - Документация
+        - Инфраструктура / CI
+        - Исследование (spike)
+        - Курсовая задача
+        - Прочее
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Что нужно сделать и зачем. Контекст и ссылки.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии завершения / приёмки
+      description: Проверяемые условия, при которых задача считается выполненной.
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
