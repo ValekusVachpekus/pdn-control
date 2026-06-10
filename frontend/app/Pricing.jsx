@@ -58,7 +58,7 @@ function PlanCard({ plan, paid, busy, onPick }) {
   );
 }
 
-function Pricing({ open, onClose, onToast, paid = false, onPaid, user, onRequireAuth }) {
+function Pricing({ open, onClose, onToast, paid = false, onPaid, user, onRequireAuth, reportId }) {
   const [plans, setPlans] = useState(null);
   const [busy, setBusy] = useState(null);
 
@@ -81,16 +81,21 @@ function Pricing({ open, onClose, onToast, paid = false, onPaid, user, onRequire
       onRequireAuth && onRequireAuth();
       return;
     }
+    // Оплата привязана к конкретному отчёту — без него бэк отдаст 422.
+    if (!reportId) {
+      onToast && onToast('Сначала запустите проверку сайта', 'info');
+      return;
+    }
     setBusy(planId);
     try {
-      const { checkout_url } = await createCheckout(planId);
+      const { checkout_url } = await createCheckout(planId, reportId);
       if (checkout_url) { window.location.href = checkout_url; return; } // прод: переход к оплате CloudPayments
-      // MOCK/демо: оплаты нет — имитируем успешную разовую оплату локально
+      // Dev-режим: бэк сам пометил отчёт оплаченным (см. /api/billing/checkout)
       onPaid && onPaid();
       onToast && onToast('Оплата прошла — отчёт разблокирован', 'ok');
       onClose();
-    } catch {
-      onToast && onToast('Не удалось перейти к оплате', 'info');
+    } catch (err) {
+      onToast && onToast(err.status === 404 ? 'Отчёт не найден' : 'Не удалось перейти к оплате', 'info');
     } finally {
       setBusy(null);
     }

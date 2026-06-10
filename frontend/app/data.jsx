@@ -2,25 +2,27 @@
 
 // Отчёт больше не хардкодится здесь: он приходит единым JSON (Контракт №2) и
 // маппится в mapReport.js. Ниже — только UI-данные, не входящие в отчёт.
-// scan steps for the live crawler
+// Анимация лога сканирования. Это НЕ реальный поток событий от парсера —
+// просто индикация прогресса для UX. {domain} подставляется в Scanning.jsx
+// текущим доменом, чтобы не было захардкоженного «klinika-zdorovie.ru».
 export const SCAN_STEPS = [
-  { t: 0.5,  type: 'dns',    text: 'Резолвинг DNS klinika-zdorovie.ru → 104.21.34.117' },
-  { t: 1.2,  type: 'geo',    text: 'Геолокация сервера: США (US), Cloudflare, Inc.', flag: 'crit' },
-  { t: 2.0,  type: 'page',   text: 'Загрузка страницы / (главная)' },
-  { t: 2.9,  type: 'form',   text: 'Найдена форма «Запись на приём»: name, phone, email, comment', flag: 'find' },
-  { t: 3.6,  type: 'consent',text: 'Чекбокс согласия pre_checked=true — отмечен заранее', flag: 'crit' },
-  { t: 4.4,  type: 'cookie', text: 'Cookie-баннер: has_reject_button=false', flag: 'warn' },
-  { t: 5.1,  type: 'script', text: 'Сторонний скрипт: mc.yandex.ru (Яндекс.Метрика)' },
-  { t: 5.7,  type: 'script', text: 'Сторонний скрипт: googletagmanager.com', flag: 'warn' },
-  { t: 6.3,  type: 'script', text: 'Сторонний скрипт: jivosite.com (JivoSite)', flag: 'warn' },
-  { t: 7.2,  type: 'page',   text: 'Загрузка страницы /contacts' },
-  { t: 8.0,  type: 'form',   text: 'Найдена форма «Обратная связь»: name, phone — без согласия', flag: 'warn' },
-  { t: 8.9,  type: 'page',   text: 'Загрузка страницы /privacy' },
-  { t: 9.6,  type: 'doc',    text: 'Найдена политика конфиденциальности — отправка в AI-анализ', flag: 'find' },
-  { t: 10.6, type: 'ai',     text: 'AI: проверка сроков хранения, целей, получателей данных…' },
-  { t: 11.8, type: 'ai',     text: 'AI: сроки хранения ПДн в политике не указаны', flag: 'info' },
-  { t: 12.6, type: 'rule',   text: 'Применение правил проверки: 11 правил' },
-  { t: 13.4, type: 'done',   text: 'Сканирование завершено: 2 критичных, 3 предупреждения, 1 инфо' },
+  { t: 0.5,  type: 'dns',    text: 'Резолвинг DNS {domain}' },
+  { t: 1.2,  type: 'geo',    text: 'Определение страны размещения сервера' },
+  { t: 2.0,  type: 'page',   text: 'Загрузка главной страницы' },
+  { t: 2.9,  type: 'form',   text: 'Поиск форм сбора персональных данных', flag: 'find' },
+  { t: 3.6,  type: 'consent',text: 'Проверка чекбоксов согласия на обработку ПДн' },
+  { t: 4.4,  type: 'cookie', text: 'Анализ cookie-баннера и кнопок управления' },
+  { t: 5.1,  type: 'script', text: 'Инвентаризация сторонних скриптов и трекеров' },
+  { t: 5.7,  type: 'script', text: 'Проверка трансграничной передачи данных' },
+  { t: 6.3,  type: 'page',   text: 'Обход внутренних страниц сайта' },
+  { t: 7.2,  type: 'form',   text: 'Сопоставление полей форм с категориями ПДн' },
+  { t: 8.0,  type: 'doc',    text: 'Поиск политики конфиденциальности и согласия', flag: 'find' },
+  { t: 8.9,  type: 'ai',     text: 'AI-анализ текстов политик: цели обработки, сроки, передача' },
+  { t: 9.6,  type: 'ai',     text: 'AI-анализ: оценка соответствия 152-ФЗ ст. 5, 9, 18' },
+  { t: 10.6, type: 'rule',   text: 'Применение правил rule-engine' },
+  { t: 11.8, type: 'rule',   text: 'Подсчёт скоринга и потенциального штрафа по КоАП 13.11' },
+  { t: 12.6, type: 'done',   text: 'Формирование итогового отчёта' },
+  { t: 13.4, type: 'done',   text: 'Сканирование завершено' },
 ];
 
 export const HISTORY = [

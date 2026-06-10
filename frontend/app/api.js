@@ -1,18 +1,46 @@
 /* ===== ПДн Контроль — слой доступа к данным (единственный шов с бэкендом) =====
  *
- * Пока бэкенда нет — режим MOCK: отчёт берётся из example-report.json.
- * Для интеграции достаточно изменений ТОЛЬКО в этом файле / через env:
- *   VITE_USE_MOCK=false   — включить реальные запросы;
- *   VITE_API_BASE=<url>   — базовый адрес API (пусто = тот же origin, nginx-прокси /api/).
+ * VITE_USE_MOCK=false — реальные запросы; VITE_API_BASE=<url> — базовый адрес
+ * (пусто = тот же origin, nginx-прокси /api/). С бэкенда приходит JSON
+ * Контракта №2, mapReport() приводит его к UI-модели.
  *
- * С бэкенда приходит единый JSON Контракта №2 (тот же, что у PDF-микросервиса),
- * который приводится к модели UI через mapReport().
+ * Токен JWT хранится в localStorage под ключом 'pdn_auth' и автоматически
+ * подставляется в Authorization-заголовок ко всем защищённым запросам.
+ * Это упрощение MVP — для прода правильнее httpOnly-cookie, чтобы JWT не был
+ * доступен JS (защита от XSS).
  */
 import { mapReport } from './mapReport.js';
 import exampleReport from './example-report.json';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '';
 export const IS_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false';
+
+const STORAGE_KEY = 'pdn_auth';
+
+// ── токен и юзер: in-memory + localStorage ──────────────────────────────────
+let _auth = readStoredAuth();
+
+function readStoredAuth() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function writeAuth(auth) {
+  _auth = auth;
+  try {
+    if (auth) localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
+
+export function getStoredAuth() { return _auth; }
+export function isAuthenticated() { return !!(_auth && _auth.token); }
+export function logout() { writeAuth(null); }
+export function getAuthHeader() {
+  return _auth?.token ? { Authorization: `Bearer ${_auth.token}` } : {};
+}
 
 // нормализация введённого пользователем адреса: example.com/ → example.com
 export function normalizeDomain(url) {
@@ -28,15 +56,26 @@ export function isValidDomain(url) {
   return /^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?::\d{1,5})?$/i.test(host);
 }
 
-async function http(path, opts) {
-  const res = await fetch(`${BASE}${path}`, opts);
-  if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
+async function http(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  // Автоматически подставляем JWT, если он есть.
+  if (_auth?.token) headers['Authorization'] = `Bearer ${_auth.token}`;
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+  if (res.status === 401) {
+    // Токен протух/невалиден — сносим, чтобы фронт перевёл юзера на логин.
+    writeAuth(null);
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { detail = (await res.json())?.detail || ''; } catch {}
+    const err = new Error(`API ${path} → ${res.status}${detail ? `: ${detail}` : ''}`);
+    err.status = res.status;
+    throw err;
+  }
   return res;
 }
 
-/* Запустить проверку сайта.
- * Предполагаемый эндпоинт бэкенда: POST /api/scans { url } -> { report_id }
- * Возвращает { reportId }. В MOCK — фиктивный id. */
+/* Запустить проверку сайта. POST /api/scans { url } -> { report_id }. */
 export async function startScan(url) {
   if (IS_MOCK) return { reportId: 'mock' };
   const res = await http('/api/scans', {
@@ -48,77 +87,89 @@ export async function startScan(url) {
   return { reportId: data.report_id };
 }
 
-/* Получить готовый отчёт (единый JSON Контракта №2) и привести к модели UI.
- * Предполагаемый эндпоинт: GET /api/reports/:id -> JSON Контракта №2 */
+/* Опрос статуса проверки. GET /api/scans/:id/status -> { status, error, ... }. */
+export async function fetchScanStatus(reportId) {
+  if (IS_MOCK) return { status: 'done' };
+  const res = await http(`/api/scans/${reportId}/status`);
+  return res.json();
+}
+
+/* История сканов пользователя. GET /api/scans?limit=&offset= -> ScanRow[]. */
+export async function fetchHistory({ limit = 50, offset = 0 } = {}) {
+  if (IS_MOCK) return [];
+  const res = await http(`/api/scans?limit=${limit}&offset=${offset}`);
+  return res.json();
+}
+
+/* Получить готовый отчёт (Контракт №2) и привести к модели UI. */
 export async function fetchReport(reportId) {
   if (IS_MOCK) return mapReport(exampleReport);
   const res = await http(`/api/reports/${reportId}`);
   return mapReport(await res.json());
 }
 
-/* URL для скачивания PDF (через бэкенд-прокси к PDF-микросервису, Контракт №2 → /render).
- * Предполагаемый эндпоинт: GET /api/reports/:id/pdf -> application/pdf */
+/* URL для скачивания PDF — бэкенд проксирует Контракт №2 → PDFreport. */
 export function reportPdfUrl(reportId) {
   return `${BASE}/api/reports/${reportId}/pdf`;
 }
 
-/* ===== Auth (шаблон — подключить к бэкенду) =====
- * Предполагаемые эндпоинты:
- *   POST /api/auth/login    { email, password } -> { token, user }
- *   POST /api/auth/register { email, password, consent } -> { token, user }
- * Токен хранить в httpOnly-cookie (выставляет бэкенд) либо здесь в памяти —
- * НЕ кладите JWT в localStorage. В MOCK возвращаем фиктивного пользователя.
- *
- * 152-ФЗ (ст. 9): при регистрации передаётся флаг `consent` — бэкенд ОБЯЗАН
- * зафиксировать факт согласия на обработку ПДн (timestamp + версия политики),
- * чтобы суметь его доказать. Фронтовая галочка — лишь UX, источник истины —
- * запись на сервере. При отсутствии consent сервер должен ответить 4xx. */
+/* ===== Auth =================================================================
+ * POST /api/auth/login    { email, password }            -> { token, user }
+ * POST /api/auth/register { email, password, consent }   -> { token, user }
+ * 152-ФЗ ст. 9: consent=true обязателен при регистрации; без него бэк вернёт 400.
+ */
 export async function login({ email, password }) {
-  if (IS_MOCK) return { token: 'mock', user: { email } };
+  if (IS_MOCK) {
+    const auth = { token: 'mock', user: { email } };
+    writeAuth(auth);
+    return auth;
+  }
   const res = await http('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  return res.json();
+  const auth = await res.json();
+  writeAuth(auth);
+  return auth;
 }
 
 export async function register({ email, password, consent }) {
-  if (IS_MOCK) return { token: 'mock', user: { email } };
+  if (IS_MOCK) {
+    const auth = { token: 'mock', user: { email } };
+    writeAuth(auth);
+    return auth;
+  }
   const res = await http('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, consent }),
   });
-  return res.json();
+  const auth = await res.json();
+  writeAuth(auth);
+  return auth;
 }
 
-/* Вход / регистрация через внешнего провайдера (Яндекс / ВКонтакте) — ТОЛЬКО UI/мок.
- * В проде это OAuth: фронт открывает /api/auth/oauth/:provider (redirect на
- * провайдера), бэкенд обрабатывает callback, ставит сессию (httpOnly-cookie)
- * и возвращает user. Реальный обмен токенами и проверка — на бэкенде.
- * `consent` передаётся при регистрации через провайдера — бэкенд должен
- * зафиксировать согласие так же, как при обычной регистрации (ст. 9). */
+/* Вход через Яндекс/ВК. На бэке сейчас 501 — UI-кнопки видны, но реальный
+ * OAuth-flow пока не реализован (см. backend/app/routers/auth.py). */
 export async function loginWithProvider(provider, consent) {
   if (IS_MOCK) {
     const email = provider === 'yandex' ? 'user@yandex.ru' : 'user@vk.com';
-    return { token: 'mock', user: { email, provider } };
+    const auth = { token: 'mock', user: { email, provider } };
+    writeAuth(auth);
+    return auth;
   }
   const res = await http(`/api/auth/oauth/${provider}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ consent }),
   });
-  return res.json();
+  const auth = await res.json();
+  writeAuth(auth);
+  return auth;
 }
 
-/* ===== Billing (шаблон — подключить к CloudPayments через бэкенд) =====
- *
- * Подписок НЕТ. Два продукта с РАЗОВОЙ оплатой: бесплатный отчёт (тизер) и
- * полный отчёт (разблокирует один текущий отчёт). Каталог — ВИТРИНА: в MOCK
- * отдаётся дефолт ниже, в проде заменяется ответом бэкенда (GET /api/billing/plans),
- * чтобы цены/фичи не были захардкожены во фронте. Источник истины по сумме и
- * проверке оплаты — бэкенд. */
+/* ===== Billing (CloudPayments, пока заглушка на бэке) ===================== */
 const MOCK_PLANS = [
   { id: 'free', name: 'Бесплатный отчёт', price: 0, highlight: false,
     features: ['Риск-скоринг сайта', 'Число нарушений по категориям', 'Краткое заключение'] },
@@ -127,23 +178,20 @@ const MOCK_PLANS = [
       'AI-анализ текстов политик и согласий', 'Техническое приложение: трекеры и формы', 'Скачивание PDF-отчёта'] },
 ];
 
-/* Получить каталог продуктов. Предполагаемый эндпоинт: GET /api/billing/plans -> Plan[] */
 export async function fetchPlans() {
   if (IS_MOCK) return MOCK_PLANS;
   const res = await http('/api/billing/plans');
   return res.json();
 }
 
-/* Создать сессию разовой оплаты в CloudPayments.
- * Предполагаемый эндпоинт: POST /api/billing/checkout { plan, report_id } -> { checkout_url }
- * Фронт лишь редиректит на checkout_url (виджет/страница CloudPayments);
- * сумма, ключи и подтверждение оплаты — на бэкенде. В MOCK оплата имитируется. */
-export async function createCheckout(plan) {
-  if (IS_MOCK) return { checkout_url: null };
+/* Разблокировать ОДИН конкретный отчёт. В dev-режиме бэк сразу помечает
+ * scan.paid=True, в проде вернёт checkout_url виджета CloudPayments. */
+export async function createCheckout(plan, reportId) {
+  if (IS_MOCK) return { checkout_url: null, paid: true };
   const res = await http('/api/billing/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify({ plan, report_id: reportId }),
   });
   return res.json();
 }

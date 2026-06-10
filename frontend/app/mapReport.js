@@ -71,9 +71,17 @@ export function mapReport(j) {
       country: `${ig.server_country_ru ?? ''}${ig.server_country ? ` (${ig.server_country})` : ''}`.trim(),
       countryFlag: flag(ig.server_country),
       hosting: ig.hosting_provider,
-      localization: ig.localization_compliant ? 'Соответствует' : 'Нарушение',
+      // tri-state: compliant | non_compliant | unknown. Старое поле bool оставляем
+      // как fallback для отчётов, сгенерированных до перехода на tri-state.
+      localizationStatus: ig.localization_status ?? (ig.localization_compliant ? 'compliant' : 'unknown'),
       note: ig.localization_note,
     },
+
+    // Маркер: парсер не смог получить страницы — фронт скроет «премиум»-секции
+    // и покажет заглушку «не удалось проверить».
+    scanFailed: !!j._scan_failed,
+    // Оплачен ли этот конкретный отчёт (источник истины — бэкенд).
+    paid: !!j._paid,
 
     violations: (j.violations ?? []).map(v => ({
       id: v.id,
@@ -118,7 +126,16 @@ export function mapReport(j) {
     aiNotes: (ta.ai_analysis ?? []).map(a => ({
       doc: a.doc,
       verdict: a.verdict,
-      text: a.text,
+      text: a.summary || a.text,
+      complianceScore: a.compliance_score ?? null,
+      missingSections: a.missing_sections ?? [],
+      issues: (a.issues ?? []).map(is => ({
+        quote: is.quote,
+        article: is.article,
+        problem: is.problem,
+        fix: is.fix,
+      })),
+      strengths: a.strengths ?? [],
     })),
   };
 }

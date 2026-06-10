@@ -1,4 +1,4 @@
 from .scan import Scan, ScanStatus
-from .user import User, UserPlan
+from .user import User
 
-__all__ = ["User", "UserPlan", "Scan", "ScanStatus"]
+__all__ = ["User", "Scan", "ScanStatus"]

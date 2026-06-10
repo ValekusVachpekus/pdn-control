@@ -1,4 +1,6 @@
 .env
+.env.secret
+.env.*.local
 CLAUDE.md
 .DS_Store
 

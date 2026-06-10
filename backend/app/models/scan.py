@@ -5,7 +5,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,6 +32,9 @@ class Scan(Base):
         Enum(ScanStatus, name="scan_status"), default=ScanStatus.pending, nullable=False
     )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Разовая оплата за КОНКРЕТНЫЙ отчёт. False = free: фронту отдаём
+    # урезанный JSON (без деталей нарушений, без инфраструктуры/AI/PDF).
+    paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     # JSON Контракта №2 (то, что отдаём фронту/PDF-сервису)
     report_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -69,6 +69,10 @@ class Crawler:
 
         queue: deque[tuple[str, int]] = deque((u, 0) for u in seeds)
         visited: set[str] = set()
+        # IP origin'а первой успешно загруженной страницы — кладём в meta.server_ip.
+        # Для оценки ст. 18 ч. 5 152-ФЗ важен именно origin сайта, а не его
+        # сторонних ресурсов. Дальнейшие страницы переписать значение не могут.
+        start_server_ip: str | None = None
 
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=self.headless)
@@ -85,9 +89,11 @@ class Crawler:
                         continue
                     visited.add(norm)
 
-                    page_data, links, text = await self._process_page(
+                    page_data, links, text, page_server_ip = await self._process_page(
                         browser, norm, depth, base_domain
                     )
+                    if start_server_ip is None and page_server_ip:
+                        start_server_ip = page_server_ip
                     pages.append(page_data)
                     if text:
                         page_texts.append(text)
@@ -134,6 +140,7 @@ class Crawler:
             pages_requested_limit=self.max_pages,
             pages_crawled=len(pages),
             errors=errors,
+            server_ip=start_server_ip,
         )
         return CrawlResult(
             meta=meta,
@@ -145,13 +152,13 @@ class Crawler:
         )
 
     async def _process_page(self, browser, url: str, depth: int, base_domain: str):
-        """Возвращает (PageData, links, visible_text)."""
+        """Возвращает (PageData, links, visible_text, server_ip)."""
         fetched = await fetch_page(browser, url, timeout_ms=self.page_timeout_ms)
         if fetched.error:
             return (
                 PageData(url=url, final_url=fetched.final_url, status=fetched.status,
                          depth=depth, error=fetched.error),
-                [], "",
+                [], "", fetched.server_ip,
             )
 
         soup = BeautifulSoup(fetched.html, "html.parser")
@@ -171,7 +178,7 @@ class Crawler:
             policy_links=detectors.detect_policy_links(soup, fetched.final_url),
             third_party_domains=third_party_domains,
         )
-        return page, fetched.links, soup.get_text(" ", strip=True)
+        return page, fetched.links, soup.get_text(" ", strip=True), fetched.server_ip
 
     @staticmethod
     def _followable(links: list[str], base_domain: str, visited: set[str]) -> list[str]:

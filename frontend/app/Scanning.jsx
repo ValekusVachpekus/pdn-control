@@ -4,7 +4,8 @@ import { Icon } from './shared.jsx';
 import { SCAN_STEPS } from './data.jsx';
 
 function Scanning({ domain, onDone }) {
-  const steps = SCAN_STEPS;
+  // Подставляем реальный домен в шаблоны лога: «Резолвинг DNS {domain}» → «… example.com».
+  const steps = SCAN_STEPS.map(s => ({ ...s, text: s.text.replace('{domain}', domain || 'сайт') }));
   const SPEED = 0.62; // time compression
   const total = steps[steps.length - 1].t;
   const [elapsed, setElapsed] = useState(0);

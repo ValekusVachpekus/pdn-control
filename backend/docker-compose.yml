@@ -43,14 +43,19 @@ services:
     ports:
       - "8020:8020"
 
+  # Секреты (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*) кладём в .env.secret рядом
+  # с этим файлом. Он подключается через env_file. Адреса инфраструктуры
+  # (DB/Redis/сервисы) — явно ниже, чтобы compose не зависел от внешнего файла.
   api:
     build: .
+    env_file:
+      - path: .env.secret
+        required: false
     environment:
       DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-please-change-me}
       CRAWLER_URL: http://crowler:8010
       PDFREPORT_URL: http://pdfreport:8020
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
@@ -64,15 +69,15 @@ services:
 
   worker:
     build: .
+    env_file:
+      - path: .env.secret
+        required: false
     environment:
       DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       CRAWLER_URL: http://crowler:8010
       PDFREPORT_URL: http://pdfreport:8020
-      LLM_API_BASE: ${LLM_API_BASE:-https://api.deepseek.com/v1}
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-deepseek-v4-flash}
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }

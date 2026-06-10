@@ -28,15 +28,22 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173"
 
-    free_max_pages: int = 5
-    paid_max_pages: int = 50
+    # Сколько страниц парсер обходит за одну проверку. Подписок нет, лимит
+    # одинаковый для всех — оплачивается не глубина скана, а доступ к отчёту.
+    # 20 — компромисс: успеваем найти политику + cookie + 2-3 формы без
+    # риска уйти за SCAN_TIMEOUT_SEC=300 на тяжёлых SPA (spotify, ozon).
+    paid_max_pages: int = 20
 
     # LLM-провайдер (OpenAI-совместимый API). По умолчанию DeepSeek;
     # для Qwen достаточно поменять base/model. Если ключ пустой — анализ просто
     # не запускается, и paid-юзер получает отчёт без ai_analysis.
-    llm_api_base: str = "https://api.deepseek.com/v1"
+    # По умолчанию — Alibaba DashScope, модель qwen3.6-plus (1M context).
+    # qwen-plus имеет всего 128К контекста, нам не хватает (текст 152-ФЗ + КоАП
+    # = ~280К токенов на русском), и DashScope рвёт соединение broken pipe.
+    # qwen3.6-plus — оптимум по балансу контекст/цена/качество.
+    llm_api_base: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     llm_api_key: str = ""
-    llm_model: str = "deepseek-v4-flash"
+    llm_model: str = "qwen3.6-plus"
     llm_timeout_sec: int = 60
 
     @property

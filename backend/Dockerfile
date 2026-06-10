@@ -3,7 +3,14 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=10
+
+# Опциональный mirror PyPI (например, mirrors.aliyun.com или nexus компании).
+# Передаётся через docker build / docker compose: build.args.PIP_INDEX_URL.
+ARG PIP_INDEX_URL=
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 
 WORKDIR /app
 
@@ -19,6 +26,8 @@ RUN pip install --upgrade pip && pip install .
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
+# Тексты законов — нужны llm_analyzer'у на каждый вызов
+COPY resources ./resources
 
 EXPOSE 8000
 

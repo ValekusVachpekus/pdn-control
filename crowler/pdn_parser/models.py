@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 
 
 class PIIKind(str, Enum):
@@ -212,6 +212,10 @@ class ScanMeta:
     pages_requested_limit: int = 0
     pages_crawled: int = 0
     errors: list[str] = field(default_factory=list)
+    # IP сервера стартовой страницы (после HTTP-редиректов) — снимается через
+    # Playwright Response.server_addr(). Страну/хостинг/локализацию по этому
+    # IP определяет LLM на бэке. Если страница не загрузилась — null.
+    server_ip: str | None = None
 
 
 @dataclass

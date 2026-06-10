@@ -6,12 +6,16 @@
     docker run -d --name pdn-redis-test -p 56379:6379 redis:7-alpine
 
 Что покрываем:
-  - регистрация / логин;
+  - регистрация с consent=true (и отказ при consent=false);
+  - логин;
   - постановка проверки и работа Celery-таска (eager, crawler замокан);
-  - получение готового JSON-отчёта (Контракт №2);
-  - PDF 402 для free-тарифа;
+  - free-режим: GET /api/reports/{id} возвращает усечённый JSON (без деталей);
+  - PDF 402 для free;
   - чужой отчёт = 404;
-  - валидация URL отсекает мусор/инъекции.
+  - валидация URL отсекает мусор/инъекции;
+  - POST /api/billing/checkout помечает отчёт оплаченным (dev-stub);
+  - paid-режим: полный JSON + PDF доступен (PDF-сервис замокан);
+  - OAuth-эндпоинт пока 501.
 """
 from __future__ import annotations
 
@@ -26,6 +30,7 @@ os.environ["JWT_SECRET"] = "test-test-test-test-test-test-test"
 os.environ["CELERY_BROKER_URL"] = "memory://"
 os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
 os.environ["CRAWLER_URL"] = "http://unused"
+os.environ["LLM_API_KEY"] = ""  # LLM выключен — не дёргаем внешний API из теста
 
 from app import config as _config  # noqa: E402
 _config.get_settings.cache_clear()
@@ -78,7 +83,6 @@ SAMPLE_CRAWL = {
 def _run_migrations():
     """Сносим старую схему и накатываем чистый upgrade head."""
     env = os.environ.copy()
-    # alembic.ini лежит на уровень выше tests/
     cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     import sys as _sys
     subprocess.run(
@@ -107,21 +111,28 @@ async def _run_flow():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         # Health
-        r = await client.get("/api/health")
-        assert r.status_code == 200
+        assert (await client.get("/api/health")).status_code == 200
 
-        # Register
+        # Register без consent → 400
+        bad_email = f"u{uuid.uuid4().hex[:10]}@example.com"
+        r = await client.post("/api/auth/register",
+                              json={"email": bad_email, "password": "secretpass1", "consent": False})
+        assert r.status_code == 400, r.text
+
+        # Register с consent=true → 201
         email = f"u{uuid.uuid4().hex[:10]}@example.com"
         r = await client.post("/api/auth/register",
-                              json={"email": email, "password": "secretpass1"})
+                              json={"email": email, "password": "secretpass1", "consent": True})
         assert r.status_code == 201, r.text
         token = r.json()["token"]
         auth = {"Authorization": f"Bearer {token}"}
-        assert r.json()["user"]["plan"] == "free"
+        # В UserOut больше нет plan — есть oauth_provider=None
+        assert "plan" not in r.json()["user"]
+        assert r.json()["user"]["oauth_provider"] is None
 
-        # Повторная регистрация → 409
+        # Дубль → 409
         r = await client.post("/api/auth/register",
-                              json={"email": email, "password": "secretpass1"})
+                              json={"email": email, "password": "secretpass1", "consent": True})
         assert r.status_code == 409, r.text
 
         # Логин
@@ -134,16 +145,23 @@ async def _run_flow():
                               json={"email": email, "password": "wrongpass"})
         assert r.status_code == 401
 
-        # Плэны без авторизации
-        plans = (await client.get("/api/billing/plans")).json()
-        assert {p["id"] for p in plans} == {"free", "pro", "team"}
+        # OAuth — заглушка (501 на yandex/vk, 404 на остальное)
+        r = await client.post("/api/auth/oauth/yandex", json={"consent": True})
+        assert r.status_code == 501, r.text
+        r = await client.post("/api/auth/oauth/google", json={"consent": True})
+        assert r.status_code == 404, r.text
 
-        # Валидация URL: мусор отсекается
+        # Plans
+        plans = (await client.get("/api/billing/plans")).json()
+        assert {p["id"] for p in plans} == {"free", "paid"}, plans
+        paid_plan = next(p for p in plans if p["id"] == "paid")
+        assert paid_plan["price"] == 990
+
+        # Валидация URL
         r = await client.post("/api/scans",
                               json={"url": "example.ru'; DROP TABLE users--"}, headers=auth)
-        assert r.status_code == 422, r.text
-        r = await client.post("/api/scans",
-                              json={"url": "http://localhost"}, headers=auth)
+        assert r.status_code == 422
+        r = await client.post("/api/scans", json={"url": "http://localhost"}, headers=auth)
         assert r.status_code == 422
 
         # Сабмит проверки (парсер замокан)
@@ -152,33 +170,64 @@ async def _run_flow():
         assert r.status_code == 201, r.text
         report_id = r.json()["report_id"]
 
-        # Статус — done (eager)
+        # Статус — done
         r = await client.get(f"/api/scans/{report_id}/status", headers=auth)
-        assert r.status_code == 200, r.text
-        assert r.json()["status"] == "done"
+        assert r.status_code == 200 and r.json()["status"] == "done"
 
-        # Отчёт
+        # Free-отчёт: видим scoring/summary, но детали скрыты
         r = await client.get(f"/api/reports/{report_id}", headers=auth)
         assert r.status_code == 200, r.text
         rep = r.json()
-        assert rep["document_meta"]["domain"] == "example.ru"
+        assert rep["_paid"] is False
         assert isinstance(rep["scoring"]["overall_score"], int)
-        titles = [v["title"] for v in rep["violations"]]
-        assert any("Политика обработки ПДн не найдена" in t for t in titles), titles
+        assert rep["executive_summary"]["total_fine_rub"]  # сумма штрафа видна
+        # ключевая проверка: детали нарушений вырезаны
+        for v in rep["violations"]:
+            assert "description" not in v, v
+            assert "evidence" not in v, v
+            assert "fine_rub" not in v, v
+        assert rep["infrastructure_and_geo"]["server_country_ru"] is None
+        assert rep["technical_appendix"]["documents_found"] == []
 
-        # PDF для free → 402
+        # PDF на free → 402
         r = await client.get(f"/api/reports/{report_id}/pdf", headers=auth)
-        assert r.status_code == 402, r.status_code
+        assert r.status_code == 402
 
         # Чужой отчёт → 404
         other_email = f"v{uuid.uuid4().hex[:10]}@example.com"
         r2 = await client.post("/api/auth/register",
-                               json={"email": other_email, "password": "secretpass1"})
+                               json={"email": other_email, "password": "secretpass1", "consent": True})
         other = {"Authorization": f"Bearer {r2.json()['token']}"}
         r = await client.get(f"/api/reports/{report_id}", headers=other)
         assert r.status_code == 404
 
-    # Корректно закрываем движок до закрытия loop'а — иначе asyncpg на Windows ругается.
+        # Checkout чужого отчёта → 404
+        r = await client.post("/api/billing/checkout",
+                              json={"plan": "paid", "report_id": report_id}, headers=other)
+        assert r.status_code == 404
+
+        # Checkout своего → 200 + paid=True
+        r = await client.post("/api/billing/checkout",
+                              json={"plan": "paid", "report_id": report_id}, headers=auth)
+        assert r.status_code == 200, r.text
+        assert r.json()["paid"] is True
+
+        # После оплаты — полный отчёт
+        r = await client.get(f"/api/reports/{report_id}", headers=auth)
+        assert r.status_code == 200
+        rep = r.json()
+        assert rep["_paid"] is True
+        assert rep["violations"][0].get("description")
+        assert rep["violations"][0].get("evidence") is not None
+        assert "ai_analysis" in rep["technical_appendix"]
+
+        # PDF: бьём в pdfreport — мокаем render_pdf
+        with patch("app.routers.reports.render_pdf", return_value=b"%PDF-1.4 fake"):
+            r = await client.get(f"/api/reports/{report_id}/pdf", headers=auth)
+        assert r.status_code == 200, r.text
+        assert r.headers["content-type"] == "application/pdf"
+        assert r.content.startswith(b"%PDF")
+
     from app.db import engine as _engine
     await _engine.dispose()
 

@@ -59,6 +59,7 @@ JSON обслуживает трёх потребителей. Это объяс
 | `pages_requested_limit` | number | Лимит страниц на этот скан (= `config.max_pages`). |
 | `pages_crawled` | number | Сколько страниц фактически обойдено. |
 | `errors` | array&lt;string&gt; | Ошибки уровня обхода (заблокировано robots, таймаут и т.п.). |
+| `server_ip` | string \| null | IP origin'а стартовой страницы — снимается через `Response.server_addr()` Playwright. Страну/хостинг/локализацию по этому IP определяет LLM на бэке. `null`, если страница не загрузилась. **Введено в schema 1.3.** |
 
 **Значения `status`:**
 - `failed` — стартовая страница не загрузилась / `pages_crawled == 0`.
