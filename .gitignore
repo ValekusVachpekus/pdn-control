@@ -42,3 +42,7 @@ __pycache__/
 data.json
 backend/test*.db
 backend/*.json
+# --- Сгенерированные артефакты отчётов ---
+*.pdf
+*.png
+data.json
