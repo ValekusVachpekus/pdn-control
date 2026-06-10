@@ -53,13 +53,25 @@ function ReportLoading() {
   );
 }
 
+// Навигация переживает reload (issue #15): храним текущий экран в sessionStorage
+// (per-tab, чистится при закрытии вкладки). paid/user сюда НЕ кладём — paid
+// приходит от бэка при re-fetch отчёта, user восстанавливается из getStoredAuth().
+const NAV_KEY = 'pdn_nav';
+function readStoredNav() {
+  try {
+    const raw = sessionStorage.getItem(NAV_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState('landing'); // landing | scanning | app | policy
+  const storedNav = readStoredNav();
+  const [screen, setScreen] = useState(storedNav?.screen || 'landing'); // landing | scanning | app | policy
   const [prevScreen, setPrevScreen] = useState('landing'); // куда вернуться с экрана политики
-  const [nav, setNav] = useState('report');
-  const [domain, setDomain] = useState('');
-  const [reportId, setReportId] = useState(null);
+  const [nav, setNav] = useState(storedNav?.nav || 'report');
+  const [domain, setDomain] = useState(storedNav?.domain || '');
+  const [reportId, setReportId] = useState(storedNav?.reportId ?? null);
   const [report, setReport] = useState(null); // модель UI из api.fetchReport
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
@@ -90,6 +102,13 @@ function App() {
     root.style.setProperty('--accent-ink', pal.ink);
     root.style.setProperty('--ring', pal.soft);
   }, [t.dark, t.accent]);
+
+  // Сохраняем навигацию для переживания reload (issue #15).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NAV_KEY, JSON.stringify({ screen, nav, domain, reportId }));
+    } catch {}
+  }, [screen, nav, domain, reportId]);
 
   const toast = (text, kind = 'info') => {
     const id = Date.now() + Math.random();
