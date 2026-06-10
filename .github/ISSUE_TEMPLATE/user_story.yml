@@ -1,0 +1,46 @@
+name: User Story
+description: Пользовательская история (фича с точки зрения роли/персоны)
+title: "[US] "
+labels: ["user story"]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: Роль / персона
+      description: От лица кого пишется история.
+      placeholder: "Как владелец малого бизнеса…"
+    validations:
+      required: true
+  - type: input
+    id: action
+    attributes:
+      label: Желаемое действие
+      description: Что пользователь хочет сделать.
+      placeholder: "…я хочу проверить свой сайт по URL…"
+    validations:
+      required: true
+  - type: input
+    id: value
+    attributes:
+      label: Ожидаемая ценность
+      description: Зачем это нужно, какую пользу даёт.
+      placeholder: "…чтобы узнать типовые риски нарушения 152-ФЗ."
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Контекст, детали, ограничения, ссылки на макеты.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки
+      description: Проверяемые условия, при которых история считается выполненной.
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
