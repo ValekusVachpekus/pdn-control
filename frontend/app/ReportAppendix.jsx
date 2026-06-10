@@ -77,23 +77,105 @@ function ReportAppendix({ r, isSpec, onToast }) {
         </div>
       </div>
 
-      {/* AI analysis — specialist only */}
-      {isSpec && (
+      {/* AI-анализ юридических текстов: показываем всем платным пользователям —
+          это и есть «полный отчёт», ради которого они платят. Не привязываем
+          к режиму «Специалист». */}
+      {r.aiNotes.length > 0 && (
         <div className="card" style={{ padding: 20, marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <Icon name="ai" size={16} style={{ color: 'var(--accent)' }} />
-            <span className="label-eyebrow">AI-анализ текстов</span>
+            <span className="label-eyebrow">AI-анализ юридических текстов</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+            Разбор политик, согласий и cookie-уведомлений с привязкой к статьям 152-ФЗ
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {r.aiNotes.map((n, i) => {
-              const vd = aiVerdict[n.verdict];
+              const vd = aiVerdict[n.verdict] || { c: '', l: '—' };
               return (
-                <div key={i} style={{ padding: '13px 15px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{n.doc}</span>
+                <div key={i} style={{ padding: '16px 18px', background: 'var(--surface-2)',
+                  border: '1px solid var(--border)', borderRadius: 12 }}>
+                  {/* шапка карточки документа */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700 }}>{n.doc}</span>
                     <span className={`chip ${vd.c}`} style={{ fontSize: 11 }}>{vd.l}</span>
+                    {n.complianceScore != null && (
+                      <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
+                        Балл: <b style={{ color: 'var(--ink)' }}>{n.complianceScore}</b>/100
+                      </span>
+                    )}
                   </div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>{n.text}</p>
+
+                  {/* сводка */}
+                  {n.text && (
+                    <p style={{ margin: '0 0 10px', fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                      {n.text}
+                    </p>
+                  )}
+
+                  {/* отсутствующие обязательные разделы */}
+                  {n.missingSections?.length > 0 && (
+                    <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8,
+                      background: 'var(--crit-soft)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--crit-ink)',
+                        marginBottom: 4 }}>
+                        Отсутствуют обязательные блоки 152-ФЗ:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--crit-ink)',
+                        lineHeight: 1.5 }}>
+                        {n.missingSections.map((m, j) => <li key={j}>{m}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* конкретные проблемы с цитатами */}
+                  {n.issues?.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                        Конкретные проблемы в тексте:
+                      </div>
+                      {n.issues.map((is, j) => (
+                        <div key={j} style={{ marginBottom: 8, padding: '10px 12px',
+                          borderRadius: 8, background: 'var(--warn-soft)',
+                          borderLeft: '3px solid var(--warn)' }}>
+                          {is.article && (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn-ink)',
+                              marginBottom: 4 }}>
+                              {is.article}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 12.5, fontStyle: 'italic', color: 'var(--muted)',
+                            marginBottom: 6, lineHeight: 1.5 }}>
+                            «{is.quote}»
+                          </div>
+                          <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                            <b>Проблема:</b> {is.problem}
+                          </div>
+                          {is.fix && (
+                            <div style={{ fontSize: 12.5, color: 'var(--info-ink, #1565c0)',
+                              lineHeight: 1.5, marginTop: 3 }}>
+                              <b>Как исправить:</b> {is.fix}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* что сделано правильно */}
+                  {n.strengths?.length > 0 && (
+                    <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                      background: 'var(--ok-soft)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ok-ink)',
+                        marginBottom: 4 }}>
+                        Что сделано правильно:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--ok-ink)',
+                        lineHeight: 1.5 }}>
+                        {n.strengths.map((s, j) => <li key={j}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               );
             })}

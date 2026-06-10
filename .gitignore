@@ -1,5 +1,7 @@
 # --- Секреты и локальная конфигурация ---
 .env
+.env.secret
+.env.*.local
 .env.*
 !.env.example
 *.local
@@ -29,6 +31,17 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# --- IDE / агенты ---
+.claude/
+.idea/
+.vscode/
+
+# --- Сгенерированные артефакты ---
+*.pdf
+*.png
+data.json
+backend/test*.db
+backend/*.json
 # --- Сгенерированные артефакты отчётов ---
 *.pdf
 *.png

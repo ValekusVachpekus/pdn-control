@@ -1,18 +1,30 @@
 /* ===== ПДн Контроль — Landing ===== */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Icon, Logo } from './shared.jsx';
 import { isValidDomain, normalizeDomain } from './api.js';
 
-function Landing({ onStart, onLogin, onUpgrade, user, onOpenPolicy }) {
+function Landing({ onStart, onLogin, onLogout, onUpgrade, onOpenHistory, user, onOpenPolicy }) {
   const [url, setUrl] = useState('');
   const [focus, setFocus] = useState(false);
   const [err, setErr] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Закрываем меню профиля при клике снаружи.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [menuOpen]);
 
   const submit = () => {
     const raw = url.trim();
-    // пустой ввод → демо-домен; иначе строго валидируем (отсекает SQL/инъекционные символы)
-    if (!raw) { onStart('klinika-zdorovie.ru'); return; }
+    // Пустой ввод → подсветить ошибку, не отправлять заглушечный домен.
+    if (!raw) { setErr(true); inputRef.current?.focus(); return; }
     if (!isValidDomain(raw)) { setErr(true); return; }
     onStart(normalizeDomain(raw));
   };
@@ -36,15 +48,39 @@ function Landing({ onStart, onLogin, onUpgrade, user, onOpenPolicy }) {
           <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-.01em' }}>ПДн Контроль</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn btn-quiet" style={{ height: 38 }} onClick={() => onStart('klinika-zdorovie.ru', true)}>
-            <Icon name="history" size={17} /> Пример отчёта
+          <button className="btn btn-quiet" style={{ height: 38 }}
+            onClick={() => user ? onOpenHistory?.() : onLogin?.()}>
+            <Icon name="history" size={17} /> История
           </button>
           <button className="btn btn-quiet" style={{ height: 38 }} onClick={onUpgrade}>
             <Icon name="bolt" size={17} /> Тарифы
           </button>
-          <button className="btn btn-ghost" style={{ height: 38 }} onClick={onLogin}>
-            {user ? <><Icon name="user" size={16} /> {user.email}</> : 'Войти'}
-          </button>
+          {user ? (
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <button className="btn btn-ghost" style={{ height: 38 }}
+                onClick={() => setMenuOpen(o => !o)}>
+                <Icon name="user" size={16} /> {user.email}
+              </button>
+              {menuOpen && (
+                <div className="card fade-up" style={{ position: 'absolute', top: 'calc(100% + 6px)',
+                  right: 0, minWidth: 200, padding: 6, boxShadow: 'var(--shadow-lg)', zIndex: 100 }}>
+                  <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--muted)',
+                    borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                    {user.email}
+                  </div>
+                  <button className="btn btn-quiet" style={{ width: '100%', height: 36,
+                    justifyContent: 'flex-start' }}
+                    onClick={() => { setMenuOpen(false); onLogout?.(); }}>
+                    <Icon name="arrow" size={15} style={{ transform: 'rotate(180deg)' }} /> Выйти
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button className="btn btn-ghost" style={{ height: 38 }} onClick={onLogin}>
+              Войти
+            </button>
+          )}
         </div>
       </header>
 

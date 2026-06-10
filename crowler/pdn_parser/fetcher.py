@@ -28,6 +28,11 @@ class FetchResult:
     request_urls: list[str] = field(default_factory=list)
     links: list[str] = field(default_factory=list)
     error: str | None = None
+    # IP сервера, к которому реально подключился Playwright при загрузке этой
+    # страницы. Берётся через Response.server_addr() — это IP origin'а после
+    # HTTP-редиректов. Для CDN-сайтов вернёт IP CDN-узла, что и нужно для
+    # оценки ст. 18 ч. 5 152-ФЗ (локализация ПДн).
+    server_ip: str | None = None
 
 
 async def fetch_page(
@@ -35,7 +40,11 @@ async def fetch_page(
     url: str,
     *,
     timeout_ms: int = 20_000,
-    wait_until: str = "networkidle",
+    # domcontentloaded быстрее и надёжнее: на SPA (React/Vue) networkidle
+    # часто не наступает вообще (фоновые WebSocket/SSE), и мы зависаем до
+    # полного timeout_ms × pages. Все факты, которые мы парсим (формы, скрипты,
+    # cookie), к moment'у DCL уже на месте.
+    wait_until: str = "domcontentloaded",
     user_agent: str = DEFAULT_UA,
 ) -> FetchResult:
     context = await browser.new_context(user_agent=user_agent, locale="ru-RU")
@@ -66,6 +75,16 @@ async def fetch_page(
         await context.close()
         return FetchResult(url=url, final_url=url, status=None, error=str(exc))
 
+    # IP origin'а. Глотаем любую ошибку — поле опциональное.
+    server_ip: str | None = None
+    if response is not None:
+        try:
+            addr = await response.server_addr()
+            if addr:
+                server_ip = addr.get("ipAddress")
+        except PlaywrightError:
+            pass
+
     await context.close()
     return FetchResult(
         url=url,
@@ -76,4 +95,5 @@ async def fetch_page(
         cookies=cookies,
         request_urls=request_urls,
         links=links,
+        server_ip=server_ip,
     )

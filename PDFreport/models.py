@@ -27,11 +27,13 @@ class DocumentMeta(_Base):
 
 
 class Scoring(_Base):
-    overall_score: int
-    risk_level: str  # CRITICAL|HIGH|MEDIUM|LOW|SAFE — неизвестные значения шаблон не ломают
-    risk_label_ru: str
-    legal_score: int
-    technical_score: int
+    # None допустимо для отчётов «не удалось проверить» (UNKNOWN risk_level) — в этом
+    # случае шаблон Typst скрывает блок оценки рисков.
+    overall_score: int | None = None
+    risk_level: str = "UNKNOWN"  # CRITICAL|HIGH|MEDIUM|LOW|SAFE|UNKNOWN
+    risk_label_ru: str = "—"
+    legal_score: int | None = None
+    technical_score: int | None = None
 
 
 class Stats(_Base):
@@ -108,10 +110,25 @@ class DataCollectionPoint(_Base):
     fields: list[str] = Field(default_factory=list)
 
 
+class AiIssue(_Base):
+    quote: str  # цитата проблемной формулировки из документа
+    article: str | None = None  # «ст. X ч. Y» — статья 152-ФЗ, к которой привязка
+    problem: str  # что не так с цитатой
+    fix: str | None = None  # что добавить/переписать
+
+
 class AiNote(_Base):
     doc: str
     verdict: str | None = None  # "good" | "partial" | "bad"
+    # Краткое резюме для UI/обратной совместимости (старый шаблон читает text).
     text: str | None = None
+    # Новый структурный разбор — все поля опциональны, чтобы старые отчёты
+    # (которые в БД лежат без них) не ломались валидацией.
+    compliance_score: int | None = None  # 0-100
+    summary: str | None = None
+    missing_sections: list[str] = Field(default_factory=list)
+    issues: list[AiIssue] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
 
 
 class TechnicalAppendix(_Base):

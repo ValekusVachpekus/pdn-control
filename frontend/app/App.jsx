@@ -10,7 +10,8 @@ import Auth from './Auth.jsx';
 import Pricing from './Pricing.jsx';
 import Policy from './Policy.jsx';
 import CookieBanner from './CookieBanner.jsx';
-import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK } from './api.js';
+import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK,
+  getStoredAuth, logout as apiLogout, getAuthHeader } from './api.js';
 
 const ACCENTS = {
   '#1F8A5B': { press: '#1A7A50', l: { soft: '#E7F3EC', ink: '#0F5235' }, d: { soft: 'rgba(40,160,105,.18)', ink: '#6FD9A6' } },
@@ -62,9 +63,20 @@ function App() {
   const [report, setReport] = useState(null); // модель UI из api.fetchReport
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
-  const [user, setUser] = useState(null);   // текущий пользователь (после входа)
+  // user восстанавливаем из localStorage при загрузке — иначе токен в api.js есть,
+  // а UI считает, что пользователь не залогинен (и шлёт его на форму входа).
+  const [user, setUser] = useState(() => getStoredAuth()?.user || null);
   const [paid, setPaid] = useState(false);  // оплачен ли ТЕКУЩИЙ отчёт (разовая оплата, per-report)
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
+
+  const handleLogout = () => {
+    apiLogout();
+    setUser(null);
+    setReportId(null);
+    setReport(null);
+    setScreen('landing');
+    toast('Вы вышли из аккаунта', 'ok');
+  };
 
   // apply theme + accent
   useEffect(() => {
@@ -85,14 +97,37 @@ function App() {
     setTimeout(() => setToasts(x => x.filter(i => i.id !== id)), 2800);
   };
 
-  // загрузка отчёта по reportId (единый JSON Контракта №2 → модель UI)
+  // Загрузка отчёта с polling'ом: пока скан ещё не завершён, бэк отвечает 409
+  // (status=pending/running). Подождём — таймаут 3 минуты, шаг 2 секунды.
   useEffect(() => {
     if (!reportId) return;
     let alive = true;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 45; // 45 × 2с = 1.5 мин; failed-сканы бэк теперь отдаёт сразу
     setReport(null);
-    fetchReport(reportId)
-      .then(r => { if (alive) setReport(r); })
-      .catch(() => { if (alive) toast('Не удалось загрузить отчёт', 'info'); });
+
+    const tick = async () => {
+      if (!alive) return;
+      try {
+        const r = await fetchReport(reportId);
+        if (alive) {
+          setReport(r);
+          // Источник истины по оплате — бэкенд (_paid из mapReport).
+          if (r.paid) setPaid(true);
+        }
+      } catch (err) {
+        attempts++;
+        if (err.status === 409 && attempts < MAX_ATTEMPTS) {
+          setTimeout(tick, 2000);
+        } else if (alive) {
+          const msg = err.status === 401 ? 'Войдите в аккаунт' :
+                      err.status === 404 ? 'Отчёт не найден' :
+                      'Не удалось загрузить отчёт';
+          toast(msg, 'info');
+        }
+      }
+    };
+    tick();
     return () => { alive = false; };
   }, [reportId]);
 
@@ -107,9 +142,41 @@ function App() {
     setScreen('scanning');
   };
 
-  const downloadPdf = () => {
+  // PDF: window.open() не передаёт Authorization-заголовок, поэтому качаем
+  // fetch'ем с Bearer и инициируем скачивание через blob.
+  const downloadPdf = async () => {
     if (IS_MOCK || !reportId) { toast('Отчёт сформирован — PDF загружается', 'ok'); return; }
-    window.open(reportPdfUrl(reportId), '_blank');
+    try {
+      const res = await fetch(reportPdfUrl(reportId), { headers: getAuthHeader() });
+      if (!res.ok) {
+        if (res.status === 402) { toast('Сначала оплатите отчёт', 'info'); return; }
+        if (res.status === 401) { toast('Войдите в аккаунт', 'info'); return; }
+        toast('Не удалось скачать PDF', 'info'); return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${reportId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('PDF скачан', 'ok');
+    } catch {
+      toast('Не удалось скачать PDF', 'info');
+    }
+  };
+
+  // После оплаты — перезагружаем отчёт с бэка, чтобы получить полные данные
+  // (детали нарушений, инфраструктура, AI-анализ были скрыты на free-режиме).
+  const handlePaid = async () => {
+    setPaid(true);
+    if (!reportId || IS_MOCK) return;
+    try {
+      const r = await fetchReport(reportId);
+      setReport(r);
+    } catch { /* отчёт обновится при следующем рендере */ }
   };
 
   const toggleDark = () => setTweak('dark', !t.dark);
@@ -124,18 +191,34 @@ function App() {
   return (
     <>
       {screen === 'landing' && <Landing onStart={startScan} user={user}
-        onLogin={() => setModal('auth')} onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy} />}
+        onLogin={() => setModal('auth')} onLogout={handleLogout}
+        onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy}
+        onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
       {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
+          paid={paid} onUpgrade={() => setModal('pricing')}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && (report
             ? <Report r={report} detail={detail} onToast={toast} paid={paid}
                 onUnlock={() => setModal('pricing')}
-                onDownload={downloadPdf} onRescan={() => { setPaid(false); setScreen('scanning'); }} />
+                onDownload={downloadPdf}
+                onRescan={() => { if (domain) startScan(domain); }} />
             : <ReportLoading />)}
-          {nav === 'history' && <History onOpen={() => setNav('report')} onToast={toast} />}
+          {nav === 'history' && <History
+            currentReportId={reportId}
+            onToast={toast}
+            onOpen={(id) => {
+              if (id && id !== reportId) {
+                // Открываем выбранный из истории отчёт. paid не знаем,
+                // setPaid(false) — фронт перезагрузит отчёт; если оплачен,
+                // бэк отдаст полные данные.
+                setPaid(false);
+                setReportId(id);
+              }
+              setNav('report');
+            }} />}
         </AppShell>
       )}
 
@@ -156,7 +239,7 @@ function App() {
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
         onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
       <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
-        paid={paid} onPaid={() => setPaid(true)} user={user}
+        paid={paid} onPaid={handlePaid} user={user} reportId={reportId}
         onRequireAuth={() => setModal('auth')} />
 
       <Toasts items={toasts} />

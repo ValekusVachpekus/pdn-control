@@ -119,8 +119,42 @@ function LockedOverlay({ onUnlock }) {
   );
 }
 
+function ScanFailedBanner({ r, onRescan }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <div className="card fade-up" style={{ maxWidth: 560, padding: '32px 32px 28px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, margin: '0 auto 16px',
+          background: 'var(--warn-soft)', display: 'grid', placeItems: 'center' }}>
+          <Icon name="alert" size={28} stroke={2} style={{ color: 'var(--warn-ink)' }} />
+        </div>
+        <h2 style={{ margin: '0 0 10px', fontSize: 19, fontWeight: 700, letterSpacing: '-.01em' }}>
+          Не удалось проверить сайт
+        </h2>
+        <p style={{ margin: '0 0 8px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+          {r.conclusionPlain || r.conclusion}
+        </p>
+        <p style={{ margin: '0 0 22px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+          Это бывает, когда сайт защищён captcha/бот-детектором,
+          требует JS-рендера или временно недоступен.
+        </p>
+        <button className="btn btn-primary" style={{ height: 44, padding: '0 22px',
+          justifyContent: 'center' }} onClick={onRescan}>
+          <Icon name="scan" size={17} stroke={2} /> Повторить проверку
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnlock }) {
+  // Сначала отлавливаем «парсер не зашёл на сайт» — не нужно рисовать обычный отчёт
+  // с фейковым score и пустыми блоками. Чистая заглушка с приглашением повторить.
+  // Доп. защита: если бэк не проставил _scan_failed, но score/band не распознаны
+  // (UNKNOWN risk_level), всё равно показываем баннер вместо краша при RISK_BANDS[r.band].
   const bands = RISK_BANDS[r.band];
+  if (r.scanFailed || !bands || r.score == null) {
+    return <ScanFailedBanner r={r} onRescan={onRescan} />;
+  }
   const isSpec = detail === 'specialist';
   const [sev, setSev] = useState('all');
   const [role, setRole] = useState('all');
@@ -220,10 +254,14 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
           </div>
         </div>
 
-        {/* disclaimer */}
+        {/* disclaimer + AI-источник */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '14px 2px 0', fontSize: 12.5, color: 'var(--muted)' }}>
-          <Icon name="info" size={15} style={{ marginTop: 1, flexShrink: 0, color: 'var(--faint)' }} />
-          <span>Предварительный технический аудит, а не юридическое заключение. Отчёт не гарантирует полное соответствие 152-ФЗ и не заменяет консультацию юриста.</span>
+          <Icon name="ai" size={15} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent)' }} />
+          <span>
+            <b style={{ color: 'var(--ink-2)' }}>Оценка и нарушения сформированы AI</b> на основании
+            152-ФЗ (ред. от 24.06.2025) и КоАП РФ ст. 13.11 (ред. с 30.05.2025).
+            Это предварительный аудит, а не юридическое заключение — не заменяет консультацию юриста.
+          </span>
         </div>
 
         {/* conclusion */}
@@ -319,32 +357,58 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
 }
 
 function InfraCard({ r, isSpec }) {
+  // Какие поля показывать: IP — только для «специалиста», страна/хостинг — всем.
+  // Пустые значения рисуем как «—», чтобы карточка не зияла.
   const rows = [
-    { icon: 'server', label: 'IP сервера', value: r.infra.ip, mono: true, hideOwner: true },
-    { icon: 'globe', label: 'Страна сервера', value: `${r.infra.countryFlag} ${r.infra.country}` },
-    { icon: 'building', label: 'Хостинг-провайдер', value: r.infra.hosting },
+    { icon: 'server', label: 'IP сервера', value: r.infra.ip || '—', mono: true, hideOwner: true },
+    { icon: 'globe', label: 'Страна сервера',
+      value: r.infra.country ? `${r.infra.countryFlag} ${r.infra.country}`.trim() : '—' },
+    { icon: 'building', label: 'Хостинг-провайдер', value: r.infra.hosting || '—' },
   ];
+
+  // Три состояния локализации задают и chip в шапке, и цвет рамки/полоски с примечанием.
+  const STATES = {
+    compliant:     { chip: 'chip-ok',   text: 'Соответствует', border: 'var(--ok)',
+                     bg: 'var(--ok-soft)',   ink: 'var(--ok-ink)',   icon: 'checkcircle' },
+    non_compliant: { chip: 'chip-crit', text: 'Нарушение',     border: 'var(--crit)',
+                     bg: 'var(--crit-soft)', ink: 'var(--crit-ink)', icon: 'xcircle' },
+    unknown:       { chip: 'chip-warn', text: 'Не определено', border: 'var(--warn)',
+                     bg: 'var(--warn-soft)', ink: 'var(--warn-ink)', icon: 'alert' },
+  };
+  const st = STATES[r.infra.localizationStatus] || STATES.unknown;
+
   return (
-    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: 'var(--crit)' }}>
+    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: st.border }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
         <Icon name="server" size={18} style={{ color: 'var(--ink-2)' }} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Инфраструктура и геолокация</h2>
-        <span className="chip chip-crit" style={{ marginLeft: 'auto' }}><Icon name="xcircle" size={13} stroke={2} /> Нарушение</span>
+        <span className={`chip ${st.chip}`} style={{ marginLeft: 'auto' }}>
+          <Icon name={st.icon} size={13} stroke={2} /> {st.text}
+        </span>
       </div>
-      <div className="infra-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${rows.filter(row => isSpec || !row.hideOwner).length},1fr)`, gap: 1, background: 'var(--border)',
+      <div className="infra-grid" style={{ display: 'grid',
+        gridTemplateColumns: `repeat(${rows.filter(row => isSpec || !row.hideOwner).length},1fr)`,
+        gap: 1, background: 'var(--border)',
         borderRadius: 11, overflow: 'hidden', border: '1px solid var(--border)' }}>
         {rows.filter(row => isSpec || !row.hideOwner).map((row, i) => (
           <div key={i} style={{ background: 'var(--surface-2)', padding: '13px 15px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{row.label}</div>
-            <div className={row.mono ? 'mono' : ''} style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>{row.value}</div>
+            <div className={row.mono ? 'mono' : ''}
+              style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>{row.value}</div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 14, padding: '12px 14px', background: 'var(--crit-soft)', borderRadius: 10 }}>
-        <Icon name="alert" size={17} stroke={2} style={{ color: 'var(--crit-ink)', flexShrink: 0, marginTop: 1 }} />
+      <div style={{ display: 'flex', gap: 10, marginTop: 14, padding: '12px 14px',
+        background: st.bg, borderRadius: 10 }}>
+        <Icon name={st.icon} size={17} stroke={2}
+          style={{ color: st.ink, flexShrink: 0, marginTop: 1 }} />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--crit-ink)', marginBottom: 2 }}>Локализация ПДн в РФ (ст. 18 ч. 5)</div>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--crit-ink)', lineHeight: 1.5, opacity: .92 }}>{r.infra.note}</p>
+          <div style={{ fontSize: 13, fontWeight: 700, color: st.ink, marginBottom: 2 }}>
+            Локализация ПДн в РФ (ст. 18 ч. 5)
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: st.ink, lineHeight: 1.5, opacity: .92 }}>
+            {r.infra.note}
+          </p>
         </div>
       </div>
     </section>

@@ -132,7 +132,7 @@ function Meter({ label, value, color }) {
 }
 
 /* ---------- App shell (sidebar + topbar) ---------- */
-function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleTheme }) {
+function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleTheme, onUpgrade, paid }) {
   const items = [
     { id: 'report', icon: 'shield', label: 'Отчёт' },
     { id: 'history', icon: 'history', label: 'История' },
@@ -169,6 +169,16 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
           ))}
         </nav>
         <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '0 16px 16px' }}>
+          {onUpgrade && (
+            <button
+              className={`btn ${paid ? 'btn-ghost' : 'btn-primary'}`}
+              onClick={onUpgrade}
+              style={{ width: '100%', justifyContent: 'flex-start', height: 40, marginBottom: 8,
+                gap: 9, fontSize: 13.5 }}>
+              <Icon name={paid ? 'checkcircle' : 'bolt'} size={17} stroke={1.8} />
+              {paid ? 'Отчёт оплачен' : 'Разблокировать отчёт'}
+            </button>
+          )}
           <button
             className="btn btn-ghost"
             onClick={onToggleTheme}

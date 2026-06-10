@@ -48,7 +48,8 @@
         "robots_respected": { "type": "boolean" },
         "pages_requested_limit": { "type": "integer" },
         "pages_crawled": { "type": "integer" },
-        "errors": { "type": "array", "items": { "type": "string" } }
+        "errors": { "type": "array", "items": { "type": "string" } },
+        "server_ip": { "type": ["string", "null"], "description": "IP origin'а стартовой страницы (через Playwright Response.server_addr). Страну/хостинг/локализацию определяет LLM на бэке." }
       }
     },
     "summary_tracker": {

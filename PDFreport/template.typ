@@ -116,23 +116,56 @@
 // ============================================================================
 // ШАПКА
 // ============================================================================
+// Если target_url отличается от domain (например, https://example.com/path vs
+// example.com) — рисуем обе строки. Иначе только domain, чтобы не было дубля.
+#let _show-target-url = m.target_url != none and m.target_url != "" and m.target_url != m.domain
+
 #block(fill: rc, width: 100%, radius: 6pt, inset: 18pt)[
   #text(fill: white, size: 11pt)[Отчёт о проверке сайта на риски нарушения 152-ФЗ]
   #v(5pt)
   #text(fill: white, size: 22pt, weight: "bold")[#m.domain]
-  #v(2pt)
-  #text(fill: white, size: 10pt)[#m.target_url]
+  #if _show-target-url [
+    #v(2pt)
+    #text(fill: white, size: 10pt)[#m.target_url]
+  ]
 ]
+
+// Дата приходит как ISO-8601 (2026-06-09T08:52:57Z). Берём подстроку YYYY-MM-DD HH:MM —
+// человекочитаемо и без полной локализации (Typst не умеет parse дат с timezone).
+#let _humanize-date(s) = {
+  if s == none or s == "" { return "—" }
+  let d = if s.contains("T") { s.replace("T", " ") } else { s }
+  // Обрезаем секунды и Z: «2026-06-09 08:52:57Z» → «2026-06-09 08:52»
+  if d.len() >= 16 { d.slice(0, 16) } else { d }
+}
 
 #v(10pt)
 #grid(columns: (1fr, 1fr), row-gutter: 5pt, column-gutter: 16pt,
   [*Организация:* #dash(m.organization_name)],
-  [*Дата отчёта:* #m.generated_at],
+  [*Дата отчёта:* #_humanize-date(m.generated_at)],
   [*Страниц проверено:* #m.pages_scanned],
   [*Длительность скана:* #m.scan_duration_sec с],
   [*ID отчёта:* #raw(m.report_id)],
   [*Версия сканера:* #m.scanner_version],
 )
+
+// Если парсер не получил ни одной страницы — рисуем баннер «не удалось проверить»
+// и больше ничего не показываем (нет смысла в скоринге и нарушениях).
+#let _scan-failed = ("_scan_failed" in data and data._scan_failed) or m.pages_scanned == 0
+#if _scan-failed [
+  #v(16pt)
+  #block(fill: rgb("#fff7ed"), stroke: 1pt + rgb("#f59e0b"), radius: 6pt,
+    width: 100%, inset: 14pt)[
+    #text(weight: "bold", size: 13pt, fill: rgb("#7c2d12"))[Не удалось проверить сайт]
+    #v(6pt)
+    #text(size: 10.5pt, fill: rgb("#7c2d12"))[
+      Парсер не смог получить страницы сайта. Возможные причины: защита captcha/бот-детектором,
+      обязательный JS-рендер, требование авторизации, временная недоступность. Попробуйте
+      повторить проверку позже.
+    ]
+  ]
+]
+#if not _scan-failed [
 
 // ============================================================================
 // ОЦЕНКА РИСКОВ
@@ -156,9 +189,9 @@
 #v(9pt)
 #block(fill: rgb("#fff8e1"), stroke: 0.5pt + rgb("#e8a000"), radius: 4pt, inset: 9pt, width: 100%)[
   #text(size: 8.5pt)[
-    #text(weight: "bold")[Важно. ]
-    Это предварительный технический аудит сайта, а не юридическое заключение.
-    Отчёт не гарантирует полное соответствие 152-ФЗ и не заменяет консультацию юриста.
+    #text(weight: "bold")[Оценка и нарушения сформированы AI ]
+    на основании 152-ФЗ (ред. от 24.06.2025) и КоАП РФ ст. 13.11 (ред. с 30.05.2025).
+    Это предварительный технический аудит, а не юридическое заключение — не заменяет консультацию юриста.
   ]
 ]
 
@@ -215,8 +248,16 @@
   [Страна сервера], [#dash(geo.server_country_ru) (#dash(geo.server_country))],
   [Хостинг-провайдер], dash(geo.hosting_provider),
   [Локализация ПДн в РФ (ст. 18 ч. 5)],
-  if geo.localization_compliant { badge("Соответствует", color: ok-green) }
-  else { badge("Нарушение", color: rgb("#b3261e")) },
+  // Tri-state: предпочитаем новый ключ localization_status; падаем на legacy bool,
+  // если бэк ещё не апдейтнут.
+  {
+    let st = if "localization_status" in geo { geo.localization_status }
+             else if geo.localization_compliant { "compliant" }
+             else { "non_compliant" }
+    if st == "compliant" { badge("Соответствует", color: ok-green) }
+    else if st == "non_compliant" { badge("Нарушение", color: rgb("#b3261e")) }
+    else { badge("Не определено", color: rgb("#b78103")) }
+  },
 )
 #if geo.localization_note != none {
   v(4pt)
@@ -300,11 +341,28 @@
 
 #text(weight: "bold", size: 10pt)[Найденные документы]
 #v(3pt)
+// Сокращаем длинный URL до «host + …/last-segment», чтобы не ломал верстку.
+// Полный URL всё равно остаётся в исходном JSON, для чтения в браузере хватает.
+#let _short-url(u) = {
+  if u == none or u == "" { return "—" }
+  let s = str(u)
+  if s.len() <= 60 { return s }
+  // обрезаем строку, оставляя host и хвост
+  let parts = s.split("?")
+  let base = parts.at(0)
+  if base.len() <= 60 { return base + "?…" }
+  base.slice(0, 55) + "…"
+}
+
 #if ta.documents_found != none and ta.documents_found.len() > 0 {
-  table(columns: (1.3fr, 2fr, 1.2fr), stroke: 0.5pt + luma(220), inset: 7pt,
+  table(columns: (1.3fr, 2fr, 1fr), stroke: 0.5pt + luma(220), inset: 7pt,
     text(weight: "bold")[Документ], text(weight: "bold")[URL], text(weight: "bold")[Статус],
     ..ta.documents_found.map(d => (
-      dash(d.name), text(size: 8pt)[#dash(d.url)], dash(d.status),
+      dash(d.name),
+      // Кликабельная ссылка (в PDF откроется в браузере), визуально обрезана.
+      if d.url == none or d.url == "" { [—] }
+      else { text(size: 7.5pt, fill: rgb("#1565c0"))[#link(d.url)[#_short-url(d.url)]] },
+      dash(d.status),
     )).flatten()
   )
 } else [ #text(size: 9pt, fill: luma(110))[Документы не найдены.] ]
@@ -354,21 +412,87 @@
 #let ai = ta.at("ai_analysis", default: ())
 #if ai.len() > 0 {
   v(10pt)
-  text(weight: "bold", size: 10pt)[AI-анализ текстов]
-  v(3pt)
+  text(weight: "bold", size: 11pt)[AI-анализ юридических текстов]
+  v(2pt)
+  text(size: 8.5pt, fill: luma(110))[Разбор политик, согласий и cookie-уведомлений с привязкой к статьям 152-ФЗ]
+  v(6pt)
   for note in ai {
     let vd = ai-verdict.at(note.at("verdict", default: ""), default: (ru: "—", color: luma(120)))
-    block(width: 100%, inset: 9pt, radius: 4pt, breakable: true,
-      fill: luma(249), stroke: 0.5pt + luma(222))[
-      #grid(columns: (1fr, auto), align: (left + horizon, right + horizon),
-        text(weight: "bold", size: 9.5pt)[#note.doc],
+    let score = note.at("compliance_score", default: none)
+    let summary = note.at("summary", default: none)
+    let missing = note.at("missing_sections", default: ())
+    let issues  = note.at("issues", default: ())
+    let strengths = note.at("strengths", default: ())
+
+    block(width: 100%, inset: 11pt, radius: 5pt, breakable: true,
+      fill: luma(250), stroke: 0.5pt + luma(220))[
+      // ── Шапка карточки: название документа + вердикт + балл
+      #grid(columns: (1fr, auto, auto), column-gutter: 8pt,
+        align: (left + horizon, right + horizon, right + horizon),
+        text(weight: "bold", size: 10.5pt)[#note.doc],
         badge(vd.ru, color: vd.color),
+        if score != none {
+          text(size: 8.5pt, fill: luma(110))[Балл: #text(weight: "bold", fill: vd.color)[#score]/100]
+        } else []
       )
-      #if note.at("text", default: none) != none {
-        v(3pt)
-        text(size: 9pt)[#note.text]
-      }
+
+      // ── Краткое резюме
+      #if summary != none and summary != "" [
+        #v(5pt)
+        #text(size: 9.5pt, fill: luma(60))[#summary]
+      ] else if note.at("text", default: none) != none [
+        #v(5pt)
+        #text(size: 9.5pt, fill: luma(60))[#note.text]
+      ]
+
+      // ── Отсутствующие обязательные разделы
+      #if missing.len() > 0 [
+        #v(8pt)
+        #text(weight: "bold", size: 9pt)[Отсутствуют обязательные блоки 152-ФЗ:]
+        #v(2pt)
+        #for m in missing [
+          - #text(size: 8.5pt)[#m]
+        ]
+      ]
+
+      // ── Конкретные проблемы с цитатами
+      #if issues.len() > 0 [
+        #v(8pt)
+        #text(weight: "bold", size: 9pt)[Конкретные проблемы в тексте:]
+        #v(4pt)
+        #for is in issues [
+          #block(width: 100%, inset: 8pt, radius: 3pt, breakable: true,
+            fill: rgb("#fff8e1"), stroke: (left: 2.5pt + rgb("#e8a000")))[
+            #if is.at("article", default: "") != "" [
+              #text(weight: "bold", size: 8pt, fill: rgb("#7a5b00"))[#is.article]
+              #v(2pt)
+            ]
+            // Цитата — курсив, узкие отступы
+            #text(size: 8.5pt, style: "italic", fill: luma(80))[«#is.quote»]
+            #v(3pt)
+            #text(size: 8.5pt)[#text(weight: "bold")[Проблема: ]#is.problem]
+            #if is.at("fix", default: "") != "" [
+              #v(2pt)
+              #text(size: 8.5pt, fill: rgb("#1565c0"))[#text(weight: "bold")[Как исправить: ]#is.fix]
+            ]
+          ]
+          #v(4pt)
+        ]
+      ]
+
+      // ── Что сделано хорошо
+      #if strengths.len() > 0 [
+        #v(6pt)
+        #text(weight: "bold", size: 9pt, fill: ok-green)[Что сделано правильно:]
+        #v(2pt)
+        #for s in strengths [
+          - #text(size: 8.5pt)[#s]
+        ]
+      ]
     ]
-    v(5pt)
+    v(8pt)
   }
 }
+
+// закрываем блок «не failed»: всё содержимое отчёта рендерится только если парсер не упал
+]
