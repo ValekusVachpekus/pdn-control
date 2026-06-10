@@ -72,7 +72,7 @@ docker compose up --build                          # http://localhost:8020
 
 Каждый подсервис имеет `Dockerfile` и `docker-compose.yml` для контейнерного запуска
 (порты: frontend `8000`, crowler `8010`, PDFreport `8020`). Ссылка на актуальный деплой
-и демо публикуются в [Releases](../../releases) по мере выхода версий.
+и демо публикуются в [Releases](https://github.com/ValekusVachpekus/pdn-control/releases) по мере выхода версий.
 
 ## Лицензия
 
