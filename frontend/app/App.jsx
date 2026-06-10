@@ -213,7 +213,9 @@ function App() {
         onLogin={() => setModal('auth')} onLogout={handleLogout}
         onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy}
         onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
-      {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
+      {screen === 'scanning' && <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
+        onDone={() => { setScreen('app'); setNav('report'); }}
+        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }} />}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
