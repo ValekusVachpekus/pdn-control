@@ -215,7 +215,8 @@ function App() {
         onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
       {screen === 'scanning' && <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
         onDone={() => { setScreen('app'); setNav('report'); }}
-        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }} />}
+        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
+        onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}

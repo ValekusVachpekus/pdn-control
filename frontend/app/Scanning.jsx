@@ -4,7 +4,7 @@ import { Icon } from './shared.jsx';
 import { SCAN_STEPS } from './data.jsx';
 import { fetchScanStatus } from './api.js';
 
-function Scanning({ domain, reportId, isMock = true, onDone, onError }) {
+function Scanning({ domain, reportId, isMock = true, onDone, onError, onBackground }) {
   // Подставляем реальный домен в шаблоны лога: «Резолвинг DNS {domain}» → «… example.com».
   const steps = SCAN_STEPS.map(s => ({ ...s, text: s.text.replace('{domain}', domain || 'сайт') }));
   const SPEED = 0.62; // time compression
@@ -171,9 +171,21 @@ function Scanning({ domain, reportId, isMock = true, onDone, onError }) {
               : holdReal ? 'Проверка может занять несколько минут — не закрывайте страницу'
               : 'Краулер обходит публичные страницы и применяет правила проверки'}
           </span>
-          <button className="btn btn-primary" style={{ height: 38, opacity: finished ? 1 : .55 }} disabled={!finished} onClick={onDone}>
-            Открыть отчёт <Icon name="arrow" size={16} />
-          </button>
+          {finished ? (
+            <button className="btn btn-primary" style={{ height: 38 }} onClick={onDone}>
+              Открыть отчёт <Icon name="arrow" size={16} />
+            </button>
+          ) : !isMock ? (
+            // Скан идёт в фоне на сервере независимо от фронта — даём свернуть его
+            // в главное меню, не дожидаясь завершения. Прогресс виден в истории.
+            <button className="btn btn-ghost" style={{ height: 38 }} onClick={onBackground}>
+              В главное меню
+            </button>
+          ) : (
+            <button className="btn btn-primary" style={{ height: 38, opacity: .55 }} disabled>
+              Открыть отчёт <Icon name="arrow" size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

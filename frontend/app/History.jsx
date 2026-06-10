@@ -38,7 +38,12 @@ function StatusBadge({ status, scanFailed }) {
   }
   if (status === 'done') return null; // успешный — без бейджа
   if (status === 'failed') return <span className="chip chip-crit" style={{ fontSize: 11 }}>ошибка</span>;
-  if (status === 'running') return <span className="chip" style={{ fontSize: 11, background: 'var(--info-soft)', color: 'var(--info-ink, #1565c0)' }}>идёт</span>;
+  if (status === 'running') return (
+    <span className="chip" style={{ fontSize: 11, background: 'var(--info-soft)', color: 'var(--info-ink, #1565c0)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 7, height: 7, borderRadius: 99, background: 'currentColor', animation: 'blink .9s infinite' }} />
+      в процессе
+    </span>
+  );
   return <span className="chip" style={{ fontSize: 11, background: 'var(--surface-3)', color: 'var(--muted)' }}>в очереди</span>;
 }
 
@@ -55,13 +60,25 @@ function History({ onOpen, onToast, currentReportId }) {
   const [items, setItems] = useState(null);  // null = loading
   const [q, setQ] = useState('');
 
+  // Подгружаем историю и, пока есть незавершённые сканы (pending/running),
+  // периодически перезапрашиваем — чтобы «в процессе» сам сменился на результат.
   useEffect(() => {
     if (IS_MOCK) { setItems([]); return; }
     let alive = true;
-    fetchHistory()
-      .then(rows => { if (alive) setItems(rows); })
-      .catch(() => { if (alive) { setItems([]); onToast?.('Не удалось загрузить историю', 'info'); } });
-    return () => { alive = false; };
+    let timer;
+    const load = async () => {
+      try {
+        const rows = await fetchHistory();
+        if (!alive) return;
+        setItems(rows);
+        const inProgress = rows.some(r => r.status === 'pending' || r.status === 'running');
+        if (inProgress) timer = setTimeout(load, 4000);
+      } catch {
+        if (alive) { setItems(prev => prev ?? []); onToast?.('Не удалось загрузить историю', 'info'); }
+      }
+    };
+    load();
+    return () => { alive = false; clearTimeout(timer); };
   }, []);
 
   const list = (items || []).filter(it => {
@@ -139,7 +156,9 @@ function History({ onOpen, onToast, currentReportId }) {
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{formatDate(it.created_at)}</div>
-                  <div><ScorePill score={it.score} band={it.risk_level} /></div>
+                  <div>{clickable
+                    ? <ScorePill score={it.score} band={it.risk_level} />
+                    : <span style={{ color: 'var(--faint)', fontSize: 13 }}>—</span>}</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {it.critical_count > 0 && <span className="chip chip-crit" style={{ fontSize: 11.5 }}>
                       <Icon name="xcircle" size={12} stroke={2} />{it.critical_count}
