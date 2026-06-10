@@ -1,22 +1,44 @@
+# --- Секреты и локальная конфигурация ---
 .env
 .env.secret
 .env.*.local
-CLAUDE.md
-.DS_Store
+.env.*
+!.env.example
+*.local
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
+# --- Заметки агента ---
+CLAUDE.md
+
+# --- ОС ---
+.DS_Store
+Thumbs.db
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+# Случайный экспорт дизайн-инструмента, не часть сборки
+/frontend/ПДн Контроль.html
+
+# --- Python ---
 .venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# IDE / agent
+# --- IDE / агенты ---
 .claude/
 .idea/
 .vscode/
 
-# Локальные тестовые БД
+# --- Сгенерированные артефакты ---
+*.pdf
+*.png
+data.json
 backend/test*.db
+backend/*.json
