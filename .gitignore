@@ -22,7 +22,7 @@ npm-debug.log*
 # Случайный экспорт дизайн-инструмента, не часть сборки
 /frontend/ПДн Контроль.html
 
-# --- Python ---
+# --- Python / crowler, PDFreport ---
 .venv/
 venv/
 __pycache__/
