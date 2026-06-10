@@ -53,6 +53,24 @@ function ReportLoading() {
   );
 }
 
+// Раздел «Отчёт» открыт, но отчёт не выбран (пустой аккаунт без проверок,
+// issue #17) — не крутим вечный спиннер, а зовём запустить проверку.
+function ReportEmpty({ onNewScan }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 14, color: 'var(--muted)', padding: 40, textAlign: 'center' }}>
+      <Icon name="doc" size={28} stroke={1.8} style={{ color: 'var(--faint)' }} />
+      <div style={{ fontSize: 15, fontWeight: 500 }}>Отчётов пока нет</div>
+      <div style={{ fontSize: 13.5, maxWidth: 340, lineHeight: 1.5 }}>
+        Запустите проверку сайта — её результат появится здесь и в истории.
+      </div>
+      <button className="btn btn-primary" style={{ height: 38, marginTop: 4 }} onClick={onNewScan}>
+        Запустить проверку <Icon name="arrow" size={16} />
+      </button>
+    </div>
+  );
+}
+
 // Навигация переживает reload (issue #15): храним текущий экран в sessionStorage
 // (per-tab, чистится при закрытии вкладки). paid/user сюда НЕ кладём — paid
 // приходит от бэка при re-fetch отчёта, user восстанавливается из getStoredAuth().
@@ -227,7 +245,9 @@ function App() {
                 onUnlock={() => setModal('pricing')}
                 onDownload={downloadPdf}
                 onRescan={() => { if (domain) startScan(domain); }} />
-            : <ReportLoading />)}
+            : reportId
+              ? <ReportLoading />
+              : <ReportEmpty onNewScan={() => setScreen('landing')} />)}
           {nav === 'history' && <History
             currentReportId={reportId}
             onToast={toast}
