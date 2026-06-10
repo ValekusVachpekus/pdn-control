@@ -53,13 +53,43 @@ function ReportLoading() {
   );
 }
 
+// Раздел «Отчёт» открыт, но отчёт не выбран (пустой аккаунт без проверок,
+// issue #17) — не крутим вечный спиннер, а зовём запустить проверку.
+function ReportEmpty({ onNewScan }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 14, color: 'var(--muted)', padding: 40, textAlign: 'center' }}>
+      <Icon name="doc" size={28} stroke={1.8} style={{ color: 'var(--faint)' }} />
+      <div style={{ fontSize: 15, fontWeight: 500 }}>Отчётов пока нет</div>
+      <div style={{ fontSize: 13.5, maxWidth: 340, lineHeight: 1.5 }}>
+        Запустите проверку сайта — её результат появится здесь и в истории.
+      </div>
+      <button className="btn btn-primary" style={{ height: 38, marginTop: 4 }} onClick={onNewScan}>
+        Запустить проверку <Icon name="arrow" size={16} />
+      </button>
+    </div>
+  );
+}
+
+// Навигация переживает reload (issue #15): храним текущий экран в sessionStorage
+// (per-tab, чистится при закрытии вкладки). paid/user сюда НЕ кладём — paid
+// приходит от бэка при re-fetch отчёта, user восстанавливается из getStoredAuth().
+const NAV_KEY = 'pdn_nav';
+function readStoredNav() {
+  try {
+    const raw = sessionStorage.getItem(NAV_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState('landing'); // landing | scanning | app | policy
+  const storedNav = readStoredNav();
+  const [screen, setScreen] = useState(storedNav?.screen || 'landing'); // landing | scanning | app | policy
   const [prevScreen, setPrevScreen] = useState('landing'); // куда вернуться с экрана политики
-  const [nav, setNav] = useState('report');
-  const [domain, setDomain] = useState('');
-  const [reportId, setReportId] = useState(null);
+  const [nav, setNav] = useState(storedNav?.nav || 'report');
+  const [domain, setDomain] = useState(storedNav?.domain || '');
+  const [reportId, setReportId] = useState(storedNav?.reportId ?? null);
   const [report, setReport] = useState(null); // модель UI из api.fetchReport
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // null | 'auth' | 'pricing'
@@ -90,6 +120,13 @@ function App() {
     root.style.setProperty('--accent-ink', pal.ink);
     root.style.setProperty('--ring', pal.soft);
   }, [t.dark, t.accent]);
+
+  // Сохраняем навигацию для переживания reload (issue #15).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NAV_KEY, JSON.stringify({ screen, nav, domain, reportId }));
+    } catch {}
+  }, [screen, nav, domain, reportId]);
 
   const toast = (text, kind = 'info') => {
     const id = Date.now() + Math.random();
@@ -194,7 +231,10 @@ function App() {
         onLogin={() => setModal('auth')} onLogout={handleLogout}
         onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy}
         onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
-      {screen === 'scanning' && <Scanning domain={domain} onDone={() => { setScreen('app'); setNav('report'); }} />}
+      {screen === 'scanning' && <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
+        onDone={() => { setScreen('app'); setNav('report'); }}
+        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
+        onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
@@ -205,7 +245,9 @@ function App() {
                 onUnlock={() => setModal('pricing')}
                 onDownload={downloadPdf}
                 onRescan={() => { if (domain) startScan(domain); }} />
-            : <ReportLoading />)}
+            : reportId
+              ? <ReportLoading />
+              : <ReportEmpty onNewScan={() => setScreen('landing')} />)}
           {nav === 'history' && <History
             currentReportId={reportId}
             onToast={toast}
