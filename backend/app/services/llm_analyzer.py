@@ -398,6 +398,7 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
         "temperature": 0,
         # На сайт с 5-7 нарушениями + AI-анализом 3 документов уходит ~5-8К
         # выходных токенов. Берём 8000 — хватит даже при подробных fix'ах.
+        "seed": 42,
         "max_tokens": 8000,
         **_DISABLE_THINKING,
     }
