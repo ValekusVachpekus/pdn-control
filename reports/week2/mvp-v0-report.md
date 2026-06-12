@@ -15,11 +15,13 @@ TODO
 
 ## Deployment URL / runnable-artifact link
 
-<!-- TODO: PUBLIC, internet-accessible URL (NOT the internal university-VM address
-     http://10.93.26.163:8080/, which is unreachable from the internet and does not
-     satisfy Part 4.4). Add a VPS/tunnel URL here, or a runnable-artifact/package link. -->
-- Deployment URL: TODO
-- Runnable artifact (if not hosted): TODO
+- **Deployment URL:** http://10.93.26.163:8080/
+- **Hosting:** university VM. Accessible from the **Innopolis University network**, where
+  the TA can reach it for grading. (A public VPS is not required for Assignment 2; external
+  access for the customer's own testing is tracked as a separate product follow-up.)
+  <!-- TODO: if the TA needs VPN/on-campus instructions to reach the university network, state them here. -->
+- **Runnable fallback:** if the VM is unreachable, the product can also be run locally via
+  the root README — see [Local setup instructions](#local-setup-instructions) below.
 
 ## Public video demonstration
 
@@ -57,9 +59,9 @@ Local setup and run commands live in the root README:
 > change).
 
 **Access instructions:**
-<!-- TODO: how the TA reaches the running product (public URL) and any dedicated
-     limited-permission test credentials (NEVER real/production secrets). -->
-TODO
+Open http://10.93.26.163:8080/ from the Innopolis University network.
+<!-- TODO: add any dedicated limited-permission test credentials if login is required
+     (NEVER real/production secrets), and VPN/on-campus access notes if needed. -->
 
 **Steps:**
 1. <!-- TODO: open the deployment URL --> TODO

@@ -68,7 +68,7 @@
 | 8   | Obtain the privacy policy and terms-of-use texts from the customer                       | ValekusVachpekus   | legal documents       |
 
 ## Risks
-- **MVP v0 is not accessible from the internet.** Deployed on a university VM (internal address `http://10.93.26.163:8080/`), reachable only from the Innopolis network. The customer cannot test it; per Assignment 2 (Part 4) a hosted product must be accessible from the internet until grading is complete. A VPS / external access is needed.
+- **MVP v0 is not accessible to the customer from outside the university.** Deployed on a university VM (`http://10.93.26.163:8080/`), reachable only from the Innopolis network. For Assignment 2 grading this is sufficient (the TA can access it on the university network), but the customer cannot test it himself from outside; he suggested obtaining a VPS for external access. This is a product follow-up, not an assignment blocker.
 - **Email registration is blocked without a domain.** SMTP will not work until the customer provides a domain.
 - **Reliability of the check.** There are parser bugs — some violations are not detected, which reduces trust in the result (total fine, number of violations).
 - **Legal accuracy is unconfirmed.** The fine calculation (US-02) and the 152-FZ article references (US-04) have not yet been reviewed by the customer's lawyer — risk of incorrect legal conclusions.

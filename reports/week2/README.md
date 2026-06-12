@@ -32,7 +32,7 @@ The interactive Figma prototype demonstrates the user flow for the following cor
 
 - [mvp-v0-report.md](mvp-v0-report.md) — purpose, deployment, video demo, limitations,
   local setup link, and the repeatable smoke-check scenario.
-- **Deployment / runnable artifact:** <!-- TODO: replace with the public internet-accessible URL; the internal university-VM address is not reachable from the internet --> _to be published (see mvp-v0-report.md)_.
+- **Deployment / runnable artifact:** http://10.93.26.163:8080/ — hosted on the university VM, accessible from the Innopolis University network (where the TA can reach it). See [mvp-v0-report.md](mvp-v0-report.md) for access instructions.
 - **Run instructions:** root [README.md → "Локальный запуск"](../../README.md#локальный-запуск).
 - **Public video demonstration (< 2 min):** <!-- TODO: paste the public sanitized video link --> _to be published (see mvp-v0-report.md)_.
 
@@ -88,8 +88,8 @@ manually in a browser before submission to confirm accessibility where applicabl
 
 **Deployed MVP v0 or runnable artifact**
 
-<!-- TODO: add a PNG screenshot of the deployed/running MVP v0 into images/ and embed it here -->
-_To be added once MVP v0 is publicly deployed — see [mvp-v0-report.md](mvp-v0-report.md)._
+<!-- TODO: add a PNG screenshot of the deployed/running MVP v0 (at http://10.93.26.163:8080/) into images/ and embed it here -->
+_To be added — see [mvp-v0-report.md](mvp-v0-report.md)._
 
 ## 7. Customer review
 

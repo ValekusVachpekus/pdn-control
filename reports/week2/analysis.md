@@ -40,10 +40,12 @@
 - **Rejected — the fine is more important than the score.** We assumed the total fine
   (US-02) should outrank the 0–100 score (US-07). The customer rejected this: the two must
   carry **equal** priority and be shown side by side. US-07 was raised to Must Have.
-- **Rejected — the university VM deployment is sufficient.** We assumed deploying on the
-  university VM would be enough for review. Rejected in practice: the address
-  (`http://10.93.26.163:8080/`) is only reachable inside the Innopolis network, so neither
-  the customer nor the TA can open it. An internet-accessible host is required.
+- **Confirmed — the university VM deployment is sufficient for grading.** We assumed
+  deploying on the university VM would be enough for review. Confirmed for Assignment 2:
+  the address (`http://10.93.26.163:8080/`) is reachable from the Innopolis University
+  network, where the TA can open it. A public host is *not* required for the assignment.
+  External access for the customer's own testing (a product concern raised in the review)
+  is a separate follow-up, not a grading blocker.
 - **Confirmed-with-dependency — email registration is feasible.** We assumed email/SMTP
   registration is doable; confirmed in principle but **blocked** until the customer
   provides a domain.
@@ -55,8 +57,10 @@
   customer's lawyer.
 - **152-FZ article references (US-04)** — is the article number enough, or are specific
   parts/clauses and tracking of the latest KoAP amendments required?
-- **External access / hosting** — VPS to be requested from the customer's contact; until
-  then MVP v0 fails the Part 4 internet-accessibility requirement.
+- **External access for the customer** — the customer wants to test MVP v0 himself from
+  outside the university network; a VPS/domain is to be requested from his contact. This is
+  a product follow-up and does not affect Assignment 2 grading (the TA accesses the VM on
+  the university network).
 - **Domain for SMTP** — required for email registration; to be provided by the customer.
 - **Legal texts** — privacy policy and terms of use are placeholders; the customer will
   provide the real text later.
@@ -75,8 +79,9 @@
   number of violations; the detailed violation list moves to the paid tier. Reflected in
   [user-stories.md](user-stories.md) notes and the gating in the prototype.
 - **Payment (US-06).** Target CloudPayments only; no custom payment system.
-- **Deployment.** Move MVP v0 to an internet-accessible host (VPS/tunnel) before grading;
-  see [mvp-v0-report.md](mvp-v0-report.md). Affects US-01/US-06 delivery for MVP v1.
+- **Deployment.** Keep MVP v0 on the university VM for Assignment 2 grading
+  (see [mvp-v0-report.md](mvp-v0-report.md)); arrange external access (VPS/domain) afterwards
+  so the customer can self-test. Affects US-01/US-06 delivery for MVP v1.
 - **Parser reliability (US-01).** Prioritize fixing the parser/check bugs that cause
   missed violations, since the free-tier value proposition depends on accurate counts.
 - **Legal validation (US-02/US-04).** Route the fine calculation and article references
