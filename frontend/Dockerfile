@@ -1,7 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# --include=dev форсирует установку devDependencies (vite) даже если в окружении
+# сборки выставлен NODE_ENV=production — иначе vite не ставится и build падает
+# с "vite: not found".
+RUN npm ci --include=dev
 COPY . .
 
 # Бэкенд доступен через nginx-прокси на том же origin, поэтому VITE_API_BASE пустой,
