@@ -44,15 +44,13 @@ The interactive Figma prototype demonstrates the user flow for the following cor
   - [PR #20](https://github.com/ValekusVachpekus/pdn-control/pull/20) — `llm_analyzer.py` update.
   - [PR #21](https://github.com/ValekusVachpekus/pdn-control/pull/21) — `.env.example` update.
   - [PR #23](https://github.com/ValekusVachpekus/pdn-control/pull/23) — realtime progress and deterministic scoring (open).
-  <!-- TODO: confirm each linked PR has a review (approval) by a different team member -->
 
 ## 5. Link checking (Lychee)
 
 - **Configuration:** [lychee.toml](../../lychee.toml).
 - **Workflow:** [.github/workflows/lychee.yml](../../.github/workflows/lychee.yml).
 - **Latest successful run on the protected default branch (`main`):**
-  [Lychee workflow runs](https://github.com/ValekusVachpekus/pdn-control/actions/workflows/lychee.yml?query=branch%3Amain+is%3Asuccess)
-  <!-- TODO: replace with the permalink to the specific latest successful run -->.
+  [run #27308571631](https://github.com/ValekusVachpekus/pdn-control/actions/runs/27308571631).
 
 ### Excluded Lychee links (justification + manual verification)
 
