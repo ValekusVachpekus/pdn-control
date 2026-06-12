@@ -18,6 +18,7 @@ from ..deps import get_current_user
 from ..models.scan import Scan, ScanStatus
 from ..models.user import User
 from ..schemas.scan import ScanCreateIn, ScanCreateOut, ScanStatusOut, normalize_domain
+from ..services import scan_progress
 from ..workers.tasks import run_scan
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
@@ -37,6 +38,9 @@ async def create_scan(
     # Коммитим до постановки таска, иначе воркер не увидит запись.
     await session.commit()
 
+    # Начальная фаза «в очереди» — фронт сразу видит реальный статус,
+    # не дожидаясь, пока воркер возьмёт задачу.
+    scan_progress.set_phase(str(scan.id), "queued")
     run_scan.delay(str(scan.id), body.url, max_pages=s.paid_max_pages, llm_enabled=True)
 
     return ScanCreateOut(report_id=scan.id)
@@ -110,3 +114,42 @@ async def scan_status(
         created_at=scan.created_at,
         finished_at=scan.finished_at,
     )
+
+
+@router.get("/{scan_id}/progress")
+async def scan_progress_endpoint(
+    scan_id: str,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Реальный прогресс сканирования для экрана ожидания.
+
+    Возвращает текущую фазу конвейера (queued → crawling → analyzing →
+    building → done/failed) и реальные счётчики от парсера (страниц обойдено,
+    форм, трекеров), как только они становятся известны. Данные берём из Redis;
+    если их там нет (TTL истёк), отдаём фазу по статусу из БД.
+    """
+    try:
+        sid = uuid.UUID(scan_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="not found")
+
+    scan = await session.get(Scan, sid)
+    if scan is None or scan.user_id != user.id:
+        raise HTTPException(status_code=404, detail="not found")
+
+    prog = scan_progress.get(scan_id)
+    if prog is None:
+        # Redis ничего не знает (TTL истёк/перезапуск) — выводим фазу из статуса БД.
+        fallback = {
+            ScanStatus.pending: "queued",
+            ScanStatus.running: "crawling",
+            ScanStatus.done: "done",
+            ScanStatus.failed: "failed",
+        }.get(scan.status, "queued")
+        prog = {"phase": fallback}
+
+    # status из БД — источник истины о завершённости (Redis мог отстать)
+    prog["status"] = scan.status.value
+    prog["phases"] = list(scan_progress.PHASES)
+    return prog

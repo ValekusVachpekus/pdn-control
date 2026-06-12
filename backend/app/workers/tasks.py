@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import get_settings
 from ..models.scan import Scan, ScanStatus
-from ..services import llm_cache
+from ..services import llm_cache, scan_progress
 from ..services.crawler_client import CrawlerError, scan_site_sync
 from ..services.llm_analyzer import LLMError, call_llm
 from ..services.report_builder import assemble
@@ -53,6 +53,7 @@ def _mark_failed(session: Session, sid: uuid.UUID, error: str) -> dict:
         )
     )
     session.commit()
+    scan_progress.set_phase(str(sid), "failed", error=error[:300])
     return {"status": "failed", "error": error}
 
 
@@ -69,11 +70,12 @@ def run_scan(self: Task, scan_id: str, url: str, *, max_pages: int, llm_enabled:
     sid = uuid.UUID(scan_id)
     session = _make_session()
     try:
-        # 1) Помечаем running
+        # 1) Помечаем running + фаза «обход страниц»
         session.execute(
             update(Scan).where(Scan.id == sid).values(status=ScanStatus.running)
         )
         session.commit()
+        scan_progress.set_phase(scan_id, "crawling", url=url)
 
         # 2) Парсер
         try:
@@ -82,12 +84,26 @@ def run_scan(self: Task, scan_id: str, url: str, *, max_pages: int, llm_enabled:
             log.exception("crawler failed for scan %s", sid)
             return _mark_failed(session, sid, str(exc))
 
-        pages_crawled = (crawl.get("meta", {}) or {}).get("pages_crawled") or 0
+        meta = crawl.get("meta", {}) or {}
+        summary = crawl.get("summary", {}) or {}
+        pages_crawled = meta.get("pages_crawled") or 0
+
+        # Реальные счётчики от парсера — показываем их во время LLM-анализа.
+        facts = {
+            "pages": pages_crawled,
+            "forms": summary.get("forms_total") or 0,
+            "forms_pii": summary.get("forms_collecting_pii") or 0,
+            "trackers": len(summary.get("trackers") or []),
+            "third_party_domains": summary.get("third_party_domain_count") or 0,
+            "has_policy": bool(summary.get("has_privacy_policy")),
+            "server_ip": meta.get("server_ip"),
+        }
 
         # 3) LLM — пропускаем если парсер ничего не получил (assemble тогда
         # сам отдаст «не проверено», вызывать LLM на пустом crawl бессмысленно).
         llm_output: dict | None = None
         if pages_crawled > 0:
+            scan_progress.set_phase(scan_id, "analyzing", **facts)
             llm_output = llm_cache.get(crawl)
             if llm_output is not None:
                 log.info("LLM cache hit for scan %s", sid)
@@ -101,6 +117,7 @@ def run_scan(self: Task, scan_id: str, url: str, *, max_pages: int, llm_enabled:
                 llm_cache.set_(crawl, llm_output)
 
         # 4) Сборка Контракта №2
+        scan_progress.set_phase(scan_id, "building", **facts)
         report = assemble(crawl, llm_output, report_id=sid)
 
         # 5) Сохраняем готовый отчёт
@@ -112,6 +129,7 @@ def run_scan(self: Task, scan_id: str, url: str, *, max_pages: int, llm_enabled:
             )
         )
         session.commit()
+        scan_progress.set_phase(scan_id, "done", **facts)
         return {"status": "done", "scan_id": str(sid)}
 
     except Exception as exc:  # noqa: BLE001 — самый внешний catch для надёжности

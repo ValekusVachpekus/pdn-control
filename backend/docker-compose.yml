@@ -30,6 +30,10 @@ services:
   crowler:
     build: ../crowler
     image: pdn-control-crowler:latest
+    # Chromium форкает дочерние процессы (zygote/GPU/renderer). PID 1 в контейнере
+    # (uvicorn) их не reap'ит → зомби. init: true запускает tini как PID 1,
+    # который автоматически пожинает осиротевшие процессы.
+    init: true
     environment:
       MAX_CONCURRENT_SCANS: "2"
       SCAN_TIMEOUT_SEC: "300"

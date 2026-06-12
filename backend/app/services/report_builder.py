@@ -7,14 +7,21 @@
   - LLM возвращает: violations[], scoring, executive_summary, passed_checks,
     infrastructure_and_geo.localization_*, ai_analysis[].
 
-Алгоритм НЕ выносит юр-вердиктов. Если что-то отсутствует в LLM-ответе —
-подставляем безопасные дефолты (пустой список, None и т.п.), но не выдумываем.
+Гибридный подход к нарушениям: LLM ДЕТЕКТИРУЕТ тип нарушения, а severity /
+статью / штраф проставляет фиксированный каталог (violation_catalog). Это
+убирает дрожание оценки. Скоринг считается арифметикой по severity.
 """
 from __future__ import annotations
 
+import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
+
+from . import violation_catalog
+
+log = logging.getLogger(__name__)
 
 # Категории трекеров → русское название (для technical_appendix.trackers_summary.list[].kind)
 _TRACKER_KIND_RU = {
@@ -155,43 +162,90 @@ def _empty_report(crawl: dict, report_id: uuid.UUID) -> dict:
 
 
 _ID_PREFIX = {"critical": "ERR", "warning": "WARN", "info": "INFO"}
+_SEVERITY_RANK = {"critical": 0, "warning": 1, "info": 2}
 
 
-def _normalize_violations(raw: Any) -> list[dict]:
-    """Достаём violations[] из LLM-ответа, отбрасываем мусор, заполняем дефолты.
+def _normalize_violations(raw: Any, crawl: dict | None = None) -> list[dict]:
+    """Гибридный подход + Фикс A (анти-галлюцinация).
 
-    LLM регулярно путает префиксы id (выписывает «ERR-003» для warning, и т.п.).
-    Поэтому id'ы перенумеровываем сами по строгой схеме: ERR-001..ERR-N для
-    critical, WARN-001..WARN-N для warning, INFO-001..INFO-N для info — в том
-    порядке, в котором LLM их выдал внутри своей группы severity.
+    LLM детектирует ТИП нарушения и описывает его конкретику (evidence,
+    description, recommendation), а severity / статью / штраф / роль проставляет
+    фиксированный каталог (violation_catalog) — оценка детерминирована.
+
+    Фикс A: для каждого нарушения с известным типом проверяем ПРЕДУСЛОВИЕ —
+    подтверждается ли факт под ним crawl-данными (violation_catalog.precondition_holds).
+    Если LLM выписала нарушение, которого в фактах нет — отбрасываем как выдумку.
+    Код тут валидатор, не генератор: контекстное суждение остаётся за LLM,
+    но соврать про факт LLM не может.
+
+    Дедуп по type. Неизвестный type отбрасывается (нет квалификации в каталоге).
+    Обратная совместимость: нарушение без type, но с severity (старый формат /
+    кеш) — берётся как есть, без проверки предусловия.
     """
     if not isinstance(raw, list):
         return []
+
     out: list[dict] = []
+    seen_types: set[str] = set()
+
     for v in raw:
         if not isinstance(v, dict):
             continue
-        severity = v.get("severity")
-        if severity not in ("critical", "warning", "info"):
-            continue
-        title = (v.get("title") or "").strip()
-        description = (v.get("description") or "").strip()
-        if not title or not description:
-            continue
-        out.append({
-            "id": "",  # проставим ниже после сортировки по severity
-            "severity": severity,
-            "article_152fz": (v.get("article_152fz") or "").strip()[:60],
-            "title": title[:200],
-            "description": description[:800],
-            "evidence": [str(e)[:300] for e in (v.get("evidence") or []) if str(e).strip()][:5],
-            "target_role": v.get("target_role") if v.get("target_role") in
-                ("developer", "lawyer", "marketer") else "lawyer",
-            "recommendation": (v.get("recommendation") or "").strip()[:800],
-            "fine_rub": int(v.get("fine_rub") or 0) if isinstance(v.get("fine_rub"), (int, float)) else 0,
-        })
 
-    # Перенумерация id'ов: считаем номер внутри каждой группы severity.
+        vtype = (v.get("type") or "").strip()
+        description = (v.get("description") or "").strip()
+        evidence = [str(e)[:300] for e in (v.get("evidence") or []) if str(e).strip()][:5]
+        recommendation = (v.get("recommendation") or "").strip()
+        llm_title = (v.get("title") or "").strip()
+
+        spec = violation_catalog.spec_for(vtype) if vtype else None
+
+        if spec is not None:
+            # Гибрид: квалификация из каталога, текст — от LLM (или дефолт).
+            if vtype in seen_types:
+                continue  # дедуп по типу
+            if not description:
+                continue  # без описания нарушение бессмысленно
+            # Фикс A: факт под нарушением должен подтверждаться crawl-данными.
+            if crawl is not None and not violation_catalog.precondition_holds(vtype, crawl):
+                log.warning("dropped hallucinated violation '%s' (precondition not met)", vtype)
+                continue
+            seen_types.add(vtype)
+            out.append({
+                "id": "",
+                "type": vtype,
+                "severity": spec["severity"],
+                "article_152fz": spec["article_152fz"],
+                "title": (llm_title or spec["title"])[:200],
+                "description": description[:800],
+                "evidence": evidence,
+                "target_role": spec["target_role"],
+                "recommendation": recommendation[:800],
+                "fine_rub": spec["fine_rub"],
+            })
+        else:
+            # Legacy / неизвестный тип: используем то, что прислала LLM, если
+            # формат валидный. Новый промпт сюда не попадает.
+            severity = v.get("severity")
+            if severity not in ("critical", "warning", "info") or not llm_title or not description:
+                continue
+            out.append({
+                "id": "",
+                "severity": severity,
+                "article_152fz": (v.get("article_152fz") or "").strip()[:60],
+                "title": llm_title[:200],
+                "description": description[:800],
+                "evidence": evidence,
+                "target_role": v.get("target_role") if v.get("target_role") in
+                    ("developer", "lawyer", "marketer") else "lawyer",
+                "recommendation": recommendation[:800],
+                "fine_rub": int(v.get("fine_rub") or 0) if isinstance(v.get("fine_rub"), (int, float)) else 0,
+            })
+
+    # Стабильный порядок: critical → warning → info, внутри — по статье.
+    out.sort(key=lambda x: (_SEVERITY_RANK.get(x["severity"], 9), x.get("article_152fz", "")))
+
+    # Перенумерация id'ов внутри каждой группы severity.
     counters: dict[str, int] = {"critical": 0, "warning": 0, "info": 0}
     for v in out:
         counters[v["severity"]] += 1
@@ -287,9 +341,66 @@ def _normalize_infra(raw: Any, crawl: dict) -> dict:
     }
 
 
-def _normalize_ai_analysis(raw: Any) -> list[dict]:
+def _norm_for_match(s: str) -> str:
+    """Нормализация текста для сверки цитаты: lower, схлопнуть пробелы, убрать
+    кавычки/многоточия — чтобы лёгкие переформатирования LLM не мешали матчу."""
+    s = s.lower()
+    for ch in ("«", "»", "“", "”", "„", '"', "'", "…", "—", "–"):
+        s = s.replace(ch, " ")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _build_source_index(crawl: dict | None) -> str:
+    """Единый нормализованный текст всех документов с сайта (политики, согласия,
+    cookie-баннеры) — против него валидируем цитаты LLM (Фикс B)."""
+    if not crawl:
+        return ""
+    parts: list[str] = []
+    for d in crawl.get("policy_documents", []) or []:
+        t = d.get("extracted_text")
+        if t:
+            parts.append(t)
+    for p in crawl.get("pages", []) or []:
+        banner = p.get("cookie_banner") or {}
+        if banner.get("full_text"):
+            parts.append(banner["full_text"])
+        for f in p.get("forms", []) or []:
+            for cb in f.get("consent_checkboxes", []) or []:
+                if cb.get("full_text"):
+                    parts.append(cb["full_text"])
+    return _norm_for_match(" ".join(parts))
+
+
+# Разделители, которыми LLM склеивает цитату из нескольких кусков оригинала.
+_ELLIPSIS_RE = re.compile(r"\.{2,}|…|\[\.\.\.\]|\[…\]")
+
+
+def _quote_is_real(quote: str, source_norm: str) -> bool:
+    """True, если цитата реально встречается в исходных текстах.
+
+    Смягчение: LLM часто склеивает цитату из 2+ фрагментов через «…» («обработка
+    осуществляется… в целях услуг»). Такая склейка не является непрерывной
+    подстрокой, поэтому бьём цитату по «…» и проверяем КАЖДЫЙ фрагмент отдельно —
+    легитимная склейка проходит, а выдуманная всё равно отсекается (хотя бы один
+    фрагмент не найдётся).
+
+    Короткие фрагменты (< 12 симв.) не валидируем — высок риск ложного отброса.
+    Если исходных текстов нет (source пуст) — не валидируем (нечем сверять)."""
+    if not source_norm:
+        return True
+    # Разбиваем по многоточиям на фрагменты, нормализуем каждый.
+    fragments = [_norm_for_match(f) for f in _ELLIPSIS_RE.split(quote)]
+    fragments = [f for f in fragments if len(f) >= 12]
+    if not fragments:
+        return True  # вся цитата короткая/из коротких кусков — пропускаем
+    # Каждый значимый фрагмент должен реально присутствовать в тексте.
+    return all(f in source_norm for f in fragments)
+
+
+def _normalize_ai_analysis(raw: Any, crawl: dict | None = None) -> list[dict]:
     if not isinstance(raw, list):
         return []
+    source_norm = _build_source_index(crawl)  # Фикс B: индекс исходных текстов
     out: list[dict] = []
     for n in raw:
         if not isinstance(n, dict):
@@ -316,6 +427,10 @@ def _normalize_ai_analysis(raw: Any) -> list[dict]:
             quote = (is_in.get("quote") or "").strip()
             problem = (is_in.get("problem") or "").strip()
             if not quote or not problem:
+                continue
+            # Фикс B: цитата должна реально присутствовать в тексте документа.
+            if not _quote_is_real(quote, source_norm):
+                log.warning("dropped hallucinated quote in ai_analysis: %r", quote[:80])
                 continue
             issues_out.append({
                 "quote": quote[:300],
@@ -354,12 +469,14 @@ def assemble(
         return _empty_report(crawl, report_id)
 
     llm_output = llm_output or {}
-    violations = _normalize_violations(llm_output.get("violations"))
+    # Фикс A: crawl передаётся в нормализатор — нарушения без факта в crawl отсекаются.
+    violations = _normalize_violations(llm_output.get("violations"), crawl)
     scoring = _normalize_scoring(llm_output.get("scoring"), violations)
     executive = _normalize_executive(llm_output.get("executive_summary"))
     passed_checks = _normalize_passed_checks(llm_output.get("passed_checks"))
     infra = _normalize_infra(llm_output.get("infrastructure_and_geo"), crawl)
-    ai_analysis = _normalize_ai_analysis(llm_output.get("ai_analysis"))
+    # Фикс B: crawl передаётся — цитаты сверяются с исходными текстами документов.
+    ai_analysis = _normalize_ai_analysis(llm_output.get("ai_analysis"), crawl)
 
     stats = {
         "critical_count": sum(1 for v in violations if v["severity"] == "critical"),

@@ -182,14 +182,19 @@ class Crawler:
 
     @staticmethod
     def _followable(links: list[str], base_domain: str, visited: set[str]) -> list[str]:
-        out: list[str] = []
+        # Дедуп + сортировка по URL — детерминированный порядок постановки в
+        # очередь BFS. Без этого порядок зависит от расположения ссылок в DOM,
+        # и при упоре в max_pages два скана отбирают разные страницы → разный
+        # CrawlJSON → разная оценка LLM. Сортировка делает выбор страниц
+        # воспроизводимым для статических сайтов.
+        out: set[str] = set()
         for link in links or []:
             if not link.startswith(("http://", "https://")):
                 continue
             norm = normalize_url(link)
             if norm not in visited and same_site(norm, base_domain):
-                out.append(norm)
-        return out
+                out.add(norm)
+        return sorted(out)
 
     @staticmethod
     def _status(pages: list[PageData], errors: list[str]) -> str:
@@ -224,14 +229,18 @@ class Crawler:
                     seeds.extend(self._parse_sitemap(resp.text, base_domain))
         except (httpx.HTTPError, ElementTree.ParseError):
             pass
-        seen: set[str] = set()
-        unique = []
+        # Стартовая страница ВСЕГДА первая (с неё снимаем server_ip и она
+        # приоритетна для обхода). Остальные seed'ы из sitemap сортируем —
+        # детерминированный порядок обхода между сканами.
+        start_norm = normalize_url(start_url)
+        seen: set[str] = {start_norm}
+        rest: list[str] = []
         for u in seeds:
             n = normalize_url(u)
             if n not in seen:
                 seen.add(n)
-                unique.append(n)
-        return unique
+                rest.append(n)
+        return [start_norm] + sorted(rest)
 
     @staticmethod
     def _parse_sitemap(xml_text: str, base_domain: str) -> list[str]:
