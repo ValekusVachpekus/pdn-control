@@ -3,15 +3,16 @@
 > MVP v0 is the runnable technical product foundation, evaluated by the TA. It does not
 > need to implement a complete user story or reproduce the prototype — it must be
 > accessible, runnable, and pass a smoke check.
->
-> This file is a **skeleton**. Fill every `TODO` before submission.
 
 ## Purpose and description
 
-<!-- TODO: 2–4 sentences. What the MVP v0 foundation is and what it demonstrates.
-     E.g.: monorepo stack (frontend SPA + crawler/parser + PDF microservice) wired
-     together; URL input triggers a scan; a report view renders the result JSON. -->
-TODO
+MVP v0 is the end-to-end runnable foundation of **ПДн Контроль**: a React/Vite frontend, a
+FastAPI backend with a Playwright-based crawler, an LLM-driven analysis pipeline, and a
+Typst-based PDF report generator, wired together behind nginx. Entering a website URL
+triggers a scan: the crawler collects facts about the site (forms, cookies, trackers,
+policy documents), the backend assigns each detected violation a severity/article/fine
+from a deterministic catalog, and the frontend renders the result as a compliance report
+with a risk score, total potential fine, and a prioritized list of violations.
 
 ## Deployment URL / runnable-artifact link
 
@@ -19,33 +20,46 @@ TODO
 - **Hosting:** university VM. Accessible from the **Innopolis University network**, where
   the TA can reach it for grading. (A public VPS is not required for Assignment 2; external
   access for the customer's own testing is tracked as a separate product follow-up.)
-  <!-- TODO: if the TA needs VPN/on-campus instructions to reach the university network, state them here. -->
 - **Runnable fallback:** if the VM is unreachable, the product can also be run locally via
   the root README — see [Local setup instructions](#local-setup-instructions) below.
 
 ## Public video demonstration
 
-<!-- TODO: public, sanitized video, shorter than 2 minutes. -->
-- Video link: TODO
+- Video link: [MVP v0 demo (Google Drive, view-only)](https://drive.google.com/file/d/1_ep2iFhQ_XVV5VsKl6w4WUhFH_F__X5i/view?usp=drive_link)
 
 ## Relationship to the prototype and proposed MVP v1 stories
 
-<!-- TODO: which prototype screens / MVP v1 stories the foundation relates to.
-     Reference stable US IDs. Example: US-01 (scan pipeline) is the primary story
-     represented by the foundation, even if the end-to-end flow is incomplete. -->
-- US-01 (Basic website scan): TODO
-- US-02 / US-03 / US-04 (report rendering): TODO
-- Prototype screens: TODO
+- **US-01 (Basic website scan):** implemented end-to-end — the Home screen accepts a URL
+  and triggers a real scan through the crawler/backend pipeline.
+- **US-02 (Total potential fine display):** implemented — the report screen shows the
+  total potential fine (e.g. "до 120 000 ₽") computed from the deterministic violation
+  catalog.
+- **US-03 (Detailed list of violations):** implemented — the report lists violations
+  grouped by severity (critical/warning/info/passed) with human-readable titles.
+- **US-04 (Legal article references):** implemented — each violation is tagged with the
+  relevant 152-FZ article and KoAP RF fine reference.
+- **US-07 (Compliance score):** implemented ahead of schedule — the report shows a 0–100
+  risk score alongside the fine, matching the Week 2 customer request to raise it to
+  Must Have.
+- **US-05 (Free tier limited check):** implemented — the report screen shows a paid/free
+  state (e.g. an "Отчёт оплачен" / "report paid" badge); enforcement is currently
+  front-end only (see Limitations below).
+- **US-08 (PDF Report Download):** implemented — the report screen has a working
+  "Скачать PDF" action that generates the report via the PDF microservice.
+- **Prototype screens:** the deployed report screen corresponds to the Figma "Report"
+  screen referenced in [README.md § Prototype Coverage](README.md#2-prototype-and-interface-artifacts).
 
 ## Current limitations, placeholders, and mocks
 
-<!-- TODO: list honestly. Known items from the customer review:
-     - parser/check bugs (some violations not detected);
-     - email registration blocked without a domain (SMTP);
-     - `paid` gating is front-end-only (no server enforcement yet);
-     - OAuth providers are stubs;
-     - legal texts (privacy policy / terms) are placeholders. -->
-TODO
+- The crawler currently scans only the pages it can reach without authentication; some
+  violation types (e.g. multi-page/JS-heavy crawling, US-09) are not yet detected on
+  every site.
+- Email registration is blocked in this environment without a configured SMTP domain.
+- The `paid`/`free` tier gating (US-05/US-06) is front-end-only — there is no server-side
+  enforcement yet.
+- OAuth login providers are stubs (UI present, not wired to real providers).
+- Legal texts (privacy policy / terms of service) shown in the app are placeholders, not
+  final legal content.
 
 ## Local setup instructions
 
@@ -59,16 +73,18 @@ Local setup and run commands live in the root README:
 > change).
 
 **Access instructions:**
-Open http://10.93.26.163:8080/ from the Innopolis University network.
-<!-- TODO: add any dedicated limited-permission test credentials if login is required
-     (NEVER real/production secrets), and VPN/on-campus access notes if needed. -->
+Open http://10.93.26.163:8080/ from the Innopolis University network. No login or test
+credentials are required to run a scan.
 
 **Steps:**
-1. <!-- TODO: open the deployment URL --> TODO
-2. <!-- TODO: enter a test URL into the scan input and start a scan --> TODO
-3. <!-- TODO: observe the scan/report state change --> TODO
+
+1. Open <http://10.93.26.163:8080/> in a browser. The "Новая проверка" (New scan) screen
+   loads.
+2. Enter a website URL (e.g. `neurolife.tech`) into the scan input and start the scan.
+3. Wait for the scan to complete and observe the report screen render.
 
 **Expected result:**
-<!-- TODO: what the TA should see (e.g., scan status transitions, a rendered report or
-     report stub with score / fine / violations). -->
-TODO
+The app navigates to the report screen showing a 0–100 risk score, a total potential fine
+(e.g. "до 120 000 ₽"), counts of critical/warning/info/passed checks, and an AI-generated
+conclusion referencing the audited domain and date — as in
+[images/mvp-v0-deployed.png](images/mvp-v0-deployed.png).

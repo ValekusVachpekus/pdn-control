@@ -132,7 +132,8 @@ As a small or medium business owner,
 I want the tool to automatically fix my website's code to resolve violations, 
 so that I don't have to do it manually.
 
-**Reason:** This feature is excluded due to high technical risk, potential security concerns related to modifying user source code, and the complexity of integrating with various CMS platforms.
+### Notes and constraints
+- Excluded from the intended product scope for the course due to high technical risk, potential security concerns related to modifying user source code, and the complexity of integrating with various CMS platforms.
 
 ---
 
