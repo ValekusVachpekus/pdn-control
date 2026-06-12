@@ -19,7 +19,8 @@ License: [MIT](../../LICENSE).
 
 ## 2. Prototype and interface artifacts
 
-## Prototype Coverage
+### Figma prototype
+
 The interactive Figma prototype demonstrates the user flow for the following core MVP v1 user stories:
 *   **US-01 (Basic website scan):** The Home screen allows users to input a URL.
 *   **US-02 & US-03 & US-04 (Fine display, Violations, Legal refs):** The Report screen displays the total fine, a detailed list of violations, and references to FZ-152 articles.
@@ -102,6 +103,18 @@ manually in a browser before submission to confirm accessibility where applicabl
 
 - **Week 2 analysis:** [analysis.md](analysis.md).
 - **LLM usage report:** [llm-report.md](llm-report.md).
+
+## 9. Coverage
+
+- **Prototype:** the Figma prototype (§2) covers the initial proposed MVP v1 scope —
+  US-01 (Basic website scan), US-02 (Total potential fine display), US-03 (Detailed list
+  of violations), US-04 (Legal article references), and US-05 (Free tier limited check) —
+  plus an error state.
+- **MVP v0:** the deployed foundation (§3) implements US-01, US-02, US-03, US-04, US-05,
+  US-07 (Compliance score), and US-08 (PDF Report Download). See
+  [mvp-v0-report.md § Relationship to the prototype and proposed MVP v1 stories](mvp-v0-report.md#relationship-to-the-prototype-and-proposed-mvp-v1-stories)
+  for details and the
+  [repeatable smoke-check scenario](mvp-v0-report.md#repeatable-smoke-check-scenario).
 
 ---
 
