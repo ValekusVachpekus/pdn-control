@@ -61,6 +61,7 @@ manually in a browser before submission to confirm accessibility where applicabl
 |---|---|---|
 | `^https?://localhost`, `^https?://127\.0\.0\.1` | Local dev-server addresses from run instructions; do not exist in CI. | N/A — local only |
 | `^https?://(host\|backend):\d+` | Docker-internal service hostnames; resolvable only inside Compose. | N/A — internal only |
+| `^https?://10\.93\.26\.163` | MVP v0 deployment on the university VM; private IP reachable only from the Innopolis network, unreachable from CI. | Verified accessible from the university network |
 | `^https://gitlab\.pg\.innopolis\.university` | Behind corporate auth; not reachable anonymously from CI. | Verified accessible when authenticated |
 
 ## 6. Screenshots
