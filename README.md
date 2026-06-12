@@ -33,6 +33,13 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
 - [CONTRIBUTING.md](CONTRIBUTING.md) — рабочий процесс: ветки, PR, релизы.
 - [CHANGELOG.md](CHANGELOG.md) — история изменений (Keep a Changelog / SemVer).
 
+## Отчёты по неделям
+
+- [reports/week2/README.md](reports/week2/README.md) — индекс сдачи Assignment 2
+  (user stories, прототип, MVP v0, встреча с заказчиком, анализ).
+- [reports/week2/mvp-v0-report.md](reports/week2/mvp-v0-report.md) — описание MVP v0,
+  деплой, видео-демо и smoke-check сценарий.
+
 ## Локальный запуск
 
 Каждый подсервис запускается независимо; полные инструкции — в README соответствующего

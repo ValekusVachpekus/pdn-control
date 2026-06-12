@@ -76,7 +76,7 @@ so that I receive a complete and detailed compliance report.
 ## US-07: Compliance score (0-100)
 
 **Requirement Status:** Active
-**MoSCoW priority:** Should Have
+**MoSCoW priority:** Must Have
 
 As a small or medium business owner, 
 I want to see a 100-point compliance score, 
@@ -84,6 +84,8 @@ so that I can quickly understand how serious my site's overall risk level is.
 
 ### Notes and constraints
 - Score formula: 100 minus weighted penalties for each violation.
+- **Priority raised from `Should Have` to `Must Have`** at the customer's request during the Week 2 review (2026-06-12): the score must carry equal weight with the total fine (US-02) and be shown next to it on the result screen with the same visual emphasis. See `customer-meeting-summary.md`.
+- Kept out of the initial proposed MVP v1 scope below: the customer-approved scope (US-01–US-05) was left unchanged at this review; US-07 is prioritized as Must Have for delivery by the end of the course but is not part of the first prototyped slice.
 
 ## US-08: PDF Report Download
 
@@ -130,7 +132,8 @@ As a small or medium business owner,
 I want the tool to automatically fix my website's code to resolve violations, 
 so that I don't have to do it manually.
 
-**Reason:** This feature is excluded due to high technical risk, potential security concerns related to modifying user source code, and the complexity of integrating with various CMS platforms.
+### Notes and constraints
+- Excluded from the intended product scope for the course due to high technical risk, potential security concerns related to modifying user source code, and the complexity of integrating with various CMS platforms.
 
 ---
 
