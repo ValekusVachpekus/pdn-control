@@ -152,3 +152,110 @@ KNOWN_TYPES = tuple(CATALOG.keys())
 def spec_for(violation_type: str) -> ViolationSpec | None:
     """Вернёт квалификацию по типу или None, если тип неизвестен."""
     return CATALOG.get(violation_type)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Фикс A — предусловия (анти-галлюцинация).
+#
+# Для каждого типа нарушения задано булево условие над фактами crawl. Код —
+# ВАЛИДАТОР, а не генератор: он НИКОГДА не выписывает нарушение сам, но если LLM
+# выписала нарушение, под которым в crawl НЕТ факта — отбрасывает его как
+# выдумку. Контекстное «является ли это нарушением» остаётся за LLM; код лишь
+# не даёт соврать про факт.
+#
+# Типы делятся на:
+#   • механические — факт проверяется напрямую по флагам summary/site_identity;
+#   • текстовые (policy_incomplete и т.п.) — код проверяет лишь, что текст для
+#     суждения вообще существует (нельзя «политика неполная» при отсутствии
+#     политики), но само суждение о полноте оставляет LLM.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _summary(crawl: dict) -> dict:
+    return crawl.get("summary", {}) or {}
+
+
+def _identity(crawl: dict) -> dict:
+    return crawl.get("site_identity", {}) or {}
+
+
+def _has_foreign_tracker(crawl: dict) -> bool:
+    return any(t.get("cross_border") for t in (_summary(crawl).get("trackers") or []))
+
+
+def _processes_pii(crawl: dict) -> bool:
+    """Сайт обрабатывает ПДн: есть трекеры/сторонние домены или формы с PII."""
+    s = _summary(crawl)
+    return (
+        bool(s.get("trackers"))
+        or (s.get("third_party_domain_count") or 0) > 0
+        or (s.get("forms_collecting_pii") or 0) > 0
+        or (s.get("forms_total") or 0) > 0
+    )
+
+
+def _any_prechecked(crawl: dict) -> bool:
+    for p in crawl.get("pages", []) or []:
+        for f in p.get("forms", []) or []:
+            for cb in f.get("consent_checkboxes", []) or []:
+                if cb.get("pre_checked"):
+                    return True
+    return False
+
+
+def _has_consent_text(crawl: dict) -> bool:
+    for p in crawl.get("pages", []) or []:
+        for f in p.get("forms", []) or []:
+            for cb in f.get("consent_checkboxes", []) or []:
+                if (cb.get("full_text") or cb.get("label") or "").strip():
+                    return True
+    return False
+
+
+def _has_policy_text(crawl: dict) -> bool:
+    for d in crawl.get("policy_documents", []) or []:
+        if d.get("kind") == "privacy_policy" and (d.get("extracted_text") or "").strip():
+            return True
+    return False
+
+
+# type → callable(crawl) -> bool. True = факт под нарушением подтверждён.
+_PRECONDITIONS = {
+    "cross_border_transfer": lambda c: bool(_summary(c).get("has_cross_border_transfer")) or _has_foreign_tracker(c),
+    # страну по IP определяет LLM; код требует лишь наличие IP (без него вывод невозможен)
+    "server_outside_rf": lambda c: bool((c.get("meta", {}) or {}).get("server_ip")),
+    "prechecked_consent": lambda c: (_summary(c).get("forms_with_prechecked_consent") or 0) > 0 or _any_prechecked(c),
+    "form_without_consent": lambda c: (_summary(c).get("forms_pii_without_consent") or 0) > 0,
+    "tracking_before_consent": lambda c: bool(_summary(c).get("tracking_before_consent")),
+    # текстовый: нужен хотя бы текст согласия, чтобы судить о совмещении с рекламой
+    "consent_combined_with_ads": lambda c: _has_consent_text(c),
+    "no_privacy_policy": lambda c: not _summary(c).get("has_privacy_policy") and _processes_pii(c),
+    # текстовый: «политика неполная» имеет смысл только если политика есть
+    "policy_incomplete": lambda c: bool(_summary(c).get("has_privacy_policy")) and _has_policy_text(c),
+    "no_operator_identification": lambda c: not (
+        _identity(c).get("inn") or _identity(c).get("ogrn") or _identity(c).get("legal_name_hints")
+    ),
+    "cookie_no_reject": lambda c: bool(_summary(c).get("has_cookie_banner")) and not _summary(c).get("cookie_banner_has_reject"),
+    "no_cookie_notice": lambda c: not _summary(c).get("has_cookie_banner") and _processes_pii(c),
+    "captcha_no_notice": lambda c: any(t.get("category") == "captcha" for t in (_summary(c).get("trackers") or [])),
+    # обязанность уведомить РКН возникает только если сайт обрабатывает ПДн
+    "no_rkn_notification": lambda c: _processes_pii(c),
+    # текстовый: нужно наличие политики, чтобы судить о раскрытии прав субъекта
+    "no_subject_rights_info": lambda c: _has_policy_text(c),
+}
+
+
+def precondition_holds(violation_type: str, crawl: dict) -> bool:
+    """True, если факт под нарушением подтверждается crawl-данными.
+
+    Неизвестный тип → False (его и так отбросят как вне каталога). Тип без
+    предусловия → True (не отбрасываем, страховка на случай расширения)."""
+    if violation_type not in CATALOG:
+        return False
+    check = _PRECONDITIONS.get(violation_type)
+    if check is None:
+        return True
+    try:
+        return bool(check(crawl))
+    except Exception:  # noqa: BLE001 — на кривом crawl не валим весь отчёт
+        return True

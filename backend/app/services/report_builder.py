@@ -13,11 +13,15 @@
 """
 from __future__ import annotations
 
+import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from . import violation_catalog
+
+log = logging.getLogger(__name__)
 
 # Категории трекеров → русское название (для technical_appendix.trackers_summary.list[].kind)
 _TRACKER_KIND_RU = {
@@ -161,18 +165,22 @@ _ID_PREFIX = {"critical": "ERR", "warning": "WARN", "info": "INFO"}
 _SEVERITY_RANK = {"critical": 0, "warning": 1, "info": 2}
 
 
-def _normalize_violations(raw: Any) -> list[dict]:
-    """Гибридный подход: LLM детектирует ТИП нарушения и описывает его конкретику
-    (evidence, description, recommendation), а severity / статью / штраф / роль
-    проставляет фиксированный каталог (violation_catalog). Это делает оценку
-    детерминированной и юридически защитимой.
+def _normalize_violations(raw: Any, crawl: dict | None = None) -> list[dict]:
+    """Гибридный подход + Фикс A (анти-галлюцinация).
 
-    Дедуп по type — один тип нарушения попадает в отчёт один раз (LLM иногда
-    дублирует). Если LLM вернула неизвестный type — нарушение отбрасывается
-    (каталог не знает его квалификации, выдумывать штраф нельзя).
+    LLM детектирует ТИП нарушения и описывает его конкретику (evidence,
+    description, recommendation), а severity / статью / штраф / роль проставляет
+    фиксированный каталог (violation_catalog) — оценка детерминирована.
 
-    Обратная совместимость: если у нарушения нет поля type, но есть severity
-    (старый формат / закешированный отчёт) — используем его как есть.
+    Фикс A: для каждого нарушения с известным типом проверяем ПРЕДУСЛОВИЕ —
+    подтверждается ли факт под ним crawl-данными (violation_catalog.precondition_holds).
+    Если LLM выписала нарушение, которого в фактах нет — отбрасываем как выдумку.
+    Код тут валидатор, не генератор: контекстное суждение остаётся за LLM,
+    но соврать про факт LLM не может.
+
+    Дедуп по type. Неизвестный type отбрасывается (нет квалификации в каталоге).
+    Обратная совместимость: нарушение без type, но с severity (старый формат /
+    кеш) — берётся как есть, без проверки предусловия.
     """
     if not isinstance(raw, list):
         return []
@@ -196,9 +204,13 @@ def _normalize_violations(raw: Any) -> list[dict]:
             # Гибрид: квалификация из каталога, текст — от LLM (или дефолт).
             if vtype in seen_types:
                 continue  # дедуп по типу
-            seen_types.add(vtype)
             if not description:
                 continue  # без описания нарушение бессмысленно
+            # Фикс A: факт под нарушением должен подтверждаться crawl-данными.
+            if crawl is not None and not violation_catalog.precondition_holds(vtype, crawl):
+                log.warning("dropped hallucinated violation '%s' (precondition not met)", vtype)
+                continue
+            seen_types.add(vtype)
             out.append({
                 "id": "",
                 "type": vtype,
@@ -329,9 +341,66 @@ def _normalize_infra(raw: Any, crawl: dict) -> dict:
     }
 
 
-def _normalize_ai_analysis(raw: Any) -> list[dict]:
+def _norm_for_match(s: str) -> str:
+    """Нормализация текста для сверки цитаты: lower, схлопнуть пробелы, убрать
+    кавычки/многоточия — чтобы лёгкие переформатирования LLM не мешали матчу."""
+    s = s.lower()
+    for ch in ("«", "»", "“", "”", "„", '"', "'", "…", "—", "–"):
+        s = s.replace(ch, " ")
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _build_source_index(crawl: dict | None) -> str:
+    """Единый нормализованный текст всех документов с сайта (политики, согласия,
+    cookie-баннеры) — против него валидируем цитаты LLM (Фикс B)."""
+    if not crawl:
+        return ""
+    parts: list[str] = []
+    for d in crawl.get("policy_documents", []) or []:
+        t = d.get("extracted_text")
+        if t:
+            parts.append(t)
+    for p in crawl.get("pages", []) or []:
+        banner = p.get("cookie_banner") or {}
+        if banner.get("full_text"):
+            parts.append(banner["full_text"])
+        for f in p.get("forms", []) or []:
+            for cb in f.get("consent_checkboxes", []) or []:
+                if cb.get("full_text"):
+                    parts.append(cb["full_text"])
+    return _norm_for_match(" ".join(parts))
+
+
+# Разделители, которыми LLM склеивает цитату из нескольких кусков оригинала.
+_ELLIPSIS_RE = re.compile(r"\.{2,}|…|\[\.\.\.\]|\[…\]")
+
+
+def _quote_is_real(quote: str, source_norm: str) -> bool:
+    """True, если цитата реально встречается в исходных текстах.
+
+    Смягчение: LLM часто склеивает цитату из 2+ фрагментов через «…» («обработка
+    осуществляется… в целях услуг»). Такая склейка не является непрерывной
+    подстрокой, поэтому бьём цитату по «…» и проверяем КАЖДЫЙ фрагмент отдельно —
+    легитимная склейка проходит, а выдуманная всё равно отсекается (хотя бы один
+    фрагмент не найдётся).
+
+    Короткие фрагменты (< 12 симв.) не валидируем — высок риск ложного отброса.
+    Если исходных текстов нет (source пуст) — не валидируем (нечем сверять)."""
+    if not source_norm:
+        return True
+    # Разбиваем по многоточиям на фрагменты, нормализуем каждый.
+    fragments = [_norm_for_match(f) for f in _ELLIPSIS_RE.split(quote)]
+    fragments = [f for f in fragments if len(f) >= 12]
+    if not fragments:
+        return True  # вся цитата короткая/из коротких кусков — пропускаем
+    # Каждый значимый фрагмент должен реально присутствовать в тексте.
+    return all(f in source_norm for f in fragments)
+
+
+def _normalize_ai_analysis(raw: Any, crawl: dict | None = None) -> list[dict]:
     if not isinstance(raw, list):
         return []
+    source_norm = _build_source_index(crawl)  # Фикс B: индекс исходных текстов
     out: list[dict] = []
     for n in raw:
         if not isinstance(n, dict):
@@ -358,6 +427,10 @@ def _normalize_ai_analysis(raw: Any) -> list[dict]:
             quote = (is_in.get("quote") or "").strip()
             problem = (is_in.get("problem") or "").strip()
             if not quote or not problem:
+                continue
+            # Фикс B: цитата должна реально присутствовать в тексте документа.
+            if not _quote_is_real(quote, source_norm):
+                log.warning("dropped hallucinated quote in ai_analysis: %r", quote[:80])
                 continue
             issues_out.append({
                 "quote": quote[:300],
@@ -396,12 +469,14 @@ def assemble(
         return _empty_report(crawl, report_id)
 
     llm_output = llm_output or {}
-    violations = _normalize_violations(llm_output.get("violations"))
+    # Фикс A: crawl передаётся в нормализатор — нарушения без факта в crawl отсекаются.
+    violations = _normalize_violations(llm_output.get("violations"), crawl)
     scoring = _normalize_scoring(llm_output.get("scoring"), violations)
     executive = _normalize_executive(llm_output.get("executive_summary"))
     passed_checks = _normalize_passed_checks(llm_output.get("passed_checks"))
     infra = _normalize_infra(llm_output.get("infrastructure_and_geo"), crawl)
-    ai_analysis = _normalize_ai_analysis(llm_output.get("ai_analysis"))
+    # Фикс B: crawl передаётся — цитаты сверяются с исходными текстами документов.
+    ai_analysis = _normalize_ai_analysis(llm_output.get("ai_analysis"), crawl)
 
     stats = {
         "critical_count": sum(1 for v in violations if v["severity"] == "critical"),
