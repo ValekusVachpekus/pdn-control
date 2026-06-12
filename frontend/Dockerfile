@@ -2,10 +2,11 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# npm 10.8.2 (идёт с node:20) имеет баг "Exit handler never called", который
-# роняет установку на финализации. Обновляем до npm 11. Плюс поднимаем сетевые
-# ретраи/таймауты — реестр npm из РФ бывает медленный, дефолтных ретраев не хватает.
-RUN npm install -g npm@11 --no-audit --no-fund
+# registry.npmjs.org резолвится в IPv6, а Docker-контейнеры обычно без IPv6 →
+# npm не достучаться, EAI_AGAIN. Форсируем IPv4-резолв на уровне node.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
+
+# Поднимаем сетевые ретраи/таймауты — на случай медленного/нестабильного реестра.
 RUN npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 180000 && \
