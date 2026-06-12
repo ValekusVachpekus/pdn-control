@@ -19,15 +19,14 @@ License: [MIT](../../LICENSE).
 
 ## 2. Prototype and interface artifacts
 
-The product's externally used interface is **graphical** (a web SPA), so the interface
-prototype is an interactive Figma prototype. No external API interface is exposed to end
-users, therefore `api/openapi.yaml`, `docs/interface.md`, and a Postman collection are
-not applicable for this submission.
+## Prototype Coverage
+The interactive Figma prototype demonstrates the user flow for the following core MVP v1 user stories:
+*   **US-01 (Basic website scan):** The Home screen allows users to input a URL.
+*   **US-02 & US-03 & US-04 (Fine display, Violations, Legal refs):** The Report screen displays the total fine, a detailed list of violations, and references to FZ-152 articles.
+*   **US-05 (Free tier limited check):** The flow includes a restriction that requires upgrading for full details.
+*   **Error State:** Demonstrates the system's reaction to an invalid URL.
 
-- **Interactive Figma prototype:**
-  [Figma prototype](https://www.figma.com/proto/hzIVCcOBokA8YUqwZKoL0q/Untitled?node-id=3-107&p=f&t=1HviSoUJakE6VTAo-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=3%3A107)
-  (publicly viewable, not editable). For the screens and the user-story mapping, see the
-  [Prototype Coverage](#prototype-coverage) section below.
+[Link to interactive Figma prototype](https://www.figma.com/proto/hzIVCcOBokA8YUqwZKoL0q/Untitled?node-id=3-107&p=f&t=1HviSoUJakE6VTAo-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=3%3A107)
 
 ## 3. MVP v0
 
@@ -108,11 +107,3 @@ _To be added once MVP v0 is publicly deployed — see [mvp-v0-report.md](mvp-v0-
 
 ---
 
-## Prototype Coverage
-The interactive Figma prototype demonstrates the user flow for the following core MVP v1 user stories:
-*   **US-01 (Basic website scan):** The Home screen allows users to input a URL.
-*   **US-02 & US-03 & US-04 (Fine display, Violations, Legal refs):** The Report screen displays the total fine, a detailed list of violations, and references to FZ-152 articles.
-*   **US-05 (Free tier limited check):** The flow includes a restriction that requires upgrading for full details.
-*   **Error State:** Demonstrates the system's reaction to an invalid URL.
-
-[Link to interactive Figma prototype](https://www.figma.com/proto/hzIVCcOBokA8YUqwZKoL0q/Untitled?node-id=3-107&p=f&t=1HviSoUJakE6VTAo-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=3%3A107)
