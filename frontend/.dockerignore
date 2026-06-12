@@ -1,0 +1,14 @@
+# Не копировать локальный node_modules в образ: иначе COPY . . затирает свежий
+# node_modules, установленный через npm ci, и build падает с "vite: not found".
+node_modules
+dist
+.vite
+
+# Прочий мусор, не нужный в сборке
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.git
+.gitignore
+ПДн Контроль.html
