@@ -26,9 +26,8 @@ not applicable for this submission.
 
 - **Interactive Figma prototype:**
   [Figma prototype](https://www.figma.com/proto/hzIVCcOBokA8YUqwZKoL0q/Untitled?node-id=3-107&p=f&t=1HviSoUJakE6VTAo-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=3%3A107)
-  (publicly viewable, not editable). Covers Home → Report flow, the free-tier
-  restriction, and the invalid-URL error state. Mapped user stories: see
-  [Prototype Coverage](#prototype-coverage) below.
+  (publicly viewable, not editable). For the screens and the user-story mapping, see the
+  [Prototype Coverage](#prototype-coverage) section below.
 
 ## 3. MVP v0
 
@@ -44,6 +43,8 @@ not applicable for this submission.
 - **Reviewed PRs (reviewed by another team member, not self-review):**
   - [PR #19](https://github.com/ValekusVachpekus/pdn-control/pull/19) — frontend bug fixes (page reload, loading screen).
   - [PR #20](https://github.com/ValekusVachpekus/pdn-control/pull/20) — `llm_analyzer.py` update.
+  - [PR #21](https://github.com/ValekusVachpekus/pdn-control/pull/21) — `.env.example` update.
+  - [PR #23](https://github.com/ValekusVachpekus/pdn-control/pull/23) — realtime progress and deterministic scoring (open).
   <!-- TODO: confirm each linked PR has a review (approval) by a different team member -->
 
 ## 5. Link checking (Lychee)
