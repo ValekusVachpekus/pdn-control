@@ -1,95 +1,84 @@
-/* ===== ПДн Контроль — Scanning ===== */
+/* ===== ПДн Контроль — Scanning (реальный прогресс) =====
+ * Опрашивает GET /api/scans/:id/progress и показывает РЕАЛЬНЫЕ фазы конвейера
+ * (очередь → обход → AI-анализ → сборка) с настоящими счётчиками от парсера.
+ * Никакой фейковой анимации: прогресс-бар привязан к индексу текущей фазы,
+ * длительность каждой фазы непредсказуема (зависит от сайта).
+ */
 import { useState, useEffect, useRef } from 'react';
 import { Icon } from './shared.jsx';
-import { SCAN_STEPS } from './data.jsx';
-import { fetchScanStatus } from './api.js';
+import { fetchScanProgress } from './api.js';
 
-function Scanning({ domain, reportId, isMock = true, onDone, onError, onBackground }) {
-  // Подставляем реальный домен в шаблоны лога: «Резолвинг DNS {domain}» → «… example.com».
-  const steps = SCAN_STEPS.map(s => ({ ...s, text: s.text.replace('{domain}', domain || 'сайт') }));
-  const SPEED = 0.62; // time compression
-  const total = steps[steps.length - 1].t;
-  const [elapsed, setElapsed] = useState(0);
-  const [revealed, setRevealed] = useState(0);
+// Человеческие подписи фаз. Порядок берём из ответа (поле phases), но саму
+// последовательность отображаем без служебных queued/failed как отдельных строк.
+const PHASE_META = {
+  queued:    { label: 'В очереди',                        hint: 'Задача поставлена в очередь' },
+  crawling:  { label: 'Обход страниц сайта',              hint: 'Парсер открывает публичные страницы' },
+  analyzing: { label: 'AI-анализ на соответствие 152-ФЗ', hint: 'Модель оценивает риски по закону' },
+  building:  { label: 'Формирование отчёта',              hint: 'Собираем итоговый документ' },
+  done:      { label: 'Готово',                           hint: 'Отчёт сформирован' },
+};
+// Фазы, которые показываем как шаги (queued объединяем с crawling визуально).
+const STEP_ORDER = ['crawling', 'analyzing', 'building'];
+
+function Scanning({ domain, reportId, isMock = false, onDone, onError, onBackground }) {
+  const [progress, setProgress] = useState({ phase: isMock ? 'done' : 'queued' });
   const [finished, setFinished] = useState(false);
-  // Реальный статус скана с бэка (issue #16). В MOCK сразу считаем готовым,
-  // чтобы анимация доигрывала как раньше.
-  const [scanStatus, setScanStatus] = useState(isMock ? 'done' : 'pending');
-  const logRef = useRef(null);
-  const startRef = useRef(null);
   const finishedRef = useRef(false);
 
-  // Анимация лога — только индикация прогресса (шаги из SCAN_STEPS).
+  // Polling реального прогресса до done/failed.
   useEffect(() => {
-    let raf;
-    const tick = (ts) => {
-      if (finishedRef.current) return;
-      if (startRef.current == null) startRef.current = ts;
-      const e = (ts - startRef.current) / 1000 / SPEED;
-      setElapsed(e);
-      let n = 0;
-      for (const s of steps) if (e >= s.t) n++;
-      setRevealed(n);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  // Реальный режим: опрашиваем статус скана на бэке, пока не done/failed.
-  useEffect(() => {
-    if (isMock || !reportId) return;
+    if (!reportId && !isMock) return;
     let alive = true;
     let timer;
     const poll = async () => {
       try {
-        const { status } = await fetchScanStatus(reportId);
+        const p = await fetchScanProgress(reportId);
         if (!alive) return;
-        setScanStatus(status);
-        if (status === 'done' || status === 'failed') return; // стоп — финал достигнут
+        setProgress(p);
+        if (p.status === 'failed' || p.phase === 'failed') {
+          onError?.(p.error || 'Проверка завершилась с ошибкой');
+          return;
+        }
+        if (p.status === 'done' || p.phase === 'done') {
+          finishedRef.current = true;
+          setFinished(true);
+          return; // финал
+        }
       } catch { /* временная ошибка сети — повторим */ }
-      if (alive) timer = setTimeout(poll, 2000);
+      if (alive) timer = setTimeout(poll, 1500);
     };
     poll();
     return () => { alive = false; clearTimeout(timer); };
-  }, [isMock, reportId]);
+  }, [reportId, isMock]);
 
-  // Скан упал — наверх, не открываем пустой отчёт.
-  useEffect(() => { if (scanStatus === 'failed') onError?.('Проверка завершилась с ошибкой'); }, [scanStatus]);
-
-  // Завершение: MOCK — по таймеру анимации; реальный режим — только когда бэк отдал done.
+  // После завершения — небольшая пауза и открываем отчёт.
   useEffect(() => {
-    if (finished) return;
-    if (isMock ? elapsed >= total + 0.6 : scanStatus === 'done') {
-      finishedRef.current = true;
-      setFinished(true);
-    }
-  }, [elapsed, scanStatus, isMock, finished, total]);
+    if (finished) { const t = setTimeout(onDone, 900); return () => clearTimeout(t); }
+  }, [finished]);
 
-  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [revealed]);
-  useEffect(() => { if (finished) { const t = setTimeout(onDone, 1100); return () => clearTimeout(t); } }, [finished]);
+  const phase = finished ? 'done' : (progress.phase || 'queued');
+  // Индекс текущей фазы в STEP_ORDER (queued → считаем как старт crawling).
+  const curIdx = phase === 'queued' ? 0
+    : phase === 'done' ? STEP_ORDER.length
+    : Math.max(0, STEP_ORDER.indexOf(phase));
+  // Прогресс-бар: доля пройденных фаз. queued=5%, done=100%.
+  const pct = finished ? 100
+    : phase === 'queued' ? 5
+    : Math.round(((curIdx + 0.5) / STEP_ORDER.length) * 100);
 
-  // Пока реальный скан не завершён — держим спиннер «обработка…»: не раскрываем
-  // финальные «готово»-шаги и капим прогресс, чтобы экран не «врал» о завершении.
-  const holdReal = !isMock && !finished;
-  const lastNonDone = steps.filter(s => s.type !== 'done').length;
-  const shown = steps.slice(0, holdReal ? Math.min(revealed, lastNonDone) : revealed);
-  const rawPct = Math.min(100, Math.round((elapsed / total) * 100));
-  const pct = finished ? 100 : (holdReal ? Math.min(rawPct, 95) : rawPct);
-  const count = (type) => shown.filter(s => s.type === type).length;
-  const stats = [
-    { label: 'Страниц', value: Math.max(count('page'), shown.length ? 1 : 0), icon: 'doc' },
-    { label: 'Форм', value: count('form'), icon: 'form' },
-    { label: 'Скриптов', value: count('script'), icon: 'code' },
-    { label: 'Документов', value: count('doc'), icon: 'shield' },
+  // Реальные счётчики (есть с фазы analyzing).
+  const hasFacts = progress.pages != null;
+  const facts = [
+    { label: 'Страниц', value: progress.pages },
+    { label: 'Форм', value: progress.forms },
+    { label: 'Форм с ПДн', value: progress.forms_pii },
+    { label: 'Трекеров', value: progress.trackers },
   ];
-  const flagColor = { crit: 'var(--crit)', warn: 'var(--warn)', info: 'var(--info)', find: 'var(--accent)' };
-  const flagBg = { crit: 'var(--crit-soft)', warn: 'var(--warn-soft)', info: 'var(--info-soft)', find: 'var(--accent-soft)' };
 
   return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24,
       background: 'radial-gradient(110% 70% at 50% 0%, var(--accent-soft) 0%, transparent 42%), var(--bg)' }}>
-      <div className="card fade-up" style={{ width: '100%', maxWidth: 720, padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+      <div className="card fade-up" style={{ width: '100%', maxWidth: 620, padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
         {/* header */}
         <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -117,73 +106,72 @@ function Scanning({ domain, reportId, isMock = true, onDone, onError, onBackgrou
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: finished ? 'var(--accent)' : 'var(--ink)' }}>{pct}%</div>
-              <div className="mono" style={{ fontSize: 11.5, color: 'var(--faint)' }}>{elapsed.toFixed(1)} с</div>
             </div>
           </div>
           {/* progress bar */}
           <div style={{ height: 6, borderRadius: 99, background: 'var(--surface-3)', marginTop: 18, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99,
               background: finished ? 'var(--accent)' : 'linear-gradient(90deg, var(--accent), color-mix(in oklch, var(--accent), white 30%))',
-              transition: 'width .2s linear' }}></div>
+              transition: 'width .4s ease' }}></div>
           </div>
         </div>
 
-        {/* stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '1px solid var(--border)' }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{ padding: '14px 16px', borderLeft: i ? '1px solid var(--border)' : 0, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', color: 'var(--ink)' }}>{s.value}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 500, marginTop: 1 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* live log */}
-        <div ref={logRef} style={{ height: 252, overflowY: 'auto', padding: '8px 8px 14px', background: 'var(--surface-2)' }}>
-          {shown.map((s, i) => (
-            <div key={i} className="log-in" style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '7px 14px' }}>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--faint)', marginTop: 2, minWidth: 38 }}>{s.t.toFixed(1)}s</span>
-              <span style={{ width: 8, height: 8, borderRadius: 99, marginTop: 6, flexShrink: 0,
-                background: s.flag ? flagColor[s.flag] : 'var(--border-2)' }}></span>
-              <span style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.45, flex: 1 }}>
-                {s.text}
-                {s.flag && s.flag !== 'find' && (
-                  <span className="chip" style={{ marginLeft: 8, padding: '1px 8px', fontSize: 10.5, background: flagBg[s.flag], color: flagColor[s.flag], verticalAlign: 'middle' }}>
-                    {s.flag === 'crit' ? 'критично' : s.flag === 'warn' ? 'риск' : 'инфо'}
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-          {!finished && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 14px' }}>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--faint)', minWidth: 38 }}>{elapsed.toFixed(1)}s</span>
-              <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--accent)', animation: 'blink .9s infinite' }}></span>
-              <span style={{ fontSize: 13.5, color: 'var(--muted)' }}>обработка…</span>
-            </div>
-          )}
+        {/* phases */}
+        <div style={{ padding: '20px 28px', background: 'var(--surface-2)' }}>
+          {STEP_ORDER.map((ph, i) => {
+            const meta = PHASE_META[ph];
+            const state = finished || i < curIdx ? 'done' : i === curIdx ? 'active' : 'pending';
+            return (
+              <div key={ph} style={{ display: 'flex', alignItems: 'flex-start', gap: 13, padding: '10px 0',
+                opacity: state === 'pending' ? 0.45 : 1, transition: 'opacity .3s' }}>
+                {/* icon */}
+                <div style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 99, display: 'grid', placeItems: 'center',
+                  background: state === 'done' ? 'var(--accent-soft)' : state === 'active' ? 'var(--accent-soft)' : 'var(--surface-3)' }}>
+                  {state === 'done'
+                    ? <Icon name="check" size={15} stroke={2.5} style={{ color: 'var(--accent-ink)' }} />
+                    : state === 'active'
+                      ? <span style={{ width: 9, height: 9, borderRadius: 99, background: 'var(--accent)', animation: 'blink .9s infinite' }}></span>
+                      : <span style={{ width: 7, height: 7, borderRadius: 99, background: 'var(--faint)' }}></span>}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 600,
+                    color: state === 'pending' ? 'var(--muted)' : 'var(--ink)' }}>{meta.label}</div>
+                  {/* реальные счётчики под фазой analyzing */}
+                  {ph === 'analyzing' && state !== 'pending' && hasFacts ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 6 }}>
+                      {facts.filter(f => f.value != null).map((f, j) => (
+                        <span key={j} style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                          {f.label}: <b>{f.value}</b>
+                        </span>
+                      ))}
+                      {progress.server_ip && (
+                        <span className="mono" style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          IP: {progress.server_ip}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{meta.hint}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* footer */}
-        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span style={{ fontSize: 12, color: 'var(--faint)' }}>
             {finished ? 'Открываем отчёт…'
-              : holdReal ? 'Проверка может занять несколько минут — не закрывайте страницу'
-              : 'Краулер обходит публичные страницы и применяет правила проверки'}
+              : 'Проверка может занять 1-2 минуты — можно свернуть, скан идёт на сервере'}
           </span>
           {finished ? (
-            <button className="btn btn-primary" style={{ height: 38 }} onClick={onDone}>
+            <button className="btn btn-primary" style={{ height: 38, flexShrink: 0 }} onClick={onDone}>
               Открыть отчёт <Icon name="arrow" size={16} />
-            </button>
-          ) : !isMock ? (
-            // Скан идёт в фоне на сервере независимо от фронта — даём свернуть его
-            // в главное меню, не дожидаясь завершения. Прогресс виден в истории.
-            <button className="btn btn-ghost" style={{ height: 38 }} onClick={onBackground}>
-              В главное меню
             </button>
           ) : (
-            <button className="btn btn-primary" style={{ height: 38, opacity: .55 }} disabled>
-              Открыть отчёт <Icon name="arrow" size={16} />
+            <button className="btn btn-ghost" style={{ height: 38, flexShrink: 0 }} onClick={onBackground}>
+              В главное меню
             </button>
           )}
         </div>

@@ -7,14 +7,17 @@
   - LLM возвращает: violations[], scoring, executive_summary, passed_checks,
     infrastructure_and_geo.localization_*, ai_analysis[].
 
-Алгоритм НЕ выносит юр-вердиктов. Если что-то отсутствует в LLM-ответе —
-подставляем безопасные дефолты (пустой список, None и т.п.), но не выдумываем.
+Гибридный подход к нарушениям: LLM ДЕТЕКТИРУЕТ тип нарушения, а severity /
+статью / штраф проставляет фиксированный каталог (violation_catalog). Это
+убирает дрожание оценки. Скоринг считается арифметикой по severity.
 """
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
 from typing import Any
+
+from . import violation_catalog
 
 # Категории трекеров → русское название (для technical_appendix.trackers_summary.list[].kind)
 _TRACKER_KIND_RU = {
@@ -155,43 +158,82 @@ def _empty_report(crawl: dict, report_id: uuid.UUID) -> dict:
 
 
 _ID_PREFIX = {"critical": "ERR", "warning": "WARN", "info": "INFO"}
+_SEVERITY_RANK = {"critical": 0, "warning": 1, "info": 2}
 
 
 def _normalize_violations(raw: Any) -> list[dict]:
-    """Достаём violations[] из LLM-ответа, отбрасываем мусор, заполняем дефолты.
+    """Гибридный подход: LLM детектирует ТИП нарушения и описывает его конкретику
+    (evidence, description, recommendation), а severity / статью / штраф / роль
+    проставляет фиксированный каталог (violation_catalog). Это делает оценку
+    детерминированной и юридически защитимой.
 
-    LLM регулярно путает префиксы id (выписывает «ERR-003» для warning, и т.п.).
-    Поэтому id'ы перенумеровываем сами по строгой схеме: ERR-001..ERR-N для
-    critical, WARN-001..WARN-N для warning, INFO-001..INFO-N для info — в том
-    порядке, в котором LLM их выдал внутри своей группы severity.
+    Дедуп по type — один тип нарушения попадает в отчёт один раз (LLM иногда
+    дублирует). Если LLM вернула неизвестный type — нарушение отбрасывается
+    (каталог не знает его квалификации, выдумывать штраф нельзя).
+
+    Обратная совместимость: если у нарушения нет поля type, но есть severity
+    (старый формат / закешированный отчёт) — используем его как есть.
     """
     if not isinstance(raw, list):
         return []
+
     out: list[dict] = []
+    seen_types: set[str] = set()
+
     for v in raw:
         if not isinstance(v, dict):
             continue
-        severity = v.get("severity")
-        if severity not in ("critical", "warning", "info"):
-            continue
-        title = (v.get("title") or "").strip()
-        description = (v.get("description") or "").strip()
-        if not title or not description:
-            continue
-        out.append({
-            "id": "",  # проставим ниже после сортировки по severity
-            "severity": severity,
-            "article_152fz": (v.get("article_152fz") or "").strip()[:60],
-            "title": title[:200],
-            "description": description[:800],
-            "evidence": [str(e)[:300] for e in (v.get("evidence") or []) if str(e).strip()][:5],
-            "target_role": v.get("target_role") if v.get("target_role") in
-                ("developer", "lawyer", "marketer") else "lawyer",
-            "recommendation": (v.get("recommendation") or "").strip()[:800],
-            "fine_rub": int(v.get("fine_rub") or 0) if isinstance(v.get("fine_rub"), (int, float)) else 0,
-        })
 
-    # Перенумерация id'ов: считаем номер внутри каждой группы severity.
+        vtype = (v.get("type") or "").strip()
+        description = (v.get("description") or "").strip()
+        evidence = [str(e)[:300] for e in (v.get("evidence") or []) if str(e).strip()][:5]
+        recommendation = (v.get("recommendation") or "").strip()
+        llm_title = (v.get("title") or "").strip()
+
+        spec = violation_catalog.spec_for(vtype) if vtype else None
+
+        if spec is not None:
+            # Гибрид: квалификация из каталога, текст — от LLM (или дефолт).
+            if vtype in seen_types:
+                continue  # дедуп по типу
+            seen_types.add(vtype)
+            if not description:
+                continue  # без описания нарушение бессмысленно
+            out.append({
+                "id": "",
+                "type": vtype,
+                "severity": spec["severity"],
+                "article_152fz": spec["article_152fz"],
+                "title": (llm_title or spec["title"])[:200],
+                "description": description[:800],
+                "evidence": evidence,
+                "target_role": spec["target_role"],
+                "recommendation": recommendation[:800],
+                "fine_rub": spec["fine_rub"],
+            })
+        else:
+            # Legacy / неизвестный тип: используем то, что прислала LLM, если
+            # формат валидный. Новый промпт сюда не попадает.
+            severity = v.get("severity")
+            if severity not in ("critical", "warning", "info") or not llm_title or not description:
+                continue
+            out.append({
+                "id": "",
+                "severity": severity,
+                "article_152fz": (v.get("article_152fz") or "").strip()[:60],
+                "title": llm_title[:200],
+                "description": description[:800],
+                "evidence": evidence,
+                "target_role": v.get("target_role") if v.get("target_role") in
+                    ("developer", "lawyer", "marketer") else "lawyer",
+                "recommendation": recommendation[:800],
+                "fine_rub": int(v.get("fine_rub") or 0) if isinstance(v.get("fine_rub"), (int, float)) else 0,
+            })
+
+    # Стабильный порядок: critical → warning → info, внутри — по статье.
+    out.sort(key=lambda x: (_SEVERITY_RANK.get(x["severity"], 9), x.get("article_152fz", "")))
+
+    # Перенумерация id'ов внутри каждой группы severity.
     counters: dict[str, int] = {"critical": 0, "warning": 0, "info": 0}
     for v in out:
         counters[v["severity"]] += 1

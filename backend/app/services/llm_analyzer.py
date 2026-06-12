@@ -99,60 +99,70 @@ _SYSTEM_HEADER = """\
 ЗАПРЕЩЕНО: markdown, **жирный**, эмодзи, обратные апострофы, заголовки,
 маркированные списки внутри строковых полей.
 
-Поля и их формат:
+КАК РАБОТАЮТ НАРУШЕНИЯ (ВАЖНО — ИЗМЕНЕНО):
 
-  severity — строго одно из: "critical" | "warning" | "info"
-  target_role — строго одно из: "developer" | "lawyer" | "marketer"
-    developer — технические нарушения (формы, cookie, трекеры)
-    lawyer    — юр-формулировки (политика, согласие, оператор)
-    marketer  — пользовательский опыт (баннеры, рассылки)
-  article_152fz — формат "ст. X" или "ст. X ч. Y" (например: "ст. 9 ч. 4",
-    "ст. 18 ч. 5", "ст. 18.1"). Без слов "Федеральный закон" и "152-ФЗ".
-  id — нумерация по порядку появления в каждой группе:
-    "ERR-001", "ERR-002", … — для critical
-    "WARN-001", "WARN-002", … — для warning
-    "INFO-001", "INFO-002", … — для info
-  title ≤ 80 символов. Краткий заголовок без точки в конце.
-  description — 1-3 предложения, что нарушено и почему.
-  evidence — массив из 1-5 строк. КАЖДАЯ строка — конкретный факт ИЗ CRAWLJSON
-    или цитата из приложенных текстов документов. ЗАПРЕЩЕНО:
-      • придумывать имена cookie/трекеров, которых нет в crawl
-      • ссылаться на конкретные кнопки/формы/URL, если их нет в crawl
-      • использовать свои знания о популярных сайтах («у YouTube есть cookies YSC»)
-    Если конкретного факта в crawl нет — пиши обобщённо: «Cookie третьих лиц
-    устанавливаются до получения согласия» (без перечисления имён). Это
-    жёсткое требование — нарушение делает отчёт юридически уязвимым.
-  recommendation — 1-3 предложения, ЧТО КОНКРЕТНО сделать. Не «привести в
-    соответствие», а «добавить в баннер кнопку Отклонить и убрать установку
-    Я.Метрики до её нажатия».
-  fine_rub — целое число в рублях, ПОТОЛОК штрафа для юр.лица по
-    соответствующей части КоАП ст. 13.11 (см. ниже её текст). Не выдумывай.
-    Бери максимальное значение диапазона «на юридических лиц — от A до B
-    рублей» → B. Только цифра, без копеек.
+Ты НЕ присваиваешь severity, статью и штраф. Ты только ОПРЕДЕЛЯЕШЬ ТИП
+нарушения из фиксированного списка ниже и описываешь его конкретику.
+Серьёзность, статью 152-ФЗ и сумму штрафа проставит система автоматически по
+типу. Это нужно для объективности и юридической защиты оценки.
+
+Каждый объект violations[] содержит:
+
+  type — строго ОДИН код из списка допустимых типов (см. ниже). Если факт не
+    подпадает ни под один тип — НЕ выписывай нарушение.
+  title — краткий заголовок ≤ 80 символов под конкретный сайт (необязательно;
+    если не уверен — пропусти, система подставит дефолтный).
+  description — 1-3 предложения: что именно не так на ЭТОМ сайте.
+  evidence — массив 1-5 строк. КАЖДАЯ строка — конкретный факт ИЗ CRAWLJSON
+    или цитата из приложенных документов. ЗАПРЕЩЕНО:
+      • придумывать имена cookie/трекеров, которых нет в crawl;
+      • ссылаться на кнопки/формы/URL, которых нет в crawl;
+      • использовать свои знания о популярных сайтах.
+    Нет конкретного факта в crawl — пиши обобщённо.
+  recommendation — 1-3 предложения, ЧТО КОНКРЕТНО сделать.
+
+ОДИН ТИП — ОДНО НАРУШЕНИЕ. Не выписывай один и тот же type дважды, даже если
+проблема встречается на многих страницах (опиши масштаб в description/evidence).
+
+ДОПУСТИМЫЕ ТИПЫ НАРУШЕНИЙ (поле type):
+
+  cross_border_transfer    — на сайте зарубежные трекеры/сервисы (Google
+                             Analytics/Tag Manager/reCAPTCHA, Facebook, TikTok и
+                             т.п.) ИЛИ summary.has_cross_border_transfer=true.
+  server_outside_rf        — meta.server_ip принадлежит хостингу ВНЕ РФ (по IP
+                             определи страну; если НЕ РФ — этот тип). Если сервер
+                             в РФ, но есть зарубежные трекеры — используй
+                             cross_border_transfer, а этот НЕ выписывай.
+  prechecked_consent       — чекбокс согласия проставлен по умолчанию
+                             (pre_checked=true / forms_with_prechecked_consent>0).
+  form_without_consent     — форма собирает ПДн без чекбокса согласия
+                             (forms_pii_without_consent>0).
+  tracking_before_consent  — трекеры срабатывают до согласия
+                             (tracking_before_consent=true).
+  consent_combined_with_ads— согласие на ПДн совмещено с согласием на рекламу.
+  no_privacy_policy         — политика обработки ПДн НЕ найдена, ХОТЯ сайт
+                             обрабатывает ПДн (has_privacy_policy=false).
+  policy_incomplete         — политика есть, но неполная: нет сроков хранения,
+                             порядка уничтожения, прав субъекта и т.п. (по тексту).
+  no_operator_identification— оператор ПДн не идентифицирован (нет названия
+                             юрлица / ИНН / ОГРН в site_identity).
+  cookie_no_reject          — cookie-баннер есть, но без кнопки «Отклонить»
+                             (cookie_banner_has_reject=false).
+  no_cookie_notice          — cookie-баннер вообще отсутствует
+                             (has_cookie_banner=false), но сайт ставит cookie.
+  captcha_no_notice         — используется captcha (трекер category=captcha) без
+                             уведомления об обработке данных.
+  no_rkn_notification       — нет признаков уведомления Роскомнадзора об обработке
+                             ПДн (выписывай только если сайт явно обрабатывает ПДн).
+  no_subject_rights_info    — не раскрыт порядок реализации прав субъекта ПДн
+                             (доступ, изменение, удаление, отзыв согласия).
 
 executive_summary.verdict — 2-4 предложения юридическим языком.
-executive_summary.verdict_plain — 2-3 предложения простыми словами без юр-жаргона.
+executive_summary.verdict_plain — 2-3 предложения простыми словами без жаргона.
 
-═════════════════════════════════════════════════════════════════════════════
-ФОРМУЛА СКОРИНГА (сам её применяй при подсчёте)
-═════════════════════════════════════════════════════════════════════════════
-
-overall_score = max(0, 100 − Σ штрафных баллов по нарушениям)
-  где штраф за нарушение зависит от severity:
-    critical = 25 баллов
-    warning  = 10 баллов
-    info     = 3 балла
-
-risk_level и risk_label_ru — по диапазонам overall_score:
-  0-39   → "CRITICAL", "Критический риск"
-  40-59  → "HIGH",     "Высокий риск"
-  60-79  → "MEDIUM",   "Средний риск"
-  80-94  → "LOW",      "Низкий риск"
-  95-100 → "SAFE",     "Соответствует"
-
-legal_score — тот же подход, но штрафуем только за нарушения с
-  target_role="lawyer". Старт 100.
-technical_score — то же для target_role="developer" и "marketer". Старт 100.
+Скоринг (overall_score, risk_level, legal_score, technical_score) НЕ считай —
+система посчитает сама по типам нарушений. В ответе эти поля можешь не указывать
+или оставить 0.
 
 ═════════════════════════════════════════════════════════════════════════════
 INFRASTRUCTURE_AND_GEO — ОПРЕДЕЛИ СТРАНУ И ХОСТИНГ ПО IP САМ
@@ -226,27 +236,16 @@ AI_ANALYSIS — РАЗБОР ДОКУМЕНТОВ С САЙТА
   },
   "violations": [
     {
-      "id": "ERR-001",
-      "severity": "critical" | "warning" | "info",
-      "article_152fz": "ст. X ч. Y",
+      "type": "cross_border_transfer",
       "title": "...",
       "description": "...",
       "evidence": ["...", "..."],
-      "target_role": "developer" | "lawyer" | "marketer",
-      "recommendation": "...",
-      "fine_rub": 700000
+      "recommendation": "..."
     }
   ],
   "passed_checks": [
     {"title": "...", "detail": "..."}
   ],
-  "scoring": {
-    "overall_score": 0..100,
-    "risk_level": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "SAFE",
-    "risk_label_ru": "Критический риск" | "Высокий риск" | ... | "Соответствует",
-    "legal_score": 0..100,
-    "technical_score": 0..100
-  },
   "executive_summary": {
     "verdict": "...",
     "verdict_plain": "..."
@@ -296,15 +295,24 @@ _MAX_DOC_CHARS = 12000
 
 
 def _collect_documents(crawl: dict[str, Any]) -> dict[str, str]:
-    """Достаём из crawl тексты политик/согласий/cookie, обрезая по длине."""
+    """Достаём из crawl тексты политик/согласий/cookie, обрезая по длине.
+
+    Выбор детерминирован: документы сортируются по url, так что для одного
+    сайта при повторном скане в LLM уходит ровно тот же текст (важно для
+    воспроизводимой оценки)."""
     out: dict[str, str] = {}
     label_by_kind = {
         "privacy_policy": "Политика конфиденциальности",
         "consent": "Согласие на обработку ПДн",
         "cookie_policy": "Cookie-политика",
     }
+    # Стабильный порядок: сортируем по (kind, url).
+    docs = sorted(
+        (crawl.get("policy_documents", []) or []),
+        key=lambda d: (str(d.get("kind") or ""), str(d.get("url") or "")),
+    )
     seen: set[str] = set()
-    for doc in crawl.get("policy_documents", []) or []:
+    for doc in docs:
         kind = doc.get("kind")
         if kind not in label_by_kind or kind in seen:
             continue
@@ -314,9 +322,14 @@ def _collect_documents(crawl: dict[str, Any]) -> dict[str, str]:
         out[label_by_kind[kind]] = text[:_MAX_DOC_CHARS]
         seen.add(kind)
 
-    # Cookie-баннер используем только если не было отдельной cookie-policy
+    # Cookie-баннер — только если не было отдельной cookie-policy. Берём первый
+    # по отсортированному url, чтобы выбор не зависел от порядка обхода.
     if "cookie_policy" not in seen:
-        for page in crawl.get("pages", []) or []:
+        pages = sorted(
+            (crawl.get("pages", []) or []),
+            key=lambda p: str(p.get("url") or ""),
+        )
+        for page in pages:
             banner = page.get("cookie_banner") or {}
             txt = (banner.get("full_text") or "").strip()
             if banner.get("present") and len(txt) >= 80:
@@ -326,17 +339,56 @@ def _collect_documents(crawl: dict[str, Any]) -> dict[str, str]:
     return out
 
 
+# Нестабильные поля meta — меняются от скана к скану, на анализ не влияют.
+# Вырезаем перед отправкой LLM, чтобы одинаковый сайт давал одинаковый вход.
+_VOLATILE_META = ("scan_id", "started_at", "finished_at", "duration_ms", "errors")
+
+
 def _slim_crawl(crawl: dict[str, Any]) -> dict[str, Any]:
-    """Убираем из crawl-JSON огромные тексты политик (они идут отдельным блоком)
-    и лишнюю мета-инфу, которая не помогает анализу."""
-    slim = dict(crawl)
-    # policy_documents — оставляем только мета, без extracted_text (он отдельным разделом)
-    if "policy_documents" in slim:
-        slim["policy_documents"] = [
-            {k: v for k, v in d.items() if k != "extracted_text"}
-            for d in (slim["policy_documents"] or [])
-        ]
+    """Готовим CrawlJSON для LLM в ДЕТЕРМИНИРОВАННОМ виде.
+
+    Зачем: два скана одного сайта возвращают одни и те же факты, но в разном
+    порядке (BFS-обход непредсказуем) и с разными timestamps. Без нормализации
+    LLM видит разный JSON → даёт разную оценку даже при seed=42 и temperature=0.
+
+    Что делаем:
+      1) рекурсивно сортируем ключи (sort_keys при дампе);
+      2) сортируем массивы объектов (pages, forms, trackers...) по их же
+         каноническому виду — стабильный порядок;
+      3) выкидываем volatile-поля meta (scan_id, время) — не влияют на вердикт;
+      4) убираем extracted_text политик (уходит отдельным блоком).
+    """
+    # Глубокая копия через json round-trip (заодно отсекает несериализуемое).
+    slim = json.loads(json.dumps(crawl, ensure_ascii=False, default=str))
+
+    meta = slim.get("meta")
+    if isinstance(meta, dict):
+        for k in _VOLATILE_META:
+            meta.pop(k, None)
+
+    # policy_documents — без extracted_text (большой текст идёт отдельно).
+    if isinstance(slim.get("policy_documents"), list):
+        for d in slim["policy_documents"]:
+            if isinstance(d, dict):
+                d.pop("extracted_text", None)
+
+    _sort_arrays_in_place(slim)
     return slim
+
+
+def _sort_arrays_in_place(node: Any) -> None:
+    """Рекурсивно сортирует все списки объектов/словарей по их каноническому
+    json-представлению. Списки примитивов (строк/чисел) тоже сортируем."""
+    if isinstance(node, dict):
+        for v in node.values():
+            _sort_arrays_in_place(v)
+    elif isinstance(node, list):
+        for v in node:
+            _sort_arrays_in_place(v)
+        try:
+            node.sort(key=lambda x: json.dumps(x, ensure_ascii=False, sort_keys=True, default=str))
+        except TypeError:
+            pass
 
 
 def _build_user_message(crawl: dict[str, Any]) -> str:
@@ -347,7 +399,8 @@ def _build_user_message(crawl: dict[str, Any]) -> str:
         "Проанализируй сайт по фактам ниже. Верни ТОЛЬКО JSON по схеме из системного промпта.",
         "",
         "═══ ФАКТЫ С САЙТА (CrawlJSON) ═══",
-        json.dumps(slim, ensure_ascii=False, indent=2),
+        # sort_keys=True — ключи в стабильном порядке (детерминизм входа).
+        json.dumps(slim, ensure_ascii=False, indent=2, sort_keys=True),
     ]
     if docs:
         parts.append("")

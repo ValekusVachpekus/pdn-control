@@ -94,6 +94,16 @@ export async function fetchScanStatus(reportId) {
   return res.json();
 }
 
+/* Реальный прогресс скана для экрана ожидания.
+ * GET /api/scans/:id/progress -> { phase, status, phases[], pages, forms, trackers, server_ip, ... }
+ * Фазы: queued → crawling → analyzing → building → done|failed.
+ * Счётчики (pages/forms/trackers/...) появляются с фазы analyzing. */
+export async function fetchScanProgress(reportId) {
+  if (IS_MOCK) return { phase: 'done', status: 'done', phases: ['queued','crawling','analyzing','building','done','failed'] };
+  const res = await http(`/api/scans/${reportId}/progress`);
+  return res.json();
+}
+
 /* История сканов пользователя. GET /api/scans?limit=&offset= -> ScanRow[]. */
 export async function fetchHistory({ limit = 50, offset = 0 } = {}) {
   if (IS_MOCK) return [];
