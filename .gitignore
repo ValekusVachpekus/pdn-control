@@ -46,3 +46,6 @@ backend/*.json
 *.pdf
 *.png
 data.json
+
+# Скриншоты отчётов трекаем (перебивает правило *.png выше).
+!reports/**/images/*.png
