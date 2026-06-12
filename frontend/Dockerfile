@@ -1,8 +1,15 @@
-# node:20-slim (Debian/glibc), НЕ alpine: на musl установка нативных зависимостей
-# vite (esbuild, rollup) роняет npm с "Exit handler never called". Debian ставит
-# их чисто. Финальный образ — лёгкий nginx:alpine, в него едет только готовый dist.
+# node:20-slim (Debian/glibc). Финальный образ — лёгкий nginx:alpine с готовым dist.
 FROM node:20-slim AS builder
 WORKDIR /app
+
+# npm 10.8.2 (идёт с node:20) имеет баг "Exit handler never called", который
+# роняет установку на финализации. Обновляем до npm 11. Плюс поднимаем сетевые
+# ретраи/таймауты — реестр npm из РФ бывает медленный, дефолтных ретраев не хватает.
+RUN npm install -g npm@11 --no-audit --no-fund
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 180000 && \
+    npm config set fetch-timeout 600000
 
 COPY package*.json ./
 RUN npm ci --include=dev && \
