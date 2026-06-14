@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 
 from playwright.async_api import Browser, Error as PlaywrightError
@@ -55,6 +56,11 @@ async def fetch_page(
     interact_modals: bool = True,
     max_modal_clicks: int = 8,
     modal_wait_ms: int = 3_000,
+    # Жёсткий потолок на ВСЮ фазу взаимодействия со страницей. Лимита числа
+    # кликов мало: 8 × (клик ~2с + ожидание ~3с + закрытие) — это десятки секунд
+    # оверхеда, что при multi-page упирается в SCAN_TIMEOUT_SEC. Бюджет
+    # гарантирует ограниченное суммарное время независимо от числа триггеров.
+    interact_budget_ms: int = 15_000,
 ) -> FetchResult:
     context = await browser.new_context(user_agent=user_agent, locale="ru-RU")
     request_urls: list[str] = []
@@ -95,11 +101,20 @@ async def fetch_page(
             pass
 
     # Фаза взаимодействия: открываем модальные формы и снимаем их DOM.
+    #
+    # ВНИМАНИЕ (детерминизм): клики догружают скрипты/виджеты, поэтому набор
+    # модальных форм, request_urls и cookie после взаимодействия зависит от
+    # тайминга рендера/сети. На сайтах С модалками строгий детерминизм скана
+    # (одинаковый CrawlJSON между прогонами) не гарантируется — это осознанный
+    # размен «полнота аудита форм» против «битовой воспроизводимости». Для
+    # статических сайтов без модалок взаимодействие ничего не открывает и
+    # детерминизм сохраняется (критерий приёмки проверялся на таком сайте).
     modal_html: list[str] = []
     if interact_modals:
         try:
             modal_html = await _discover_modal_forms(
-                page, max_clicks=max_modal_clicks, wait_ms=modal_wait_ms
+                page, max_clicks=max_modal_clicks, wait_ms=modal_wait_ms,
+                budget_ms=interact_budget_ms,
             )
         except PlaywrightError:
             pass  # взаимодействие — best-effort, статические факты уже сняты
@@ -132,11 +147,13 @@ _MODAL_FORM_SELECTOR = (
 )
 
 
-async def _discover_modal_forms(page, *, max_clicks: int, wait_ms: int) -> list[str]:
+async def _discover_modal_forms(page, *, max_clicks: int, wait_ms: int,
+                                budget_ms: int = 15_000) -> list[str]:
     """Кликает по кнопкам-триггерам модалок и возвращает HTML-снимки DOM.
 
-    Защита от зацикливания: не более max_clicks кликов на страницу, дедуп
-    триггеров по нормализованному тексту, каждый клик в try/except.
+    Защита от зацикливания/таймаута: не более max_clicks кликов на страницу,
+    общий бюджет времени budget_ms на всю фазу, дедуп триггеров по
+    нормализованному тексту, каждый клик в try/except.
     """
     # Кандидаты-триггеры: кнопки, ссылки, role=button и элементы с onclick.
     candidates = await page.query_selector_all(
@@ -146,9 +163,10 @@ async def _discover_modal_forms(page, *, max_clicks: int, wait_ms: int) -> list[
     snapshots: list[str] = []
     seen_texts: set[str] = set()
     clicks = 0
+    deadline = time.monotonic() + budget_ms / 1000
 
     for el in candidates:
-        if clicks >= max_clicks:
+        if clicks >= max_clicks or time.monotonic() >= deadline:
             break
         try:
             raw = (await el.inner_text()) or ""

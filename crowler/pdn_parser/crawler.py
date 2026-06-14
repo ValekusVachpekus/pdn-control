@@ -44,6 +44,7 @@ class Crawler:
         output_dir: str | None = None,
         interact_modals: bool = True,
         max_modal_clicks: int = 8,
+        interact_budget_ms: int = 15_000,
     ) -> None:
         self.max_pages = max_pages
         self.max_depth = max_depth
@@ -54,6 +55,7 @@ class Crawler:
         self.output_dir = output_dir
         self.interact_modals = interact_modals
         self.max_modal_clicks = max_modal_clicks
+        self.interact_budget_ms = interact_budget_ms
 
     async def crawl(self, start_url: str, *, requested_url: str | None = None,
                     scan_id: str | None = None) -> CrawlResult:
@@ -148,6 +150,7 @@ class Crawler:
                 "page_timeout_ms": self.page_timeout_ms,
                 "interact_modals": self.interact_modals,
                 "max_modal_clicks": self.max_modal_clicks,
+                "interact_budget_ms": self.interact_budget_ms,
             },
             robots_respected=self.respect_robots,
             pages_requested_limit=self.max_pages,
@@ -169,11 +172,13 @@ class Crawler:
         fetched = await fetch_page(
             browser, url, timeout_ms=self.page_timeout_ms,
             interact_modals=self.interact_modals, max_modal_clicks=self.max_modal_clicks,
+            interact_budget_ms=self.interact_budget_ms,
         )
         if fetched.error and "imeout" in fetched.error:
             fetched = await fetch_page(
                 browser, url, timeout_ms=self.page_timeout_ms,
                 interact_modals=self.interact_modals, max_modal_clicks=self.max_modal_clicks,
+                interact_budget_ms=self.interact_budget_ms,
             )
         return fetched
 

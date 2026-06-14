@@ -211,8 +211,17 @@ def _detect_loose_forms(soup: BeautifulSoup) -> list[FormInfo]:
     for container, els in groups.values():
         form = _build_form(els, container, soup, action=None,
                            method=(container.get("method") or "post").lower())
-        if form is not None:
-            forms.append(form)
+        if form is None:
+            continue
+        # Антимусор: <form>-тег — явная форма и засчитывается всегда, а вот
+        # «форма из <div>» без обёртки слишком легко собирается из site-search /
+        # подписки / фильтра (поле + кнопка «получить»/«отправить»). Засчитываем
+        # loose-форму только если она реально собирает ПДн, имеет чекбокс
+        # согласия или лежит в говорящем контейнере (modal/popup/feedback…).
+        attrs = " ".join([" ".join(container.get("class") or []), container.get("id") or ""])
+        if not (form.pii_kinds or form.consent_checkboxes or _CONTAINER_HINT.search(attrs)):
+            continue
+        forms.append(form)
     return forms
 
 

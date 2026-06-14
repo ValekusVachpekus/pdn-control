@@ -142,7 +142,9 @@ COOKIE_SIGNATURES: list[CookieSignature] = [
                     cookie_prefixes=("_clck", "_clsk"), cross_border=True),
     CookieSignature("Mail.ru / VK Top", TrackerCategory.ANALYTICS,
                     cookie_prefixes=("_tmr",)),
-    CookieSignature("Google Ads / DoubleClick", TrackerCategory.AD_PIXEL,
+    # Имя ДОЛЖНО совпадать с одноимённой Signature ("Google Ads"), иначе хиты по
+    # скрипту и по cookie не сольются в один трекер (объединение идёт по name).
+    CookieSignature("Google Ads", TrackerCategory.AD_PIXEL,
                     cookie_prefixes=("_gcl_", "test_cookie"), cross_border=True),
 ]
 
