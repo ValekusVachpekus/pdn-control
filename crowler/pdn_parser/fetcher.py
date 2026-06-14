@@ -7,8 +7,11 @@
 
 from __future__ import annotations
 
+import ipaddress
+import socket
 import time
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from playwright.async_api import Browser, Error as PlaywrightError
 
@@ -42,6 +45,25 @@ class FetchResult:
     server_ip: str | None = None
 
 
+def is_safe_url(url: str) -> bool:
+    """
+    Security fix: Validate URL to prevent Server-Side Request Forgery (SSRF).
+    Resolves the hostname and verifies it does not belong to private, loopback,
+    link-local, or reserved IP ranges.
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        if not parsed.hostname:
+            return False
+        ip_str = socket.gethostbyname(parsed.hostname)
+        ip = ipaddress.ip_address(ip_str)
+        return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+    except Exception:
+        return False
+
+
 async def fetch_page(
     browser: Browser,
     url: str,
@@ -62,6 +84,10 @@ async def fetch_page(
     # гарантирует ограниченное суммарное время независимо от числа триггеров.
     interact_budget_ms: int = 15_000,
 ) -> FetchResult:
+    # Security fix: Block SSRF attempts targeting internal or invalid addresses
+    if not is_safe_url(url):
+        return FetchResult(url=url, final_url=url, status=None, error="URL points to an internal or invalid address")
+
     context = await browser.new_context(user_agent=user_agent, locale="ru-RU")
     request_urls: list[str] = []
     context.on("request", lambda req: request_urls.append(req.url))
