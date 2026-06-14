@@ -91,7 +91,10 @@ def build_summary(pages: list[PageData]) -> SiteSummary:
 
     s.privacy_policy_urls = sorted(set(privacy_urls))
     s.pii_kinds_collected = sorted(pii_kinds)
-    s.trackers = list(tracker_map.values())
+    # Детерминированный порядок: трекеры по имени, страницы внутри — по url.
+    for st in tracker_map.values():
+        st.found_on.sort()
+    s.trackers = sorted(tracker_map.values(), key=lambda t: t.name)
     s.tracker_categories = sorted({t.category.value for t in s.trackers})
     s.has_cross_border_transfer = any(t.cross_border for t in s.trackers)
     s.third_party_domains = sorted(third_party_domains)

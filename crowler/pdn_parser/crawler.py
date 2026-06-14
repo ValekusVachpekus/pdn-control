@@ -42,6 +42,8 @@ class Crawler:
         page_timeout_ms: int = 20_000,
         policy_text_to_files: bool = False,
         output_dir: str | None = None,
+        interact_modals: bool = True,
+        max_modal_clicks: int = 8,
     ) -> None:
         self.max_pages = max_pages
         self.max_depth = max_depth
@@ -50,6 +52,8 @@ class Crawler:
         self.page_timeout_ms = page_timeout_ms
         self.policy_text_to_files = policy_text_to_files
         self.output_dir = output_dir
+        self.interact_modals = interact_modals
+        self.max_modal_clicks = max_modal_clicks
 
     async def crawl(self, start_url: str, *, requested_url: str | None = None,
                     scan_id: str | None = None) -> CrawlResult:
@@ -102,6 +106,12 @@ class Crawler:
                         for link in self._followable(links, base_domain, visited):
                             queue.append((link, depth + 1))
 
+                # Детерминированный порядок страниц на выходе: при упоре в
+                # max_pages набор обойдённых страниц уже одинаков (BFS отсортирован),
+                # а сортировка по url убирает зависимость порядка pages[] и
+                # производных (trackers.found_on) от тайминга загрузки.
+                pages.sort(key=lambda p: p.url)
+
                 # Тексты политик и реквизиты — пока браузер открыт.
                 policy_documents = await fetch_policy_documents(
                     browser, pages,
@@ -109,6 +119,7 @@ class Crawler:
                     output_dir=self.output_dir,
                     timeout_ms=self.page_timeout_ms,
                 )
+                policy_documents = sorted(policy_documents, key=lambda d: d.url)
             finally:
                 # При Ctrl+C драйвер уже мог умереть — глушим вторичную ошибку закрытия.
                 try:
@@ -135,6 +146,8 @@ class Crawler:
                 "respect_robots": self.respect_robots,
                 "headless": self.headless,
                 "page_timeout_ms": self.page_timeout_ms,
+                "interact_modals": self.interact_modals,
+                "max_modal_clicks": self.max_modal_clicks,
             },
             robots_respected=self.respect_robots,
             pages_requested_limit=self.max_pages,
@@ -151,9 +164,22 @@ class Crawler:
             schema_version=SCHEMA_VERSION,
         )
 
+    async def _fetch_with_retry(self, browser, url: str):
+        """Загрузка с одним ретраем по таймауту — убирает дивергенцию из-за сетевых сбоев."""
+        fetched = await fetch_page(
+            browser, url, timeout_ms=self.page_timeout_ms,
+            interact_modals=self.interact_modals, max_modal_clicks=self.max_modal_clicks,
+        )
+        if fetched.error and "imeout" in fetched.error:
+            fetched = await fetch_page(
+                browser, url, timeout_ms=self.page_timeout_ms,
+                interact_modals=self.interact_modals, max_modal_clicks=self.max_modal_clicks,
+            )
+        return fetched
+
     async def _process_page(self, browser, url: str, depth: int, base_domain: str):
         """Возвращает (PageData, links, visible_text, server_ip)."""
-        fetched = await fetch_page(browser, url, timeout_ms=self.page_timeout_ms)
+        fetched = await self._fetch_with_retry(browser, url)
         if fetched.error:
             return (
                 PageData(url=url, final_url=fetched.final_url, status=fetched.status,
@@ -163,15 +189,24 @@ class Crawler:
 
         soup = BeautifulSoup(fetched.html, "html.parser")
         trackers, third_party_domains = detectors.detect_trackers(
-            soup, fetched.request_urls, base_domain
+            soup, fetched.request_urls, fetched.cookies, base_domain
         )
+
+        # Статические формы + формы из модалок (каждый снимок DOM после клика),
+        # с дедупом по составу полей + action: одна форма часто открывается
+        # несколькими кнопками.
+        forms = detectors.detect_forms(soup)
+        for snapshot in fetched.modal_html:
+            forms.extend(detectors.detect_forms(BeautifulSoup(snapshot, "html.parser")))
+        forms = _dedupe_forms(forms)
+
         page = PageData(
             url=url,
             final_url=fetched.final_url,
             status=fetched.status,
             title=fetched.title,
             depth=depth,
-            forms=detectors.detect_forms(soup),
+            forms=forms,
             cookies=detectors.classify_cookies(fetched.cookies, base_domain),
             cookie_banner=detectors.detect_cookie_banner(soup),
             trackers=trackers,
@@ -255,6 +290,21 @@ class Crawler:
                 if same_site(url, base_domain):
                     urls.append(url)
         return urls
+
+
+def _dedupe_forms(forms):
+    """Дедуп форм по (action, состав полей). Одна форма часто открывается
+    несколькими кнопками-триггерами — снимаем дубли, сохраняя порядок."""
+    seen: set[tuple] = set()
+    out = []
+    for f in forms:
+        key = (f.action or "", tuple(sorted((fld.name or "") for fld in f.fields)),
+               tuple(sorted(k.value for k in f.pii_kinds)))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(f)
+    return out
 
 
 async def crawl_site(start_url: str, *, requested_url: str | None = None,

@@ -1,9 +1,12 @@
 """Детектор сторонних скриптов, метрик, CRM-виджетов и пикселей.
 
-Источники сигнала два, и они дополняют друг друга:
+Источники сигнала три, и они дополняют друг друга:
   1. теги <script> в DOM (src и инлайн-код);
   2. сетевые запросы, перехваченные Playwright при загрузке страницы
-     (ловит трекеры, которые подгружаются динамически и не видны в исходном HTML).
+     (ловит трекеры, которые подгружаются динамически и не видны в исходном HTML);
+  3. выставленные cookie — для крупных площадок, где аналитика хостится на
+     собственном домене (YouTube, VK, Ozon) и по доменам запросов не ловится,
+     но характерные cookie (`_ga`, `_ym_uid`, `_fbp` …) выставляются всегда.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ from __future__ import annotations
 from bs4 import BeautifulSoup
 
 from ..models import TrackerHit
-from ..signatures import SIGNATURES, Signature
+from ..signatures import COOKIE_SIGNATURES, SIGNATURES, Signature
 from ..utils import registrable_domain
 
 
@@ -30,6 +33,13 @@ def _match_signature(sig: Signature, src_urls: list[str], inline_blobs: list[str
             evidence.append(f"src:{url[:120]}")
             break
 
+    # Платформенная телеметрия по характерному ПУТИ запроса (домен любой).
+    if sig.paths:
+        for url in request_urls:
+            if any(p in url for p in sig.paths):
+                evidence.append(f"path:{url[:120]}")
+                break
+
     if sig.js_markers:
         for blob in inline_blobs:
             if any(m in blob for m in sig.js_markers):
@@ -42,6 +52,7 @@ def _match_signature(sig: Signature, src_urls: list[str], inline_blobs: list[str
 def detect_trackers(
     soup: BeautifulSoup,
     request_urls: list[str],
+    cookies: list[dict],
     page_domain: str,
 ) -> tuple[list[TrackerHit], list[str]]:
     """Возвращает (найденные трекеры, список сторонних доменов)."""
@@ -50,21 +61,48 @@ def detect_trackers(
     src_urls = [s["src"] for s in soup.find_all("script", src=True)]
     inline_blobs = [s.string or "" for s in soup.find_all("script") if not s.get("src")]
 
-    hits: list[TrackerHit] = []
+    # Хиты копим по имени трекера: один сервис может проявиться и в скриптах, и в
+    # cookie — тогда объединяем свидетельства, а не плодим дубли.
+    hits: dict[str, TrackerHit] = {}
+
     for sig in SIGNATURES:
         evidence = _match_signature(sig, src_urls, inline_blobs, request_urls)
-        if evidence:
-            third_party = bool(sig.domains) and all(
-                registrable_domain(_host(d)) != base for d in sig.domains if "." in d
-            )
-            hits.append(
-                TrackerHit(
-                    name=sig.name,
-                    category=sig.category,
-                    third_party=third_party,
-                    cross_border=sig.cross_border,
-                    evidence=evidence,
-                )
+        if not evidence:
+            continue
+        # Трекер опознан по СИГНАТУРЕ (известная платформа), а не по «домен ≠
+        # base». third_party оставляем как информативный флаг: ходила ли страница
+        # за ресурсом на сторонний домен.
+        third_party = bool(sig.domains) and all(
+            registrable_domain(_host(d)) != base for d in sig.domains if "." in d
+        )
+        hits[sig.name] = TrackerHit(
+            name=sig.name,
+            category=sig.category,
+            third_party=third_party,
+            cross_border=sig.cross_border,
+            evidence=evidence,
+        )
+
+    # Детекция по cookie — независимо от домена скрипта.
+    cookie_names = [(c.get("name") or "").lower() for c in cookies]
+    for csig in COOKIE_SIGNATURES:
+        matched = sorted({
+            name for name in cookie_names
+            if any(name.startswith(p) for p in csig.cookie_prefixes)
+        })
+        if not matched:
+            continue
+        evidence = [f"cookie:{n}" for n in matched]
+        existing = hits.get(csig.name)
+        if existing is not None:
+            existing.evidence.extend(evidence)
+        else:
+            hits[csig.name] = TrackerHit(
+                name=csig.name,
+                category=csig.category,
+                third_party=True,  # cookie-сигнатура = сторонний сервис аналитики
+                cross_border=csig.cross_border,
+                evidence=evidence,
             )
 
     # Все сторонние домены, к которым реально ходила страница, — признак
@@ -75,7 +113,8 @@ def detect_trackers(
         if _host(u) and registrable_domain(_host(u)) != base
     })
 
-    return hits, third_party_domains
+    # Детерминированный порядок хитов — по имени трекера.
+    return sorted(hits.values(), key=lambda h: h.name), third_party_domains
 
 
 def _host(url: str) -> str:

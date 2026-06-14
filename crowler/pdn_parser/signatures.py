@@ -19,6 +19,10 @@ class Signature:
     category: TrackerCategory
     domains: tuple[str, ...] = ()        # подстроки доменов сетевых запросов / src
     js_markers: tuple[str, ...] = ()     # подстроки в инлайн-скриптах
+    # Характерные ПУТИ запросов телеметрии — ловят платформенную аналитику,
+    # которая хостится на собственном домене площадки (YouTube, VK, Ozon) и по
+    # домену не опознаётся. Подстрока ищется в полном URL сетевого запроса.
+    paths: tuple[str, ...] = ()
     cross_border: bool = False           # иностранный сервис → передача данных за рубеж (ст. 12)
 
 
@@ -29,7 +33,16 @@ SIGNATURES: list[Signature] = [
               js_markers=("ym(", "yandex_metrika", "Ya.Metrika")),
     Signature("Google Analytics", TrackerCategory.ANALYTICS,
               domains=("google-analytics.com", "analytics.google.com"),
-              js_markers=("gtag(", "ga(", "GoogleAnalyticsObject"), cross_border=True),
+              js_markers=("gtag(", "ga(", "GoogleAnalyticsObject"),
+              paths=("/g/collect", "/j/collect", "/r/collect"), cross_border=True),
+    # Платформенная телеметрия Google/YouTube на собственных доменах: маяк
+    # gen_204/generate_204 и логирование плеера youtubei/api stats.
+    Signature("Google телеметрия (gen_204)", TrackerCategory.ANALYTICS,
+              paths=("/gen_204", "/generate_204"), cross_border=True),
+    Signature("YouTube Analytics", TrackerCategory.ANALYTICS,
+              paths=("/youtubei/v1/log_event", "/api/stats/qoe", "/api/stats/watchtime",
+                     "/api/stats/playback", "/api/stats/atr", "/ptracking"),
+              cross_border=True),
     Signature("Google Tag Manager", TrackerCategory.TAG_MANAGER,
               domains=("googletagmanager.com",),
               js_markers=("googletagmanager.com/gtm.js", "dataLayer"), cross_border=True),
@@ -39,6 +52,12 @@ SIGNATURES: list[Signature] = [
     Signature("Hotjar", TrackerCategory.SESSION_REPLAY,
               domains=("static.hotjar.com", "script.hotjar.com"),
               js_markers=("hjid", "hotjar"), cross_border=True),
+    Signature("Microsoft Clarity", TrackerCategory.SESSION_REPLAY,
+              domains=("clarity.ms", "www.clarity.ms"),
+              js_markers=("clarity(", "clarity.ms/tag"), cross_border=True),
+    Signature("TikTok Pixel", TrackerCategory.AD_PIXEL,
+              domains=("analytics.tiktok.com", "analytics-sg.tiktok.com"),
+              js_markers=("ttq.", "TiktokAnalyticsObject"), cross_border=True),
     Signature("Roistat", TrackerCategory.ANALYTICS,
               domains=("cloud.roistat.com",), js_markers=("roistat",)),
     Signature("Calltouch", TrackerCategory.ANALYTICS,
@@ -49,11 +68,11 @@ SIGNATURES: list[Signature] = [
               domains=("connect.facebook.net", "facebook.com/tr"),
               js_markers=("fbq(", "fbevents.js"), cross_border=True),
     Signature("VK Pixel / OpenAPI", TrackerCategory.AD_PIXEL,
-              domains=("vk.com/js/api/openapi", "ads.vk.com", "userapi.com"),
+              domains=("vk.com/rtrg", "vk.com/js/api/openapi", "ads.vk.com", "userapi.com"),
               js_markers=("VK.Retargeting", "vk_openapi")),
     Signature("Google Ads", TrackerCategory.AD_PIXEL,
               domains=("googleadservices.com", "googlesyndication.com", "doubleclick.net"),
-              cross_border=True),
+              paths=("/pagead/",), cross_border=True),
     Signature("Yandex Ads", TrackerCategory.AD_PIXEL,
               domains=("an.yandex.ru", "yandexadexchange.net")),
 
@@ -91,7 +110,54 @@ SIGNATURES: list[Signature] = [
 ]
 
 
+@dataclass(frozen=True)
+class CookieSignature:
+    """Сигнатура трекера по имени выставленной cookie.
+
+    Нужна для крупных площадок (YouTube, VK, Ozon), где аналитика хостится на
+    собственном домене площадки → детектор по доменам сторонних запросов её не
+    видит. Но характерные cookie (`_ga`, `_ym_uid`, `_fbp` …) выставляются всегда,
+    и по ним трекер опознаётся независимо от того, откуда подгружен скрипт.
+    """
+
+    name: str
+    category: TrackerCategory
+    # Префиксы имён cookie (сравнение через str.startswith, регистронезависимо).
+    cookie_prefixes: tuple[str, ...] = ()
+    cross_border: bool = False
+
+
+COOKIE_SIGNATURES: list[CookieSignature] = [
+    CookieSignature("Google Analytics", TrackerCategory.ANALYTICS,
+                    cookie_prefixes=("_ga", "_gid", "_gat", "__utm"), cross_border=True),
+    CookieSignature("Яндекс.Метрика", TrackerCategory.ANALYTICS,
+                    cookie_prefixes=("_ym_", "yandexuid", "yabs-sid")),
+    CookieSignature("Facebook Pixel", TrackerCategory.AD_PIXEL,
+                    cookie_prefixes=("_fbp", "_fbc"), cross_border=True),
+    CookieSignature("TikTok Pixel", TrackerCategory.AD_PIXEL,
+                    cookie_prefixes=("_ttp",), cross_border=True),
+    CookieSignature("Hotjar", TrackerCategory.SESSION_REPLAY,
+                    cookie_prefixes=("_hj",), cross_border=True),
+    CookieSignature("Microsoft Clarity", TrackerCategory.SESSION_REPLAY,
+                    cookie_prefixes=("_clck", "_clsk"), cross_border=True),
+    CookieSignature("Mail.ru / VK Top", TrackerCategory.ANALYTICS,
+                    cookie_prefixes=("_tmr",)),
+    CookieSignature("Google Ads / DoubleClick", TrackerCategory.AD_PIXEL,
+                    cookie_prefixes=("_gcl_", "test_cookie"), cross_border=True),
+]
+
+
 # --- Ключевые слова для эвристик детекторов ---
+
+# Тексты кнопок, открывающих модальные формы заявок. Регистронезависимо,
+# поиск по подстроке. Используются фазой взаимодействия в fetcher.py: формы в
+# попапах рендерятся в DOM только по клику и иначе в аудит не попадают.
+MODAL_TRIGGER_KEYWORDS: tuple[str, ...] = (
+    "оставить заявку", "отправить заявку", "записаться", "записать",
+    "заказать звонок", "обратный звонок", "заказать", "связаться",
+    "консультаци", "задать вопрос", "получить", "регистраци",
+)
+
 
 CONSENT_KEYWORDS: tuple[str, ...] = (
     "согла", "персональн", "обработк", "политик", "152-фз", "152 фз",

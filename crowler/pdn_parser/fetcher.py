@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 
 from playwright.async_api import Browser, Error as PlaywrightError
 
+from .signatures import MODAL_TRIGGER_KEYWORDS
+
 DEFAULT_UA = (
     "Mozilla/5.0 (compatible; PDnControlBot/0.1; +https://example.com/bot) "
     "Chrome/120.0 Safari/537.36"
@@ -27,6 +29,10 @@ class FetchResult:
     cookies: list[dict] = field(default_factory=list)
     request_urls: list[str] = field(default_factory=list)
     links: list[str] = field(default_factory=list)
+    # HTML-снимки DOM после клика по каждой кнопке-триггеру модалки. Каждый
+    # снимок отдельно прогоняется через detect_forms — так в аудит попадают
+    # формы, которых нет в статическом DOM до взаимодействия.
+    modal_html: list[str] = field(default_factory=list)
     error: str | None = None
     # IP сервера, к которому реально подключился Playwright при загрузке этой
     # страницы. Берётся через Response.server_addr() — это IP origin'а после
@@ -46,6 +52,9 @@ async def fetch_page(
     # cookie), к moment'у DCL уже на месте.
     wait_until: str = "domcontentloaded",
     user_agent: str = DEFAULT_UA,
+    interact_modals: bool = True,
+    max_modal_clicks: int = 8,
+    modal_wait_ms: int = 3_000,
 ) -> FetchResult:
     context = await browser.new_context(user_agent=user_agent, locale="ru-RU")
     request_urls: list[str] = []
@@ -85,6 +94,22 @@ async def fetch_page(
         except PlaywrightError:
             pass
 
+    # Фаза взаимодействия: открываем модальные формы и снимаем их DOM.
+    modal_html: list[str] = []
+    if interact_modals:
+        try:
+            modal_html = await _discover_modal_forms(
+                page, max_clicks=max_modal_clicks, wait_ms=modal_wait_ms
+            )
+        except PlaywrightError:
+            pass  # взаимодействие — best-effort, статические факты уже сняты
+
+    # cookie снимаем повторно: модалки/виджеты могли выставить новые.
+    try:
+        cookies = await context.cookies()
+    except PlaywrightError:
+        pass
+
     await context.close()
     return FetchResult(
         url=url,
@@ -95,5 +120,78 @@ async def fetch_page(
         cookies=cookies,
         request_urls=request_urls,
         links=links,
+        modal_html=modal_html,
         server_ip=server_ip,
     )
+
+
+# Селектор появления формы после клика по триггеру.
+_MODAL_FORM_SELECTOR = (
+    "form, [class*=modal] input, [class*=popup] input, "
+    "[class*=modal] textarea, [class*=popup] textarea, [role=dialog] input"
+)
+
+
+async def _discover_modal_forms(page, *, max_clicks: int, wait_ms: int) -> list[str]:
+    """Кликает по кнопкам-триггерам модалок и возвращает HTML-снимки DOM.
+
+    Защита от зацикливания: не более max_clicks кликов на страницу, дедуп
+    триггеров по нормализованному тексту, каждый клик в try/except.
+    """
+    # Кандидаты-триггеры: кнопки, ссылки, role=button и элементы с onclick.
+    candidates = await page.query_selector_all(
+        "button, a, [role=button], [onclick]"
+    )
+
+    snapshots: list[str] = []
+    seen_texts: set[str] = set()
+    clicks = 0
+
+    for el in candidates:
+        if clicks >= max_clicks:
+            break
+        try:
+            raw = (await el.inner_text()) or ""
+        except PlaywrightError:
+            continue
+        text = raw.strip().lower()
+        if not text or len(text) > 60:
+            continue
+        if not any(kw in text for kw in MODAL_TRIGGER_KEYWORDS):
+            continue
+        if text in seen_texts:
+            continue
+        seen_texts.add(text)
+
+        try:
+            if not await el.is_visible():
+                continue
+            await el.click(timeout=2_000)
+            clicks += 1
+        except PlaywrightError:
+            continue
+
+        # Ждём появления формы/полей в модалке.
+        try:
+            await page.wait_for_selector(_MODAL_FORM_SELECTOR, timeout=wait_ms)
+        except PlaywrightError:
+            pass  # форма могла не появиться — снимок всё равно снимем
+
+        try:
+            snapshots.append(await page.content())
+        except PlaywrightError:
+            pass
+
+        # Закрываем модалку: Esc, затем клик по крестику/оверлею, если остался.
+        try:
+            await page.keyboard.press("Escape")
+            close = await page.query_selector(
+                "[class*=modal] [class*=close], [class*=popup] [class*=close], "
+                "[aria-label*=close i], [class*=overlay]"
+            )
+            if close is not None and await close.is_visible():
+                await close.click(timeout=1_000)
+        except PlaywrightError:
+            pass
+
+    return snapshots
