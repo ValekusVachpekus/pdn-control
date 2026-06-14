@@ -66,4 +66,6 @@ def classify_cookies(raw_cookies: list[dict], page_domain: str) -> list[CookieIn
                 expires=c.get("expires") if c.get("expires", -1) and c.get("expires", -1) > 0 else None,
             )
         )
-    return result
+    # Детерминированный порядок: context.cookies() не гарантирует стабильную
+    # сортировку между прогонами.
+    return sorted(result, key=lambda c: (c.name, c.domain))

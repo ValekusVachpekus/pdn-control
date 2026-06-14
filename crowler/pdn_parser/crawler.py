@@ -297,18 +297,27 @@ class Crawler:
         return urls
 
 
+def _form_key(f):
+    return (f.action or "", tuple(sorted((fld.name or "") for fld in f.fields)),
+            tuple(sorted(k.value for k in f.pii_kinds)))
+
+
 def _dedupe_forms(forms):
     """Дедуп форм по (action, состав полей). Одна форма часто открывается
-    несколькими кнопками-триггерами — снимаем дубли, сохраняя порядок."""
+    несколькими кнопками-триггерами.
+
+    Сначала дедуп с сохранением порядка (оставляем ПЕРВУЮ — статическая форма
+    идёт раньше модальной и предпочтительнее), затем сортировка по ключу для
+    детерминированного порядка выдачи между прогонами."""
     seen: set[tuple] = set()
     out = []
     for f in forms:
-        key = (f.action or "", tuple(sorted((fld.name or "") for fld in f.fields)),
-               tuple(sorted(k.value for k in f.pii_kinds)))
+        key = _form_key(f)
         if key in seen:
             continue
         seen.add(key)
         out.append(f)
+    out.sort(key=_form_key)
     return out
 
 

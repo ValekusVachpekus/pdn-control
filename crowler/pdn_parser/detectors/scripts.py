@@ -113,8 +113,12 @@ def detect_trackers(
         if _host(u) and registrable_domain(_host(u)) != base
     })
 
-    # Детерминированный порядок хитов — по имени трекера.
-    return sorted(hits.values(), key=lambda h: h.name), third_party_domains
+    # Детерминированный порядок: хиты по имени, evidence внутри — по строке
+    # (иначе порядок пруфов зависит от порядка прихода сетевых запросов).
+    result = sorted(hits.values(), key=lambda h: h.name)
+    for h in result:
+        h.evidence.sort()
+    return result, third_party_domains
 
 
 def _host(url: str) -> str:
