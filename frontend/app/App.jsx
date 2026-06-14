@@ -149,6 +149,9 @@ function App() {
         const r = await fetchReport(reportId);
         if (alive) {
           setReport(r);
+          // Отчёт мог быть открыт из истории (domain не выставлен) — берём из
+          // самого отчёта, иначе кнопка «Повторить» окажется без домена (issue #30).
+          if (r.domain) setDomain(r.domain);
           // Источник истины по оплате — бэкенд (_paid из mapReport).
           if (r.paid) setPaid(true);
         }
@@ -244,7 +247,11 @@ function App() {
             ? <Report r={report} detail={detail} onToast={toast} paid={paid}
                 onUnlock={() => setModal('pricing')}
                 onDownload={downloadPdf}
-                onRescan={() => { if (domain) startScan(domain); }} />
+                onRescan={() => {
+                const d = domain || report?.domain;
+                if (d) startScan(d);
+                else toast('Не удалось определить адрес сайта для повтора', 'info');
+              }} />
             : reportId
               ? <ReportLoading />
               : <ReportEmpty onNewScan={() => setScreen('landing')} />)}

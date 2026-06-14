@@ -125,14 +125,14 @@ function Landing({ onStart, onLogin, onLogout, onUpgrade, onOpenHistory, user, o
                 : 'Проверка бесплатно · полный отчёт — разовая оплата'}
             </span>
             <button className="btn btn-quiet" style={{ height: 30, padding: '0 8px', fontSize: 13, color: 'var(--accent-ink)' }}
-              onClick={() => { setUrl('klinika-zdorovie.ru'); inputRef.current && inputRef.current.focus(); }}>
-              Заполнить примером
+              onClick={() => document.getElementById('what-we-check')?.scrollIntoView({ behavior: 'smooth' })}>
+              Как это работает ↓
             </button>
           </div>
         </div>
 
         {/* what we check */}
-        <div className="fade-up" style={{ width: '100%', marginTop: 56, textAlign: 'left', animationDelay: '.16s' }}>
+        <div id="what-we-check" className="fade-up" style={{ width: '100%', marginTop: 56, textAlign: 'left', animationDelay: '.16s', scrollMarginTop: 24 }}>
           <div className="label-eyebrow" style={{ marginBottom: 6 }}>Что проверяем</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: 48 }}>
             {checks.map((c, i) => (
