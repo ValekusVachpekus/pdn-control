@@ -49,7 +49,7 @@ async def fetch_policy_documents(
 
     for idx, (url, kind) in enumerate(list(urls.items())[:_MAX_DOCS]):
         fetched = await fetch_page(browser, url, timeout_ms=timeout_ms,
-                                   wait_until="domcontentloaded")
+                                   wait_until="domcontentloaded", interact_modals=False)
         if fetched.error or not fetched.html:
             docs.append(PolicyDocument(url=url, kind=kind, fetch_status=fetched.status))
             continue
