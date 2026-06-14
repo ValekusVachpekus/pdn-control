@@ -45,6 +45,12 @@ class Crawler:
         interact_modals: bool = True,
         max_modal_clicks: int = 8,
         interact_budget_ms: int = 15_000,
+        # Мягкий бюджет времени на ВЕСЬ обход, сек. При его исчерпании цикл
+        # перестаёт добирать страницы и финализирует то, что собрал, вместо
+        # того чтобы упереться в жёсткий SCAN_TIMEOUT_SEC и упасть с 504 без
+        # результата. None = без бюджета (CLI). Backend передаёт значение ниже
+        # SCAN_TIMEOUT_SEC, чтобы остановиться заранее.
+        time_budget_sec: float | None = None,
     ) -> None:
         self.max_pages = max_pages
         self.max_depth = max_depth
@@ -56,6 +62,7 @@ class Crawler:
         self.interact_modals = interact_modals
         self.max_modal_clicks = max_modal_clicks
         self.interact_budget_ms = interact_budget_ms
+        self.time_budget_sec = time_budget_sec
 
     async def crawl(self, start_url: str, *, requested_url: str | None = None,
                     scan_id: str | None = None) -> CrawlResult:
@@ -80,10 +87,28 @@ class Crawler:
         # сторонних ресурсов. Дальнейшие страницы переписать значение не могут.
         start_server_ip: str | None = None
 
+        # На дозагрузку текстов политик (после цикла) резервируем часть бюджета —
+        # она тоже грузит до _MAX_DOCS страниц и не должна выталкивать скан за
+        # SCAN_TIMEOUT_SEC. Резерв адаптивный: не больше четверти бюджета, чтобы
+        # при малом бюджете обход не обнулялся (loop_budget не уходит в минус).
+        loop_budget = None
+        if self.time_budget_sec is not None:
+            reserve = min(45.0, self.time_budget_sec * 0.25)
+            loop_budget = self.time_budget_sec - reserve
+
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=self.headless)
             try:
                 while queue and len(pages) < self.max_pages:
+                    # Мягкая остановка по времени: возвращаем партиал, а не падаем
+                    # по жёсткому таймауту. Срабатывает только на патологически
+                    # тяжёлых сайтах; обычные укладываются и остаются детерминированы.
+                    if loop_budget is not None and (time.monotonic() - t0) > loop_budget:
+                        errors.append(
+                            f"бюджет времени обхода исчерпан ({loop_budget:.0f}c), "
+                            f"собрано {len(pages)} страниц"
+                        )
+                        break
                     url, depth = queue.popleft()
                     norm = normalize_url(url)
                     if norm in visited or depth > self.max_depth:
@@ -115,11 +140,16 @@ class Crawler:
                 pages.sort(key=lambda p: p.url)
 
                 # Тексты политик и реквизиты — пока браузер открыт.
+                policy_deadline = (
+                    t0 + self.time_budget_sec
+                    if self.time_budget_sec is not None else None
+                )
                 policy_documents = await fetch_policy_documents(
                     browser, pages,
                     to_files=self.policy_text_to_files,
                     output_dir=self.output_dir,
                     timeout_ms=self.page_timeout_ms,
+                    deadline=policy_deadline,
                 )
                 policy_documents = sorted(policy_documents, key=lambda d: d.url)
             finally:

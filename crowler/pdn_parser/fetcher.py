@@ -77,6 +77,18 @@ async def fetch_page(
             await context.close()
             return FetchResult(url=url, final_url=url, status=None, error=str(exc2 or exc))
 
+    # Детерминизм набора страниц на SPA: контент и ССЫЛКИ рендерятся уже ПОСЛЕ
+    # domcontentloaded. Без паузы eval_on_selector_all('a[href]') снимает пустой/
+    # неполный набор ссылок → BFS упирается в одну страницу → число обойдённых
+    # страниц дрожит между прогонами (на vk.com видели 1/8/20). Ждём networkidle
+    # ОГРАНИЧЕННО: на «живых» SPA он может не наступить никогда, поэтому короткий
+    # best-effort таймаут — он лишь даёт JS дорисовать ссылки, но не подвешивает
+    # скан до полного timeout_ms (именно поэтому базовый goto остаётся на DCL).
+    try:
+        await page.wait_for_load_state("networkidle", timeout=4_000)
+    except PlaywrightError:
+        pass
+
     try:
         html = await page.content()
         title = await page.title()
@@ -194,6 +206,17 @@ async def _discover_modal_forms(page, *, max_clicks: int, wait_ms: int,
             await page.wait_for_selector(_MODAL_FORM_SELECTOR, timeout=wait_ms)
         except PlaywrightError:
             pass  # форма могла не появиться — снимок всё равно снимем
+
+        # Детерминизм: после появления формы её поля и сторонние виджеты
+        # (reCAPTCHA и т.п.) догружаются асинхронно. Без ожидания сетевого
+        # простоя снимок DOM ловит разное состояние между прогонами — дрожат
+        # число форм/полей и набор third-party доменов. Ждём networkidle
+        # ограниченно: на «живых» виджетах он может не наступить, поэтому
+        # best-effort с коротким таймаутом.
+        try:
+            await page.wait_for_load_state("networkidle", timeout=2_000)
+        except PlaywrightError:
+            pass
 
         try:
             snapshots.append(await page.content())

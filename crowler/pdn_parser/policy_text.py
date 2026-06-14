@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 from bs4 import BeautifulSoup
 
@@ -43,11 +44,17 @@ async def fetch_policy_documents(
     to_files: bool = False,
     output_dir: str | None = None,
     timeout_ms: int = 20_000,
+    # Дедлайн (time.monotonic), после которого новые документы не грузим — чтобы
+    # фаза дозагрузки политик не вытолкнула скан за SCAN_TIMEOUT_SEC. None = без
+    # ограничения по времени.
+    deadline: float | None = None,
 ) -> list[PolicyDocument]:
     urls = _collect_policy_urls(pages)
     docs: list[PolicyDocument] = []
 
     for idx, (url, kind) in enumerate(list(urls.items())[:_MAX_DOCS]):
+        if deadline is not None and time.monotonic() > deadline:
+            break
         fetched = await fetch_page(browser, url, timeout_ms=timeout_ms,
                                    wait_until="domcontentloaded", interact_modals=False)
         if fetched.error or not fetched.html:
