@@ -18,6 +18,10 @@
 - Шаблоны GitHub: PR-шаблон и issue-формы (User Story, задача, баг-репорт).
 - CI Lychee для проверки ссылок в Markdown-файлах (на PR и push в `main`).
 - Парсер публичных страниц (`crowler/`): формы, cookie, трекеры, политики, реквизиты оператора.
+- Парсер: модальные/попап-формы и поля вне `<form>` теперь попадают в `pages[].forms`;
+  детекция трекеров по cookie и путям телеметрии (gen_204, `/pagead/`, youtubei),
+  сигнатуры Microsoft Clarity, TikTok Pixel, VK retargeting; детерминированная
+  сортировка `pages`/`trackers`/`policy_documents` и ретрай страницы по таймауту.
 - Микросервис генерации PDF-отчёта (`PDFreport/`) на FastAPI + Typst.
 - Веб-интерфейс (`frontend/`): лендинг, экран сканирования, дашборд отчёта, история.
 - Аутентификация (e-mail + OAuth Яндекс/ВК) и разовая оплата отчёта (CloudPayments).
