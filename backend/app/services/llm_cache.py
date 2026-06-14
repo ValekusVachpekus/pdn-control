@@ -29,6 +29,16 @@ _KEY_PREFIX = f"llm_cache:{CACHE_VERSION}:"
 # Их вычищаем перед хешированием.
 _VOLATILE_META_KEYS = {
     "scan_id", "started_at", "finished_at", "duration_ms",
+    # server_ip: IP origin'а; на CDN/round-robin DNS меняется между сканами,
+    # хотя сам сайт неизменен → cache-miss. Остаётся в исходном CrawlJSON.
+    "server_ip",
+}
+
+# Волатильные поля cookie: значение-факт, но нестабильное между сканами.
+_VOLATILE_COOKIE_KEYS = {
+    # expires: абсолютный Unix-таймстамп (now + max-age) → отличается просто
+    # из-за разного времени запуска скана.
+    "expires",
 }
 
 
@@ -47,12 +57,23 @@ def _client() -> redis.Redis:
 
 def _canonical_crawl(crawl: dict[str, Any]) -> dict[str, Any]:
     """Вырезает нестабильные поля. Хеш канонического вида одинаков для одного
-    и того же сайта, даже если время скана и id разные."""
+    и того же сайта, даже если время скана, id и server_ip разные.
+
+    Работает на deep-copy (json round-trip) — исходный crawl не мутируется,
+    поля server_ip/expires остаются в выдаче и отчёте."""
     canon = json.loads(json.dumps(crawl, ensure_ascii=False, sort_keys=True))
     meta = canon.get("meta")
     if isinstance(meta, dict):
         for k in _VOLATILE_META_KEYS:
             meta.pop(k, None)
+    # Рекурсивно по вложенным cookies: pages[*].cookies[*].expires.
+    for page in canon.get("pages", []) or []:
+        if not isinstance(page, dict):
+            continue
+        for cookie in page.get("cookies", []) or []:
+            if isinstance(cookie, dict):
+                for k in _VOLATILE_COOKIE_KEYS:
+                    cookie.pop(k, None)
     return canon
 
 
