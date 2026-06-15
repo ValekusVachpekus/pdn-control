@@ -67,11 +67,17 @@ function Badge({ severity, withLabel = true, size = 13 }) {
   );
 }
 
+/* Уважаем системную «меньше движения»: JS-анимации (rAF/таймеры) тоже гасим. */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+
 /* ---------- Risk gauge (semicircle arc) ---------- */
 function RiskGauge({ score, band, size = 260 }) {
   const bands = RISK_BANDS[band];
   const [shown, setShown] = useState(0);
   useEffect(() => {
+    if (prefersReducedMotion()) { setShown(score); return; } // без анимации — сразу финал
     let raf, start;
     const dur = 900;
     const tick = (ts) => {
@@ -117,7 +123,11 @@ function RiskGauge({ score, band, size = 260 }) {
 /* ---------- mini meter bar ---------- */
 function Meter({ label, value, color }) {
   const [w, setW] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setW(value), 120); return () => clearTimeout(t); }, [value]);
+  useEffect(() => {
+    if (prefersReducedMotion()) { setW(value); return; }
+    const t = setTimeout(() => setW(value), 120);
+    return () => clearTimeout(t);
+  }, [value]);
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
@@ -203,21 +213,58 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
   );
 }
 
-/* ---------- Modal (overlay + centered card, ESC/backdrop to close) ---------- */
-function Modal({ open, onClose, children, width = 440 }) {
+/* ---------- Modal (overlay + centered card, ESC/backdrop to close) ----------
+ * A11y (issue #41): role=dialog + aria-modal, aria-labelledby на заголовок
+ * (через проп labelId), focus trap по Tab, автофокус на первый интерактив,
+ * возврат фокуса на триггер при закрытии, блокировка скролла body. */
+const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
+function Modal({ open, onClose, children, width = 440, labelId }) {
+  const cardRef = useRef(null);
+  // onClose часто пересоздаётся в родителе (напр. handleClose в Auth) — держим в ref,
+  // чтобы effect зависел только от open и НЕ перезапускался на каждый ввод символа
+  // (иначе автофокус прыгал бы на крестик при каждом нажатии клавиши, issue #41).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const onKey = e => e.key === 'Escape' && onClose();
+    // Запоминаем триггер, чтобы вернуть на него фокус после закрытия.
+    const trigger = document.activeElement;
+    const card = cardRef.current;
+
+    const focusables = () => Array.from(card?.querySelectorAll(FOCUSABLE) || [])
+      .filter(el => el.offsetParent !== null);
+
+    // Автофокус: сначала первое поле ввода, иначе первый интерактив (не крестик).
+    const field = card?.querySelector('input,textarea,select');
+    (field || focusables()[0] || card)?.focus();
+
+    const onKey = e => {
+      if (e.key === 'Escape') { onCloseRef.current?.(); return; }
+      if (e.key !== 'Tab') return;
+      // Focus trap: цикл по интерактивам внутри модалки.
+      const els = focusables();
+      if (!els.length) { e.preventDefault(); return; }
+      const firstEl = els[0], lastEl = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+      // Возврат фокуса на элемент, открывший окно.
+      if (trigger && typeof trigger.focus === 'function') trigger.focus();
+    };
+  }, [open]);
   if (!open) return null;
   return (
     <div onMouseDown={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: 20, background: 'rgba(15,20,28,.55)', backdropFilter: 'blur(3px)' }}>
-      <div className="card fade-up" onMouseDown={e => e.stopPropagation()}
+      <div className="card fade-up" role="dialog" aria-modal="true" aria-labelledby={labelId}
+        tabIndex={-1} ref={cardRef} onMouseDown={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: width, boxShadow: 'var(--shadow-lg)', position: 'relative',
           maxHeight: '90vh', overflowY: 'auto' }}>
         <button onClick={onClose} aria-label="Закрыть"

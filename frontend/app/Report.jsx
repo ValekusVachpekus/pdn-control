@@ -23,14 +23,13 @@ function ViolationCard({ v, detail, open, onToggle }) {
   const s = SEV[v.severity];
   const isSpec = detail === 'specialist';
   return (
-    <div className="card" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
+    <div className="card vcard" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
       transition: 'border-color .2s', boxShadow: open ? 'var(--shadow-md)' : 'var(--shadow-sm)' }}>
-      <button onClick={onToggle} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-        font: 'inherit', textAlign: 'left', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <button onClick={onToggle} className="v-head-btn">
         <div style={{ width: 38, height: 38, borderRadius: 10, background: s.soft, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <Icon name={s.icon} size={21} stroke={2} style={{ color: s.color }} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex-1">
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', marginBottom: 3 }}>
             <span className="mono" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--faint)' }}>{v.id}</span>
             <Badge severity={v.severity} size={11} />
@@ -46,7 +45,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
         </div>
       </button>
       {open && (
-        <div className="fade-up" style={{ padding: '0 18px 18px 70px', animationDuration: '.3s' }}>
+        <div className="fade-up v-detail">
           <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{v.desc}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             <span className="chip chip-neutral"><Icon name="doc" size={13} /> {v.article}</span>
@@ -55,7 +54,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
           {isSpec && (
             <div style={{ marginBottom: 14 }}>
               <div className="label-eyebrow" style={{ marginBottom: 7 }}>Где обнаружено</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="col" style={{ gap: 6 }}>
                 {v.where.map((w, i) => (
                   <div key={i} className="mono" style={{ fontSize: 12, color: 'var(--ink-2)', background: 'var(--surface-2)',
                     border: '1px solid var(--border)', borderRadius: 8, padding: '7px 11px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -75,7 +74,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
               </span>
             </div>
           )}
-          <div style={{ display: 'flex', gap: 11, background: 'var(--accent-soft)', borderRadius: 11, padding: '13px 15px' }}>
+          <div className="reco-box">
             <Icon name="bolt" size={18} stroke={2} style={{ color: 'var(--accent-ink)', flexShrink: 0, marginTop: 1 }} />
             <div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent-ink)', marginBottom: 3 }}>Рекомендация</div>
@@ -93,9 +92,8 @@ function ViolationCard({ v, detail, open, onToggle }) {
  * вьюпорта, и она остаётся по центру при скролле в пределах заблюренной зоны. */
 function LockedOverlay({ onUnlock }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}>
-      <div style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex',
-        alignItems: 'center', justifyContent: 'center' }}>
+    <div className="locked-overlay">
+      <div className="locked-overlay-inner">
         <div className="card fade-up" style={{ pointerEvents: 'auto', maxWidth: 420, width: '90%',
           padding: '26px 26px 24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, margin: '0 auto 14px',
@@ -151,15 +149,19 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
   // с фейковым score и пустыми блоками. Чистая заглушка с приглашением повторить.
   // Доп. защита: если бэк не проставил _scan_failed, но score/band не распознаны
   // (UNKNOWN risk_level), всё равно показываем баннер вместо краша при RISK_BANDS[r.band].
+  // Хуки — ДО любого раннего return (Rules of Hooks): иначе при переходе
+  // failed-отчёт → нормальный в том же инстансе Report число хуков меняется
+  // и React падает с «Rendered more hooks than during the previous render».
+  const [sev, setSev] = useState('all');
+  const [role, setRole] = useState('all');
+  const [open, setOpen] = useState({ 'ERR-001': true });
+  const [showPassed, setShowPassed] = useState(false);
+
   const bands = RISK_BANDS[r.band];
   if (r.scanFailed || !bands || r.score == null) {
     return <ScanFailedBanner r={r} onRescan={onRescan} />;
   }
   const isSpec = detail === 'specialist';
-  const [sev, setSev] = useState('all');
-  const [role, setRole] = useState('all');
-  const [open, setOpen] = useState({ 'ERR-001': true });
-  const [showPassed, setShowPassed] = useState(false);
 
   const order = { critical: 0, warning: 1, info: 2 };
   const filtered = r.violations
@@ -178,9 +180,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       {/* sticky header */}
-      <div className="report-header" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in oklch, var(--bg), transparent 8%)',
-        backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '16px 32px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <div className="report-header">
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ margin: 0, fontSize: 19, fontWeight: 700, letterSpacing: '-.01em' }}>Отчёт о проверке</h1>
@@ -213,21 +213,21 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
       </div>
 
       {/* body */}
-      <div className="report-body" style={{ padding: '26px 32px 60px', maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+      <div className="report-body">
         {/* score overview */}
-        <div className="fade-up card score-overview" style={{ padding: 24, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 28, alignItems: 'center' }}>
-          <div className="score-gauge-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid var(--border)', paddingRight: 8 }}>
+        <div className="fade-up card score-overview">
+          <div className="score-gauge-col">
             <RiskGauge score={r.score} band={r.band} size={250} />
             <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--muted)', textAlign: 'center' }}>
               Оценка рисков · {isSpec ? `сканер v${r.scannerVersion}` : 'чем ниже — тем выше риск'}
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+            <div className="col" style={{ gap: 14, marginBottom: 18 }}>
               <Meter label="Юридическая часть" value={r.legalScore} color="var(--info)" />
               <Meter label="Техническая часть" value={r.techScore} color="var(--accent)" />
             </div>
-            <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+            <div className="stat-grid">
               <StatTile severity="critical" value={r.counts.critical} label="Критичных" />
               <StatTile severity="warning" value={r.counts.warning} label="Предупреждений" />
               <StatTile severity="info" value={r.counts.info} label="Информационных" />
@@ -265,8 +265,8 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
         </div>
 
         {/* conclusion */}
-        <section className="fade-up card" style={{ padding: 22, marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+        <section className="fade-up card rep-block">
+          <div className="row-center" style={{ gap: 9, marginBottom: 12 }}>
             <Icon name="ai" size={18} style={{ color: 'var(--accent)' }} />
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Заключение</h2>
             <span className="chip chip-ok" style={{ fontSize: 11 }}>AI</span>
@@ -284,8 +284,8 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
 
         {/* violations */}
         <section style={{ marginTop: 30 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-.01em' }}>Выявленные нарушения</h2>
+          <div className="row-between" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+            <h2 className="sec-title">Выявленные нарушения</h2>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {sevFilters.map(f => (
                 <button key={f.id} onClick={() => setSev(f.id)} className="btn"
@@ -309,7 +309,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div className="col" style={{ gap: 11 }}>
             {filtered.map(v => (
               <ViolationCard key={v.id} v={v} detail={detail} open={!!open[v.id]}
                 onToggle={() => setOpen(o => ({ ...o, [v.id]: !o[v.id] }))} />
@@ -332,7 +332,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
             <Icon name="chevdown" size={18} style={{ marginLeft: 'auto', color: 'var(--faint)', transform: showPassed ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </button>
           {showPassed && (
-            <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <div className="fade-up col" style={{ gap: 8, marginTop: 8 }}>
               {r.passed.map((p, i) => (
                 <div key={i} className="card" style={{ padding: '13px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <Icon name="check" size={18} stroke={2.4} style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
@@ -378,8 +378,8 @@ function InfraCard({ r, isSpec }) {
   const st = STATES[r.infra.localizationStatus] || STATES.unknown;
 
   return (
-    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: st.border }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
+    <section className="fade-up card rep-block" style={{ borderColor: st.border }}>
+      <div className="sec-head">
         <Icon name="server" size={18} style={{ color: 'var(--ink-2)' }} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Инфраструктура и геолокация</h2>
         <span className={`chip ${st.chip}`} style={{ marginLeft: 'auto' }}>

@@ -1,5 +1,6 @@
 /* ===== ПДн Контроль — design system ===== */
-@import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Шрифты подключаются в index.html через <link rel="preconnect"> + stylesheet,
+ * а не @import — чтобы не блокировать первый рендер (issue #48). */
 
 :root {
   /* accent — overridable by tweak */
@@ -136,6 +137,27 @@ body {
 a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* ---------- видимый фокус для клавиатуры (issue #42) ----------
+ * :focus-visible, а не :focus — кольцо при Tab, но не при клике мышью.
+ * Только outline (браузер сам скругляет его под border-radius элемента),
+ * без второго box-shadow-кольца, чтобы не было «двойной» обводки. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Поля ввода обёрнуты в контейнеры со своей подсветкой фокуса (Landing, Auth,
+ * поиск истории) — собственное кольцо инпута не дублируем. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible { outline: none; }
+/* Контейнер-обёртка поля: подсветка по фокусу внутри (там, где нет своей JS-логики). */
+.field-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+/* Внутри карточек с overflow:hidden (строки истории) кольцо со смещением
+ * обрезается — рисуем его внутрь элемента. */
+.focus-inset:focus-visible { outline-offset: -2px; }
+/* Мышиный клик не должен оставлять кольцо. */
+:focus:not(:focus-visible) { outline: none; }
+
 .fade-up { animation: fadeUp .5s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
@@ -146,6 +168,52 @@ a:hover { text-decoration: underline; }
 .log-in { animation: logIn .3s ease both; }
 
 .hairline { height: 1px; background: var(--border); border: 0; margin: 0; }
+
+/* ---------- report building blocks (issue #47) ----------
+ * Повторяющиеся статичные паттерны Report.jsx/ReportAppendix.jsx вынесены сюда.
+ * Динамика (цвета по severity, проценты, условные размеры) осталась инлайном. */
+.report-header { position: sticky; top: 0; z-index: 10;
+  background: color-mix(in oklch, var(--bg), transparent 8%); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border); padding: 16px 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.report-body { padding: 26px 32px 60px; max-width: 1000px; width: 100%; margin: 0 auto; }
+.score-overview { padding: 24px; display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center; }
+.score-gauge-col { display: flex; flex-direction: column; align-items: center; border-right: 1px solid var(--border); padding-right: 8px; }
+.stat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+
+/* утилиты раскладки */
+.col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; min-width: 0; }
+.row-center { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+
+/* секции и заголовки */
+.rep-block { padding: 22px; margin-top: 20px; }
+.sec-head { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+.sec-title { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.card-pad { padding: 20px; }
+
+/* плитка на фоне surface-2 (документы, трекеры, формы) */
+.surface-tile { background: var(--surface-2); border: 1px solid var(--border); }
+
+/* нарушения */
+.v-head-btn { width: 100%; border: 0; background: transparent; cursor: pointer; font: inherit;
+  text-align: left; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+/* Кнопка-заголовок занимает только шапку карточки — собственное кольцо выглядело бы
+ * разделителем поперёк карты. Где поддержан :has — окольцовываем всю карточку
+ * нарушения; иначе fallback: inset-кольцо на самой шапке (a11y сохранён). */
+.v-head-btn:focus-visible { outline-offset: -2px; }
+@supports selector(:has(*)) {
+  .v-head-btn:focus-visible { outline: none; outline-offset: 2px; }
+  .vcard:has(.v-head-btn:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+.v-detail { padding: 0 18px 18px 70px; animation-duration: .3s; }
+.reco-box { display: flex; gap: 11px; background: var(--accent-soft); border-radius: 11px; padding: 13px 15px; }
+
+/* оверлей-замок премиум-блоков */
+.locked-overlay { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.locked-overlay-inner { position: sticky; top: 0; height: 100vh; display: flex;
+  align-items: center; justify-content: center; }
 
 /* ---- responsive ---- */
 @media (max-width: 768px) {
@@ -193,4 +261,16 @@ a:hover { text-decoration: underline; }
   .stat-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
   .report-header > div:last-child { width: 100%; }
   .report-header > div:last-child .btn { flex: 1; justify-content: center; }
+}
+
+/* ---- reduced motion (issue #48) ----
+ * Уважаем системную настройку «меньше движения»: гасим анимации и переходы,
+ * оставляя интерфейс полностью функциональным (скан/гейдж сразу в финале). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

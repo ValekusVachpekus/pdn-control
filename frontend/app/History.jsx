@@ -97,8 +97,8 @@ function History({ onOpen, onToast, currentReportId }) {
       </div>
 
       <div style={{ padding: '24px 32px 60px', maxWidth: 1000, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border-2)',
-          borderRadius: 11, padding: '0 14px', height: 44, maxWidth: 360, marginBottom: 20 }}>
+        <div className="field-wrap" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border-2)',
+          borderRadius: 11, padding: '0 14px', height: 44, maxWidth: 360, marginBottom: 20, transition: 'border-color .16s, box-shadow .16s' }}>
           <Icon name="search" size={18} style={{ color: 'var(--faint)' }} />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Поиск по домену или организации"
             style={{ flex: 1, border: 0, outline: 0, background: 'transparent', font: 'inherit', fontSize: 14, color: 'var(--ink)' }} />
@@ -130,7 +130,7 @@ function History({ onOpen, onToast, currentReportId }) {
               // pending/running ещё не готовы — toast.
               const clickable = it.status === 'done' || it.status === 'failed';
               return (
-                <button key={it.id}
+                <button key={it.id} className="focus-inset"
                   onClick={() => clickable ? onOpen(it.id) : onToast?.('Отчёт ещё не готов', 'info')}
                   style={{ width: '100%', display: 'grid', gridTemplateColumns: '1.6fr 1fr 1.2fr 1fr 40px', gap: 16,
                     padding: '15px 20px', alignItems: 'center', border: 0,

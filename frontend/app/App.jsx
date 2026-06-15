@@ -1,15 +1,18 @@
 /* ===== ПДн Контроль — App orchestrator ===== */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Icon, AppShell } from './shared.jsx';
-import { useTweaks, TweaksPanel, TweakSection, TweakToggle, TweakColor, TweakRadio } from './tweaks-panel.jsx';
+import { useTweaks } from './tweaks.js';
 import Landing from './Landing.jsx';
-import Scanning from './Scanning.jsx';
-import Report from './Report.jsx';
 import History from './History.jsx';
 import Auth from './Auth.jsx';
-import Pricing from './Pricing.jsx';
 import Policy from './Policy.jsx';
 import CookieBanner from './CookieBanner.jsx';
+// Тяжёлые экраны грузим по требованию — лендинг-чанк меньше (issue #44).
+const Scanning = lazy(() => import('./Scanning.jsx'));
+const Report = lazy(() => import('./Report.jsx'));
+const Pricing = lazy(() => import('./Pricing.jsx'));
+// Dev-панель твиков: только в dev и только лениво — в прод-бандл не попадает (issue #43).
+const DevTweaks = import.meta.env.DEV ? lazy(() => import('./DevTweaks.jsx')) : null;
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK,
   getStoredAuth, logout as apiLogout, getAuthHeader } from './api.js';
 
@@ -128,10 +131,19 @@ function App() {
     } catch {}
   }, [screen, nav, domain, reportId]);
 
+  // Тост-таймеры держим в ref и чистим при unmount — иначе setState после
+  // размонтирования (предупреждение React) и утечка таймеров (issue #48).
+  const toastTimers = useRef([]);
+  useEffect(() => () => { toastTimers.current.forEach(clearTimeout); }, []);
+
   const toast = (text, kind = 'info') => {
     const id = Date.now() + Math.random();
     setToasts(x => [...x, { id, text, kind }]);
-    setTimeout(() => setToasts(x => x.filter(i => i.id !== id)), 2800);
+    const timer = setTimeout(() => {
+      setToasts(x => x.filter(i => i.id !== id));
+      toastTimers.current = toastTimers.current.filter(t => t !== timer);
+    }, 2800);
+    toastTimers.current.push(timer);
   };
 
   // Загрузка отчёта с polling'ом: пока скан ещё не завершён, бэк отвечает 409
@@ -140,13 +152,15 @@ function App() {
     if (!reportId) return;
     let alive = true;
     let attempts = 0;
+    let timer;
+    const ctrl = new AbortController(); // отменяем in-flight при unmount/смене reportId
     const MAX_ATTEMPTS = 45; // 45 × 2с = 1.5 мин; failed-сканы бэк теперь отдаёт сразу
     setReport(null);
 
     const tick = async () => {
       if (!alive) return;
       try {
-        const r = await fetchReport(reportId);
+        const r = await fetchReport(reportId, { signal: ctrl.signal });
         if (alive) {
           setReport(r);
           // Отчёт мог быть открыт из истории (domain не выставлен) — берём из
@@ -156,11 +170,14 @@ function App() {
           if (r.paid) setPaid(true);
         }
       } catch (err) {
+        if (!alive || err.isAbort) return; // отмена при unmount — молча выходим
         attempts++;
-        if (err.status === 409 && attempts < MAX_ATTEMPTS) {
-          setTimeout(tick, 2000);
+        // 409 (скан ещё идёт) и таймаут запроса — ретраим до лимита.
+        if ((err.status === 409 || err.isTimeout) && attempts < MAX_ATTEMPTS) {
+          timer = setTimeout(tick, 2000);
         } else if (alive) {
-          const msg = err.status === 401 ? 'Войдите в аккаунт' :
+          const msg = err.isTimeout ? 'Сервер не отвечает — попробуйте позже' :
+                      err.status === 401 ? 'Войдите в аккаунт' :
                       err.status === 404 ? 'Отчёт не найден' :
                       'Не удалось загрузить отчёт';
           toast(msg, 'info');
@@ -168,7 +185,7 @@ function App() {
       }
     };
     tick();
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
   }, [reportId]);
 
   const startScan = (d, skip) => {
@@ -242,24 +259,30 @@ function App() {
         onLogin={() => setModal('auth')} onLogout={handleLogout}
         onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy}
         onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
-      {screen === 'scanning' && <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
-        onDone={() => { setScreen('app'); setNav('report'); }}
-        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
-        onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />}
+      {screen === 'scanning' && (
+        <Suspense fallback={<ReportLoading />}>
+          <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
+            onDone={() => { setScreen('app'); setNav('report'); }}
+            onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
+            onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />
+        </Suspense>
+      )}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           paid={paid} onUpgrade={() => setModal('pricing')}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && (report
-            ? <Report r={report} detail={detail} onToast={toast} paid={paid}
-                onUnlock={() => setModal('pricing')}
-                onDownload={downloadPdf}
-                onRescan={() => {
-                const d = domain || report?.domain;
-                if (d) startScan(d);
-                else toast('Не удалось определить адрес сайта для повтора', 'info');
-              }} />
+            ? <Suspense fallback={<ReportLoading />}>
+                <Report r={report} detail={detail} onToast={toast} paid={paid}
+                  onUnlock={() => setModal('pricing')}
+                  onDownload={downloadPdf}
+                  onRescan={() => {
+                  const d = domain || report?.domain;
+                  if (d) startScan(d);
+                  else toast('Не удалось определить адрес сайта для повтора', 'info');
+                }} />
+              </Suspense>
             : reportId
               ? <ReportLoading />
               : <ReportEmpty onNewScan={() => setScreen('landing')} />)}
@@ -295,27 +318,22 @@ function App() {
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
         onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
-      <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
-        paid={paid} onPaid={handlePaid} user={user} reportId={reportId}
-        onRequireAuth={() => setModal('auth')} />
+      {modal === 'pricing' && (
+        <Suspense fallback={null}>
+          <Pricing open onClose={() => setModal(null)} onToast={toast}
+            paid={paid} onPaid={handlePaid} user={user} reportId={reportId}
+            onRequireAuth={() => setModal('auth')} />
+        </Suspense>
+      )}
 
       <Toasts items={toasts} />
       <CookieBanner onOpenPolicy={openPolicy} />
 
-      <TweaksPanel>
-
-        <TweakSection label="Тема" />
-        <TweakToggle label="Тёмная тема" value={t.dark} onChange={v => setTweak('dark', v)} />
-        <TweakColor label="Акцент" value={t.accent}
-          options={['#1F8A5B', '#2A6FDB', '#5B4BD6', '#0E3A5C']}
-          onChange={v => setTweak('accent', v)} />
-        <TweakSection label="Подача" />
-        <TweakRadio label="Уровень детализации" value={t.detail}
-          options={['Владелец', 'Специалист']} onChange={v => setTweak('detail', v)} />
-        <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5, padding: '2px 2px 0' }}>
-          «Владелец» — кратко и без жаргона. «Специалист» — статьи, селекторы, IP, AI-анализ текстов.
-        </div>
-      </TweaksPanel>
+      {DevTweaks && (
+        <Suspense fallback={null}>
+          <DevTweaks t={t} setTweak={setTweak} />
+        </Suspense>
+      )}
     </>
   );
 }

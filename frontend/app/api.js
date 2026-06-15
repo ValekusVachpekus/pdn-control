@@ -15,6 +15,10 @@ import exampleReport from './example-report.json';
 const BASE = import.meta.env.VITE_API_BASE ?? '';
 export const IS_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false';
 
+// Таймаут одного HTTP-запроса. Не путать с длительностью скана: поллинг шлёт
+// много коротких запросов, каждый из которых должен прерваться, если бэк завис.
+const HTTP_TIMEOUT_MS = 15000;
+
 const STORAGE_KEY = 'pdn_auth';
 
 // ── токен и юзер: in-memory + localStorage ──────────────────────────────────
@@ -57,10 +61,41 @@ export function isValidDomain(url) {
 }
 
 async function http(path, opts = {}) {
-  const headers = { ...(opts.headers || {}) };
+  const { signal: extSignal, timeout = HTTP_TIMEOUT_MS, ...rest } = opts;
+  const headers = { ...(rest.headers || {}) };
   // Автоматически подставляем JWT, если он есть.
   if (_auth?.token) headers['Authorization'] = `Bearer ${_auth.token}`;
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+
+  // Свой AbortController для таймаута; если вызывающий передал signal (отмена
+  // при unmount/смене reportId) — прокидываем его abort в наш контроллер.
+  const ctrl = new AbortController();
+  const onExtAbort = () => ctrl.abort();
+  if (extSignal) {
+    if (extSignal.aborted) ctrl.abort();
+    else extSignal.addEventListener('abort', onExtAbort, { once: true });
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeout);
+
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...rest, headers, signal: ctrl.signal });
+  } catch (err) {
+    if (ctrl.signal.aborted) {
+      // Таймаут — отдельная ошибка для понятного тоста; отмена извне (unmount/
+      // смена отчёта) пробрасывается как AbortError и гасится вызывающим.
+      const aborted = new Error(timedOut ? `API ${path} → таймаут` : `API ${path} → отменён`);
+      aborted.status = 0;
+      aborted.isTimeout = timedOut;
+      aborted.isAbort = !timedOut;
+      throw aborted;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    if (extSignal) extSignal.removeEventListener('abort', onExtAbort);
+  }
+
   if (res.status === 401) {
     // Токен протух/невалиден — сносим, чтобы фронт перевёл юзера на логин.
     writeAuth(null);
@@ -98,9 +133,9 @@ export async function fetchScanStatus(reportId) {
  * GET /api/scans/:id/progress -> { phase, status, phases[], pages, forms, trackers, server_ip, ... }
  * Фазы: queued → crawling → analyzing → building → done|failed.
  * Счётчики (pages/forms/trackers/...) появляются с фазы analyzing. */
-export async function fetchScanProgress(reportId) {
+export async function fetchScanProgress(reportId, { signal } = {}) {
   if (IS_MOCK) return { phase: 'done', status: 'done', phases: ['queued','crawling','analyzing','building','done','failed'] };
-  const res = await http(`/api/scans/${reportId}/progress`);
+  const res = await http(`/api/scans/${reportId}/progress`, { signal });
   return res.json();
 }
 
@@ -112,9 +147,9 @@ export async function fetchHistory({ limit = 50, offset = 0 } = {}) {
 }
 
 /* Получить готовый отчёт (Контракт №2) и привести к модели UI. */
-export async function fetchReport(reportId) {
+export async function fetchReport(reportId, { signal } = {}) {
   if (IS_MOCK) return mapReport(exampleReport);
-  const res = await http(`/api/reports/${reportId}`);
+  const res = await http(`/api/reports/${reportId}`, { signal });
   return mapReport(await res.json());
 }
 

@@ -7,6 +7,24 @@ React 18 SPA на Vite. JSX компилируется при сборке — �
 ```bash
 npm install
 npm run dev        # http://localhost:8000
+npm test           # Vitest + React Testing Library (jsdom)
+```
+
+## Тестирование
+
+Тесты на **Vitest + React Testing Library** (`jsdom`), конфиг — в `vite.config.js`
+(`test:`), общий setup — `test/setup.js` (матчеры jest-dom, полифилл `requestAnimationFrame`).
+
+- `test/mapReport.test.js` — юнит-тесты адаптера `mapReport`: эталонная фикстура
+  `example-report.json` + крайние случаи (пустой объект, нет `total_fine_rub`,
+  пустые `violations`, tri-state локализации).
+- `test/smoke.test.jsx` — smoke-рендеры `Landing` и `Report` (mock-данные,
+  режимы «Владелец»/«Специалист», заглушка `scanFailed`): проверяют, что
+  компоненты монтируются без падений.
+
+```bash
+npm test                       # один прогон (CI-режим, vitest run)
+npx vitest                     # watch-режим при разработке
 ```
 
 ## Сборка и запуск через Docker
@@ -121,28 +139,37 @@ VITE_API_BASE=             # база API; пусто = тот же origin че�
 
 ```
 frontend/
-├── index.html              # точка входа Vite
-├── main.jsx                # монтирование React
-├── vite.config.js
+├── index.html              # точка входа Vite (meta/OG/favicon, шрифты через preconnect)
+├── main.jsx                # монтирование React внутри <ErrorBoundary>
+├── vite.config.js          # + конфиг Vitest (test: jsdom)
 ├── package.json
 ├── nginx.conf
 ├── Dockerfile              # multi-stage: node (build) → nginx (serve)
+├── public/
+│   └── favicon.svg         # фавиконка (бренд-щит)
+├── test/
+│   ├── setup.js            # setup Vitest (jest-dom, полифилл rAF)
+│   ├── mapReport.test.js   # юнит-тесты адаптера
+│   └── smoke.test.jsx      # smoke-рендеры Landing/Report
 └── app/
-    ├── App.jsx             # оркестратор, роутинг, загрузка отчёта через api.js
-    ├── api.js              # ШОВ С БЭКЕНДОМ: scans/reports/auth/billing + isValidDomain (+ MOCK)
+    ├── App.jsx             # оркестратор, роутинг, загрузка отчёта через api.js (lazy экранов)
+    ├── ErrorBoundary.jsx   # корневой перехват ошибок рендера → экран-фолбэк
+    ├── api.js              # ШОВ С БЭКЕНДОМ: scans/reports/auth/billing + isValidDomain (+ MOCK, таймаут/abort)
     ├── mapReport.js        # адаптер: JSON Контракта №2 → модель UI
     ├── example-report.json # демо-фикстура единого JSON (копия PDFreport/example.json)
     ├── Landing.jsx         # главная страница с формой ввода URL
     ├── Auth.jsx            # вход/регистрация: e-mail + OAuth + чекбокс согласия на ПДн
     ├── CookieBanner.jsx    # cookie-баннер 152-ФЗ (Принять/Отклонить, localStorage)
     ├── Policy.jsx          # экран политики обработки ПДн (заглушка под текст)
-    ├── Pricing.jsx         # разовая оплата полного отчёта (шаблон, CloudPayments)
-    ├── Scanning.jsx        # экран прогресса проверки (анимация SCAN_STEPS)
-    ├── Report.jsx          # страница отчёта
+    ├── Pricing.jsx         # разовая оплата полного отчёта (шаблон, CloudPayments) — lazy
+    ├── Scanning.jsx        # экран прогресса проверки (реальные фазы) — lazy
+    ├── Report.jsx          # страница отчёта — lazy
     ├── ReportAppendix.jsx  # техническое приложение
     ├── History.jsx         # история проверок
-    ├── shared.jsx          # переиспользуемые компоненты (Icon, Badge, ...)
+    ├── shared.jsx          # переиспользуемые компоненты (Icon, Badge, Modal с a11y, ...)
     ├── data.jsx            # UI-данные НЕ из отчёта: SCAN_STEPS, HISTORY, RISK_BANDS
-    ├── tweaks-panel.jsx    # панель настроек (тема, акцент)
-    └── styles.css
+    ├── tweaks.js           # хук useTweaks (тема/акцент/детализация) — всегда в бандле
+    ├── DevTweaks.jsx       # обёртка dev-панели, грузится lazy только в dev
+    ├── tweaks-panel.jsx    # панель настроек (DEV-only, вне прод-бандла)
+    └── styles.css          # дизайн-система + :focus-visible, reduced-motion, классы отчёта
 ```

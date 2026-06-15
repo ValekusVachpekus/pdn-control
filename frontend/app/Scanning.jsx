@@ -30,9 +30,10 @@ function Scanning({ domain, reportId, isMock = false, onDone, onError, onBackgro
     if (!reportId && !isMock) return;
     let alive = true;
     let timer;
+    const ctrl = new AbortController(); // отменяем in-flight при unmount/смене reportId
     const poll = async () => {
       try {
-        const p = await fetchScanProgress(reportId);
+        const p = await fetchScanProgress(reportId, { signal: ctrl.signal });
         if (!alive) return;
         setProgress(p);
         if (p.status === 'failed' || p.phase === 'failed') {
@@ -44,11 +45,14 @@ function Scanning({ domain, reportId, isMock = false, onDone, onError, onBackgro
           setFinished(true);
           return; // финал
         }
-      } catch { /* временная ошибка сети — повторим */ }
+      } catch (err) {
+        if (err?.isAbort) return; // отмена при unmount — выходим без ретрая
+        /* временная ошибка сети/таймаут — повторим */
+      }
       if (alive) timer = setTimeout(poll, 1500);
     };
     poll();
-    return () => { alive = false; clearTimeout(timer); };
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
   }, [reportId, isMock]);
 
   // После завершения — небольшая пауза и открываем отчёт.
