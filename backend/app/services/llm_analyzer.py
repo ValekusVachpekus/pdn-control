@@ -24,14 +24,24 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time as _time
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Callable
 
 import httpx
 
 from ..config import get_settings
 from . import violation_catalog
+
+# Текст 152-ФЗ для ГРАУНДА судительных вызовов. Полный закон НЕ шлём (старый
+# дамп ~280K токенов путал модель) — вырезаем только нужную статью под каждый
+# тип суждения. Маленький вход + реальный текст закона = юр-точность без
+# «потери в середине».
+_RESOURCES = Path(__file__).resolve().parent.parent.parent / "resources"
+_MAX_ARTICLE_CHARS = 6000
 
 log = logging.getLogger(__name__)
 
@@ -186,30 +196,60 @@ def _collect_documents(crawl: dict[str, Any]) -> dict[str, str]:
 # Под-вызов 1: разбор одного документа (ai_analysis + судительные нарушения)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Какие судительные типы применимы к какому документу + краткое требование закона.
+@lru_cache(maxsize=1)
+def _fz_full() -> str:
+    try:
+        return (_RESOURCES / "fz_152.txt").read_text(encoding="utf-8")
+    except OSError as exc:
+        log.warning("fz_152.txt not loaded: %s", exc)
+        return ""
+
+
+@lru_cache(maxsize=32)
+def _fz_article(num: str) -> str:
+    """Вырезает текст статьи N из 152-ФЗ (от 'Статья N.' до следующей 'Статья \\d').
+
+    Возвращает реальный текст закона под конкретную тему — чтобы судительный
+    вызов опирался на статью, а не на «память» модели. Пусто, если не найдено."""
+    text = _fz_full()
+    if not text:
+        return ""
+    m = re.search(rf"^Статья {re.escape(num)}\.", text, re.MULTILINE)
+    if not m:
+        return ""
+    nxt = re.search(r"^Статья \d", text[m.end():], re.MULTILINE)
+    end = m.end() + nxt.start() if nxt else len(text)
+    return text[m.start():end].strip()[:_MAX_ARTICLE_CHARS]
+
+
+def _articles_block(nums: tuple[str, ...]) -> str:
+    parts = [a for a in (_fz_article(n) for n in nums) if a]
+    return ("\n\n".join(parts)) if parts else ""
+
+
+# Судительные типы по документу + статьи 152-ФЗ для грунта + краткая подсказка.
 _DOC_JUDGMENT = {
     "Политика конфиденциальности": {
         "types": ["policy_incomplete", "no_subject_rights_info"],
-        "law": (
-            "Политика по ст. 18.1 152-ФЗ должна содержать: цели обработки, "
-            "правовые основания, категории ПДн и субъектов, порядок и сроки "
-            "хранения и уничтожения, сведения об операторе (наименование, адрес), "
-            "и порядок реализации прав субъекта (доступ, изменение, удаление, "
-            "отзыв согласия — ст. 14).\n"
-            "policy_incomplete — не хватает обязательных блоков выше.\n"
-            "no_subject_rights_info — не раскрыт порядок реализации прав субъекта."
+        "articles": ("18.1", "14"),
+        "hint": (
+            "policy_incomplete — в политике не хватает обязательных блоков по ст. 18.1 "
+            "(цели, правовые основания, категории ПДн/субъектов, сроки хранения и "
+            "порядок уничтожения, сведения об операторе).\n"
+            "no_subject_rights_info — не раскрыт порядок реализации прав субъекта (ст. 14)."
         ),
     },
     "Согласие на обработку ПДн": {
         "types": ["consent_combined_with_ads"],
-        "law": (
-            "Согласие по ст. 9 152-ФЗ должно быть конкретным и информированным.\n"
+        "articles": ("9",),
+        "hint": (
             "consent_combined_with_ads — согласие на обработку ПДн совмещено с "
-            "согласием на рекламную рассылку в одном чекбоксе (должны быть раздельны)."
+            "согласием на рекламную рассылку в одном чекбоксе (по ст. 9 согласие "
+            "должно быть конкретным; разные цели — раздельные согласия)."
         ),
     },
-    "Cookie-политика": {"types": [], "law": ""},
-    "Cookie-уведомление": {"types": [], "law": ""},
+    "Cookie-политика": {"types": [], "articles": (), "hint": ""},
+    "Cookie-уведомление": {"types": [], "articles": (), "hint": ""},
 }
 
 _DOC_SYSTEM = """\
@@ -245,11 +285,16 @@ violations — ТОЛЬКО из этого списка типов: {TYPES}. Е
 
 
 def _analyze_document(doc_name: str, text: str) -> dict:
-    cfg = _DOC_JUDGMENT.get(doc_name, {"types": [], "law": ""})
+    cfg = _DOC_JUDGMENT.get(doc_name, {"types": [], "articles": (), "hint": ""})
     allowed = cfg["types"]
+    # Грунт: краткая подсказка + РЕАЛЬНЫЙ текст нужных статей 152-ФЗ.
+    law_articles = _articles_block(cfg.get("articles", ()))
+    law_block = cfg.get("hint", "")
+    if law_articles:
+        law_block += "\n\nТЕКСТ СТАТЕЙ 152-ФЗ (опирайся на него, не на память):\n" + law_articles
     system = (
         _DOC_SYSTEM
-        .replace("{LAW}", cfg["law"] or "")
+        .replace("{LAW}", law_block)
         .replace("{TYPES}", ", ".join(allowed) if allowed else "(никаких)")
     )
     user = f"Документ: {doc_name}\n\n--- ТЕКСТ ---\n{text}"
