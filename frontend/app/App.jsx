@@ -310,27 +310,22 @@ function App() {
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
         onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
-      <Pricing open={modal === 'pricing'} onClose={() => setModal(null)} onToast={toast}
-        paid={paid} onPaid={handlePaid} user={user} reportId={reportId}
-        onRequireAuth={() => setModal('auth')} />
+      {modal === 'pricing' && (
+        <Suspense fallback={null}>
+          <Pricing open onClose={() => setModal(null)} onToast={toast}
+            paid={paid} onPaid={handlePaid} user={user} reportId={reportId}
+            onRequireAuth={() => setModal('auth')} />
+        </Suspense>
+      )}
 
       <Toasts items={toasts} />
       <CookieBanner onOpenPolicy={openPolicy} />
 
-      <TweaksPanel>
-
-        <TweakSection label="Тема" />
-        <TweakToggle label="Тёмная тема" value={t.dark} onChange={v => setTweak('dark', v)} />
-        <TweakColor label="Акцент" value={t.accent}
-          options={['#1F8A5B', '#2A6FDB', '#5B4BD6', '#0E3A5C']}
-          onChange={v => setTweak('accent', v)} />
-        <TweakSection label="Подача" />
-        <TweakRadio label="Уровень детализации" value={t.detail}
-          options={['Владелец', 'Специалист']} onChange={v => setTweak('detail', v)} />
-        <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5, padding: '2px 2px 0' }}>
-          «Владелец» — кратко и без жаргона. «Специалист» — статьи, селекторы, IP, AI-анализ текстов.
-        </div>
-      </TweaksPanel>
+      {DevTweaks && (
+        <Suspense fallback={null}>
+          <DevTweaks t={t} setTweak={setTweak} />
+        </Suspense>
+      )}
     </>
   );
 }
