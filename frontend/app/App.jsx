@@ -1,15 +1,18 @@
 /* ===== ПДн Контроль — App orchestrator ===== */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Icon, AppShell } from './shared.jsx';
-import { useTweaks, TweaksPanel, TweakSection, TweakToggle, TweakColor, TweakRadio } from './tweaks-panel.jsx';
+import { useTweaks } from './tweaks.js';
 import Landing from './Landing.jsx';
-import Scanning from './Scanning.jsx';
-import Report from './Report.jsx';
 import History from './History.jsx';
 import Auth from './Auth.jsx';
-import Pricing from './Pricing.jsx';
 import Policy from './Policy.jsx';
 import CookieBanner from './CookieBanner.jsx';
+// Тяжёлые экраны грузим по требованию — лендинг-чанк меньше (issue #44).
+const Scanning = lazy(() => import('./Scanning.jsx'));
+const Report = lazy(() => import('./Report.jsx'));
+const Pricing = lazy(() => import('./Pricing.jsx'));
+// Dev-панель твиков: только в dev и только лениво — в прод-бандл не попадает (issue #43).
+const DevTweaks = import.meta.env.DEV ? lazy(() => import('./DevTweaks.jsx')) : null;
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK,
   getStoredAuth, logout as apiLogout, getAuthHeader } from './api.js';
 
