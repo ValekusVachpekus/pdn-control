@@ -138,29 +138,23 @@ a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ---------- видимый фокус для клавиатуры (issue #42) ----------
- * :focus-visible, а не :focus — кольцо появляется при Tab, но не при клике мышью.
- * Кольцо через --accent + мягкая подложка --ring; контраст ок в light и dark. */
+ * :focus-visible, а не :focus — кольцо при Tab, но не при клике мышью.
+ * Только outline (браузер сам скругляет его под border-radius элемента),
+ * без второго box-shadow-кольца, чтобы не было «двойной» обводки. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 6px;
 }
-.btn:focus-visible,
-a:focus-visible,
-button:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--ring);
-}
+/* Поля ввода обёрнуты в контейнеры со своей подсветкой фокуса (Landing, Auth,
+ * поиск истории) — собственное кольцо инпута не дублируем. */
 input:focus-visible,
 textarea:focus-visible,
-select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--ring);
-}
+select:focus-visible { outline: none; }
+/* Контейнер-обёртка поля: подсветка по фокусу внутри (там, где нет своей JS-логики). */
+.field-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+/* Внутри карточек с overflow:hidden (строки истории) кольцо со смещением
+ * обрезается — рисуем его внутрь элемента. */
+.focus-inset:focus-visible { outline-offset: -2px; }
 /* Мышиный клик не должен оставлять кольцо. */
 :focus:not(:focus-visible) { outline: none; }
 
@@ -205,6 +199,8 @@ select:focus-visible {
 /* нарушения */
 .v-head-btn { width: 100%; border: 0; background: transparent; cursor: pointer; font: inherit;
   text-align: left; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+/* Кнопка-заголовок нарушения живёт в карточке с overflow:hidden — кольцо внутрь. */
+.v-head-btn:focus-visible { outline-offset: -2px; }
 .v-detail { padding: 0 18px 18px 70px; animation-duration: .3s; }
 .reco-box { display: flex; gap: 11px; background: var(--accent-soft); border-radius: 11px; padding: 13px 15px; }
 
