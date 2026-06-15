@@ -251,24 +251,30 @@ function App() {
         onLogin={() => setModal('auth')} onLogout={handleLogout}
         onUpgrade={() => setModal('pricing')} onOpenPolicy={openPolicy}
         onOpenHistory={() => { setNav('history'); setScreen('app'); }} />}
-      {screen === 'scanning' && <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
-        onDone={() => { setScreen('app'); setNav('report'); }}
-        onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
-        onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />}
+      {screen === 'scanning' && (
+        <Suspense fallback={<ReportLoading />}>
+          <Scanning domain={domain} reportId={reportId} isMock={IS_MOCK}
+            onDone={() => { setScreen('app'); setNav('report'); }}
+            onError={(msg) => { toast(msg || 'Не удалось проверить сайт', 'info'); setScreen('landing'); }}
+            onBackground={() => { toast('Проверка продолжается в фоне — результат появится в истории', 'info'); setScreen('landing'); }} />
+        </Suspense>
+      )}
       {screen === 'policy' && <Policy onBack={() => setScreen(prevScreen || 'landing')} />}
       {screen === 'app' && (
         <AppShell nav={nav} setNav={setNav} detail={detail} theme={t.dark}
           paid={paid} onUpgrade={() => setModal('pricing')}
           onToggleTheme={toggleDark} onNewScan={() => setScreen('landing')}>
           {nav === 'report' && (report
-            ? <Report r={report} detail={detail} onToast={toast} paid={paid}
-                onUnlock={() => setModal('pricing')}
-                onDownload={downloadPdf}
-                onRescan={() => {
-                const d = domain || report?.domain;
-                if (d) startScan(d);
-                else toast('Не удалось определить адрес сайта для повтора', 'info');
-              }} />
+            ? <Suspense fallback={<ReportLoading />}>
+                <Report r={report} detail={detail} onToast={toast} paid={paid}
+                  onUnlock={() => setModal('pricing')}
+                  onDownload={downloadPdf}
+                  onRescan={() => {
+                  const d = domain || report?.domain;
+                  if (d) startScan(d);
+                  else toast('Не удалось определить адрес сайта для повтора', 'info');
+                }} />
+              </Suspense>
             : reportId
               ? <ReportLoading />
               : <ReportEmpty onNewScan={() => setScreen('landing')} />)}
