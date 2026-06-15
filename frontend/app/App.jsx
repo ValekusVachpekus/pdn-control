@@ -289,6 +289,15 @@ function App() {
           {nav === 'history' && <History
             currentReportId={reportId}
             onToast={toast}
+            onOpenScan={(it) => {
+              // Идущая проверка (pending/running) — открываем экран её хода (issue #50).
+              // Новый скан НЕ запускаем (apiStartScan не дёргаем), только навигация на
+              // существующий reportId; Scanning сам поллит прогресс на маунте.
+              setPaid(false);
+              setDomain(it.domain || '');
+              setReportId(it.id);
+              setScreen('scanning');
+            }}
             onOpen={(id) => {
               if (id && id !== reportId) {
                 // Открываем выбранный из истории отчёт. paid не знаем,

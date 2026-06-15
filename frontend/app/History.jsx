@@ -56,7 +56,7 @@ function formatDate(iso) {
   } catch { return iso; }
 }
 
-function History({ onOpen, onToast, currentReportId }) {
+function History({ onOpen, onOpenScan, onToast, currentReportId }) {
   const [items, setItems] = useState(null);  // null = loading
   const [q, setQ] = useState('');
 
@@ -127,11 +127,14 @@ function History({ onOpen, onToast, currentReportId }) {
             {list.map((it, i) => {
               const isCurrent = currentReportId && it.id === currentReportId;
               // Открываем done И failed (последний покажет банер «не выполнен»).
-              // pending/running ещё не готовы — toast.
-              const clickable = it.status === 'done' || it.status === 'failed';
+              // pending/running ещё идут — открываем экран скана (issue #50).
+              const inProgress = it.status === 'pending' || it.status === 'running';
+              const clickable = it.status === 'done' || it.status === 'failed' || inProgress;
               return (
                 <button key={it.id} className="focus-inset"
-                  onClick={() => clickable ? onOpen(it.id) : onToast?.('Отчёт ещё не готов', 'info')}
+                  onClick={() => inProgress
+                    ? onOpenScan?.(it)
+                    : clickable ? onOpen(it.id) : onToast?.('Отчёт ещё не готов', 'info')}
                   style={{ width: '100%', display: 'grid', gridTemplateColumns: '1.6fr 1fr 1.2fr 1fr 40px', gap: 16,
                     padding: '15px 20px', alignItems: 'center', border: 0,
                     borderBottom: i < list.length - 1 ? '1px solid var(--border)' : 0,

@@ -227,14 +227,9 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
               <Meter label="Юридическая часть" value={r.legalScore} color="var(--info)" />
               <Meter label="Техническая часть" value={r.techScore} color="var(--accent)" />
             </div>
-            <div className="stat-grid">
-              <StatTile severity="critical" value={r.counts.critical} label="Критичных" />
-              <StatTile severity="warning" value={r.counts.warning} label="Предупреждений" />
-              <StatTile severity="info" value={r.counts.info} label="Информационных" />
-              <StatTile severity="ok" value={r.counts.passed} label="Пройдено" />
-            </div>
+            {/* Суммарный штраф — над счётчиками для акцента (issue #51) */}
             {r.totalFine > 0 && (
-              <div style={{ marginTop: 10, padding: '12px 15px', background: 'var(--crit-soft)',
+              <div style={{ marginBottom: 14, padding: '12px 15px', background: 'var(--crit-soft)',
                 borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Icon name="alert" size={20} stroke={2} style={{ color: 'var(--crit-ink)', flexShrink: 0 }} />
                 <div>
@@ -251,6 +246,12 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
                 </div>
               </div>
             )}
+            <div className="stat-grid">
+              <StatTile severity="critical" value={r.counts.critical} label="Критичных" />
+              <StatTile severity="warning" value={r.counts.warning} label="Предупреждений" />
+              <StatTile severity="info" value={r.counts.info} label="Информационных" />
+              <StatTile severity="ok" value={r.counts.passed} label="Пройдено" />
+            </div>
           </div>
         </div>
 
