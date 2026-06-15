@@ -7,6 +7,24 @@ React 18 SPA на Vite. JSX компилируется при сборке — �
 ```bash
 npm install
 npm run dev        # http://localhost:8000
+npm test           # Vitest + React Testing Library (jsdom)
+```
+
+## Тестирование
+
+Тесты на **Vitest + React Testing Library** (`jsdom`), конфиг — в `vite.config.js`
+(`test:`), общий setup — `test/setup.js` (матчеры jest-dom, полифилл `requestAnimationFrame`).
+
+- `test/mapReport.test.js` — юнит-тесты адаптера `mapReport`: эталонная фикстура
+  `example-report.json` + крайние случаи (пустой объект, нет `total_fine_rub`,
+  пустые `violations`, tri-state локализации).
+- `test/smoke.test.jsx` — smoke-рендеры `Landing` и `Report` (mock-данные,
+  режимы «Владелец»/«Специалист», заглушка `scanFailed`): проверяют, что
+  компоненты монтируются без падений.
+
+```bash
+npm test                       # один прогон (CI-режим, vitest run)
+npx vitest                     # watch-режим при разработке
 ```
 
 ## Сборка и запуск через Docker
