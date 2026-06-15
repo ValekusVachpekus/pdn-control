@@ -25,12 +25,11 @@ function ViolationCard({ v, detail, open, onToggle }) {
   return (
     <div className="card" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
       transition: 'border-color .2s', boxShadow: open ? 'var(--shadow-md)' : 'var(--shadow-sm)' }}>
-      <button onClick={onToggle} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-        font: 'inherit', textAlign: 'left', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <button onClick={onToggle} className="v-head-btn">
         <div style={{ width: 38, height: 38, borderRadius: 10, background: s.soft, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <Icon name={s.icon} size={21} stroke={2} style={{ color: s.color }} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex-1">
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', marginBottom: 3 }}>
             <span className="mono" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--faint)' }}>{v.id}</span>
             <Badge severity={v.severity} size={11} />
