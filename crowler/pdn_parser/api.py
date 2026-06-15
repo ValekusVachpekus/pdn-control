@@ -26,6 +26,9 @@ from .models import SCHEMA_VERSION
 
 MAX_CONCURRENT_SCANS = int(os.getenv("MAX_CONCURRENT_SCANS", "2"))
 SCAN_TIMEOUT_SEC = int(os.getenv("SCAN_TIMEOUT_SEC", "300"))
+# Запас между мягким бюджетом обхода и жёстким таймаутом: цикл должен сам
+# остановиться и финализировать партиал ДО того, как asyncio.wait_for убьёт скан.
+_TIMEOUT_SAFETY_MARGIN_SEC = 30
 
 app = FastAPI(
     title="ПДн Контроль — парсер",
@@ -81,6 +84,7 @@ async def scan(req: ScanRequest) -> dict:
                     respect_robots=req.respect_robots,
                     headless=True,
                     page_timeout_ms=req.page_timeout_ms,
+                    time_budget_sec=SCAN_TIMEOUT_SEC - _TIMEOUT_SAFETY_MARGIN_SEC,
                 ),
                 timeout=SCAN_TIMEOUT_SEC,
             )
