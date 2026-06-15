@@ -79,18 +79,28 @@ async def fetch_page(
     # если хост резолвится во внутренний адрес. Закрывает обход исходной проверки
     # через 30x-редирект на внутренний ресурс — Playwright идёт по редиректу как
     # по новому запросу, и его ловит тот же обработчик.
-    blocked: list[tuple[str, str]] = []
-    await guard.install(context, on_block=lambda u, r: blocked.append((u, r)))
+    # Копим ТОЛЬКО блоки навигации главного документа: блок стороннего сабресурса
+    # (трекер/пиксель, резолвящийся во flagged-адрес) не должен маскировать
+    # таймаут goto под SSRF и отменять мягкий ретрай нормальной страницы.
+    blocked_nav: list[tuple[str, str]] = []
+
+    def _on_block(blocked_url: str, reason: str, is_main_nav: bool) -> None:
+        if is_main_nav:
+            blocked_nav.append((blocked_url, reason))
+
+    await guard.install(context, on_block=_on_block)
 
     page = await context.new_page()
     try:
         response = await page.goto(url, timeout=timeout_ms, wait_until=wait_until)
     except PlaywrightError as exc:
-        # Навигацию заблокировал анти-SSRF (редирект на внутренний адрес) —
-        # понятная ошибка, ретрай бессмыслен (заблокируем снова).
-        if blocked:
+        # Навигацию главного документа заблокировал анти-SSRF (редирект на
+        # внутренний адрес) — понятная ошибка, ретрай бессмыслен (заблокируем
+        # снова). Если же упал сам goto (таймаут), а навигацию не блокировали —
+        # идём на штатный мягкий ретрай.
+        if blocked_nav:
             await context.close()
-            blocked_url, reason = blocked[0]
+            blocked_url, reason = blocked_nav[0]
             return FetchResult(url=url, final_url=blocked_url, status=None,
                                error=f"SSRF: переход заблокирован — {reason}")
         # networkidle часто не наступает на «живых» сайтах — пробуем мягче.
@@ -98,6 +108,10 @@ async def fetch_page(
             response = await page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
         except PlaywrightError as exc2:
             await context.close()
+            if blocked_nav:  # навигацию заблокировали уже на ретрае
+                blocked_url, reason = blocked_nav[0]
+                return FetchResult(url=url, final_url=blocked_url, status=None,
+                                   error=f"SSRF: переход заблокирован — {reason}")
             return FetchResult(url=url, final_url=url, status=None, error=str(exc2 or exc))
 
     # Anti-rebinding (TOCTOU): фактический IP origin'а, к которому подключился

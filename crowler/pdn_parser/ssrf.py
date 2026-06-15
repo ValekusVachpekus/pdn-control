@@ -181,23 +181,26 @@ class SSRFGuard:
                 return Verdict(False, f"хост {host} резолвится во внутренний адрес {ip}")
         return Verdict(True)
 
-    async def install(self, context, on_block: Callable[[str, str], None] | None = None) -> None:
+    async def install(self, context, on_block: Callable[[str, str, bool], None] | None = None) -> None:
         """Повесить сетевой перехват на Playwright BrowserContext.
 
         Каждый запрос (включая редиректы и сабресурсы) проверяется; небезопасные
-        — абортятся с ERR_BLOCKED_BY_CLIENT. ``on_block(url, reason)`` вызывается
-        на каждый заблокированный запрос (для понятного сообщения об ошибке).
+        — абортятся с ERR_BLOCKED_BY_CLIENT. ``on_block(url, reason, is_main_nav)``
+        вызывается на каждый заблокированный запрос; ``is_main_nav`` отличает блок
+        навигации ГЛАВНОГО документа (краулер реально увели на внутренний адрес)
+        от блока стороннего сабресурса (аналитика/пиксель — не должен валить скан).
         """
 
         async def handler(route) -> None:
-            url = route.request.url
+            req = route.request
+            url = req.url
             verdict = await self.check_url(url)
             try:
                 if verdict.allowed:
                     await route.continue_()
                 else:
                     if on_block is not None:
-                        on_block(url, verdict.reason)
+                        on_block(url, verdict.reason, _is_main_navigation(req))
                     await route.abort("blockedbyclient")
             except Exception:
                 # Контекст мог закрыться / запрос уже обработан — глушим, чтобы
@@ -205,3 +208,19 @@ class SSRFGuard:
                 pass
 
         await context.route("**/*", handler)
+
+
+def _is_main_navigation(request) -> bool:
+    """True, если запрос — навигация ГЛАВНОГО документа, а не сабресурс/iframe.
+
+    Блок такого запроса означает, что краулер увели на внутренний адрес — это
+    SSRF, на нём короткозамыкаемся. Блок сабресурса (сторонний трекер/виджет,
+    резолвящийся во flagged-адрес) не должен маскировать таймаут под SSRF и
+    отменять мягкий ретрай главного документа.
+    """
+    try:
+        if not request.is_navigation_request():
+            return False
+        return request.frame.parent_frame is None
+    except Exception:
+        return False

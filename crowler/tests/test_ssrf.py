@@ -169,3 +169,70 @@ def test_redirect_chain_blocks_internal_hop():
     first, second = asyncio.run(run())
     assert first.allowed
     assert not second.allowed and "169.254.169.254" in second.reason
+
+
+# --- install(): блок навигации главного документа vs сабресурса --------------
+
+class _FakeFrame:
+    def __init__(self, parent):
+        self.parent_frame = parent
+
+
+class _FakeRequest:
+    def __init__(self, url, is_nav, parent_frame=None):
+        self.url = url
+        self._is_nav = is_nav
+        self.frame = _FakeFrame(parent_frame)
+
+    def is_navigation_request(self):
+        return self._is_nav
+
+
+class _FakeRoute:
+    def __init__(self, request):
+        self.request = request
+        self.action = None
+
+    async def continue_(self):
+        self.action = "continue"
+
+    async def abort(self, *_):
+        self.action = "abort"
+
+
+class _FakeContext:
+    def __init__(self):
+        self.handler = None
+
+    async def route(self, pattern, handler):
+        self.handler = handler
+
+
+def test_install_distinguishes_main_nav_from_subresource():
+    """Блок главной навигации помечается is_main_nav=True, сабресурса/iframe — False.
+
+    Это и есть фикс ложного провала скана: таймаут goto при заблокированном
+    стороннем пикселе НЕ должен короткозамыкаться на SSRF и отменять ретрай."""
+    mapping = {"evil.example": ["169.254.169.254"], "pub.example": ["8.8.8.8"]}
+    guard = SSRFGuard(resolver=fake_resolver(mapping))
+    ctx = _FakeContext()
+    events = []
+
+    async def run():
+        await guard.install(ctx, on_block=lambda u, r, nav: events.append((u, nav)))
+        main_nav = _FakeRoute(_FakeRequest("http://evil.example/", True, parent_frame=None))
+        subresource = _FakeRoute(_FakeRequest("http://evil.example/px.gif", False))
+        iframe_nav = _FakeRoute(_FakeRequest("http://evil.example/f", True, parent_frame=object()))
+        allowed = _FakeRoute(_FakeRequest("http://pub.example/", True, parent_frame=None))
+        for r in (main_nav, subresource, iframe_nav, allowed):
+            await ctx.handler(r)
+        return main_nav, subresource, iframe_nav, allowed
+
+    main_nav, subresource, iframe_nav, allowed = asyncio.run(run())
+    assert main_nav.action == "abort" and subresource.action == "abort"
+    assert iframe_nav.action == "abort" and allowed.action == "continue"
+    # навигацией главного документа считается только первый блок
+    assert ("http://evil.example/", True) in events
+    assert ("http://evil.example/px.gif", False) in events
+    assert ("http://evil.example/f", False) in events
+    assert all(u != "http://pub.example/" for u, _ in events)
