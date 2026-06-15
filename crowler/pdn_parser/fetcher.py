@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from playwright.async_api import Browser, Error as PlaywrightError
 
 from .signatures import MODAL_TRIGGER_KEYWORDS
+from .ssrf import SSRFGuard, ip_str_is_safe
 
 DEFAULT_UA = (
     "Mozilla/5.0 (compatible; PDnControlBot/0.1; +https://example.com/bot) "
@@ -62,20 +63,57 @@ async def fetch_page(
     # гарантирует ограниченное суммарное время независимо от числа триггеров.
     interact_budget_ms: int = 15_000,
 ) -> FetchResult:
+    # Анти-SSRF: проверяем исходный URL ДО создания контекста — мгновенный отказ
+    # с понятной ошибкой на прямой внутренний адрес (loopback/private/метадата).
+    guard = SSRFGuard()
+    verdict = await guard.check_url(url)
+    if not verdict.allowed:
+        return FetchResult(url=url, final_url=url, status=None,
+                           error=f"SSRF: запрос заблокирован — {verdict.reason}")
+
     context = await browser.new_context(user_agent=user_agent, locale="ru-RU")
     request_urls: list[str] = []
     context.on("request", lambda req: request_urls.append(req.url))
+
+    # Сетевой перехват: каждый запрос (включая РЕДИРЕКТЫ и сабресурсы) режется,
+    # если хост резолвится во внутренний адрес. Закрывает обход исходной проверки
+    # через 30x-редирект на внутренний ресурс — Playwright идёт по редиректу как
+    # по новому запросу, и его ловит тот же обработчик.
+    blocked: list[tuple[str, str]] = []
+    await guard.install(context, on_block=lambda u, r: blocked.append((u, r)))
 
     page = await context.new_page()
     try:
         response = await page.goto(url, timeout=timeout_ms, wait_until=wait_until)
     except PlaywrightError as exc:
+        # Навигацию заблокировал анти-SSRF (редирект на внутренний адрес) —
+        # понятная ошибка, ретрай бессмыслен (заблокируем снова).
+        if blocked:
+            await context.close()
+            blocked_url, reason = blocked[0]
+            return FetchResult(url=url, final_url=blocked_url, status=None,
+                               error=f"SSRF: переход заблокирован — {reason}")
         # networkidle часто не наступает на «живых» сайтах — пробуем мягче.
         try:
             response = await page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
         except PlaywrightError as exc2:
             await context.close()
             return FetchResult(url=url, final_url=url, status=None, error=str(exc2 or exc))
+
+    # Anti-rebinding (TOCTOU): фактический IP origin'а, к которому подключился
+    # браузер, мог отличаться от проверенного на этапе резолва (атакующий со
+    # своим DNS отдаёт безопасный IP на проверку и внутренний на коннект).
+    # Повторно валидируем РЕАЛЬНЫЙ IP — если внутренний, контент не возвращаем.
+    if response is not None:
+        try:
+            addr = await response.server_addr()
+        except PlaywrightError:
+            addr = None
+        if addr and not ip_str_is_safe(addr.get("ipAddress")):
+            await context.close()
+            return FetchResult(url=url, final_url=page.url, status=None,
+                               error=(f"SSRF: origin резолвится во внутренний адрес "
+                                      f"{addr.get('ipAddress')} (DNS rebinding)"))
 
     # Детерминизм набора страниц на SPA: контент и ССЫЛКИ рендерятся уже ПОСЛЕ
     # domcontentloaded. Без паузы eval_on_selector_all('a[href]') снимает пустой/

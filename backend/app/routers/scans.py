@@ -19,6 +19,7 @@ from ..models.scan import Scan, ScanStatus
 from ..models.user import User
 from ..schemas.scan import ScanCreateIn, ScanCreateOut, ScanStatusOut, normalize_domain
 from ..services import scan_progress
+from ..services.ssrf import internal_target_reason
 from ..workers.tasks import run_scan
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
@@ -32,6 +33,15 @@ async def create_scan(
 ) -> ScanCreateOut:
     s = get_settings()
     domain = normalize_domain(body.url)
+
+    # Defense-in-depth против SSRF: отсекаем цель, резолвящуюся во внутренний
+    # адрес, ещё до постановки скана (основная защита — в краулере). Хост без
+    # порта: резолвим имя, не «host:port».
+    reason = await internal_target_reason(domain.rsplit(":", 1)[0])
+    if reason is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"URL ведёт на внутренний адрес: {reason}")
+
     scan = Scan(user_id=user.id, url=body.url, domain=domain, status=ScanStatus.pending)
     session.add(scan)
     await session.flush()

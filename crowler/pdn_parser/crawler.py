@@ -13,7 +13,7 @@ from __future__ import annotations
 import time
 import urllib.robotparser
 from collections import deque
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from xml.etree import ElementTree
 
 import httpx
@@ -22,6 +22,7 @@ from playwright.async_api import async_playwright
 
 from . import detectors
 from .fetcher import DEFAULT_UA, fetch_page
+from .ssrf import SSRFGuard
 from .identity import extract_identity
 from .models import SCHEMA_VERSION, CrawlResult, PageData, ScanMeta
 from .policy_text import fetch_policy_documents
@@ -29,6 +30,35 @@ from .summary import build_summary
 from .utils import ensure_scheme, iso_now, new_scan_id, normalize_url, same_site
 
 PARSER_VERSION = "0.2.0"
+
+
+class _SSRFBlocked(Exception):
+    """robots.txt/sitemap.xml ведут (или редиректят) на внутренний адрес."""
+
+
+async def _guarded_get(url: str, *, headers: dict | None = None,
+                       timeout: float = 10, max_redirects: int = 3) -> httpx.Response:
+    """httpx GET с анти-SSRF проверкой исходного URL И КАЖДОГО редирект-хопа.
+
+    robots.txt/sitemap.xml грузятся напрямую через httpx (не через Playwright),
+    поэтому сетевой перехват SSRFGuard на них не распространяется. Без этой
+    обёртки внутренний адрес — или публичный URL/сокращатель, 30x-редиректящий
+    на внутренний, — обходит защиту краулера. follow_redirects=False + ручной
+    цикл: каждый Location резолвится и валидируется ДО следующего запроса.
+    """
+    guard = SSRFGuard()
+    async with httpx.AsyncClient(follow_redirects=False, timeout=timeout) as client:
+        current = url
+        for _ in range(max_redirects + 1):
+            verdict = await guard.check_url(current)
+            if not verdict.allowed:
+                raise _SSRFBlocked(verdict.reason)
+            resp = await client.get(current, headers=headers)
+            if resp.is_redirect and resp.headers.get("location"):
+                current = urljoin(current, resp.headers["location"])
+                continue
+            return resp
+    raise _SSRFBlocked("слишком много редиректов")
 
 
 class Crawler:
@@ -279,12 +309,11 @@ class Crawler:
         robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
         rp = urllib.robotparser.RobotFileParser()
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
-                resp = await client.get(robots_url, headers={"User-Agent": DEFAULT_UA})
-                if resp.status_code == 200:
-                    rp.parse(resp.text.splitlines())
-                    return rp
-        except httpx.HTTPError:
+            resp = await _guarded_get(robots_url, headers={"User-Agent": DEFAULT_UA})
+            if resp.status_code == 200:
+                rp.parse(resp.text.splitlines())
+                return rp
+        except (httpx.HTTPError, _SSRFBlocked):
             pass
         return None
 
@@ -293,11 +322,10 @@ class Crawler:
         parsed = urlparse(start_url)
         sitemap_url = f"{parsed.scheme}://{parsed.netloc}/sitemap.xml"
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
-                resp = await client.get(sitemap_url, headers={"User-Agent": DEFAULT_UA})
-                if resp.status_code == 200:
-                    seeds.extend(self._parse_sitemap(resp.text, base_domain))
-        except (httpx.HTTPError, ElementTree.ParseError):
+            resp = await _guarded_get(sitemap_url, headers={"User-Agent": DEFAULT_UA})
+            if resp.status_code == 200:
+                seeds.extend(self._parse_sitemap(resp.text, base_domain))
+        except (httpx.HTTPError, ElementTree.ParseError, _SSRFBlocked):
             pass
         # Стартовая страница ВСЕГДА первая (с неё снимаем server_ip и она
         # приоритетна для обхода). Остальные seed'ы из sitemap сортируем —
