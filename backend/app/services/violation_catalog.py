@@ -194,6 +194,14 @@ def _processes_pii(crawl: dict) -> bool:
     )
 
 
+def processes_pii(crawl: dict) -> bool:
+    """Публичная обёртка над _processes_pii (для llm_analyzer и т.п.)."""
+    try:
+        return _processes_pii(crawl)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _any_prechecked(crawl: dict) -> bool:
     for p in crawl.get("pages", []) or []:
         for f in p.get("forms", []) or []:
@@ -232,7 +240,9 @@ _PRECONDITIONS = {
     "no_privacy_policy": lambda c: not _summary(c).get("has_privacy_policy") and _processes_pii(c),
     # текстовый: «политика неполная» имеет смысл только если политика есть
     "policy_incomplete": lambda c: bool(_summary(c).get("has_privacy_policy")) and _has_policy_text(c),
-    "no_operator_identification": lambda c: not (
+    # только если сайт обрабатывает ПДн (иначе он не оператор и идентифицировать
+    # его 152-ФЗ не обязывает) — иначе ложное срабатывание на статичной визитке
+    "no_operator_identification": lambda c: _processes_pii(c) and not (
         _identity(c).get("inn") or _identity(c).get("ogrn") or _identity(c).get("legal_name_hints")
     ),
     "cookie_no_reject": lambda c: bool(_summary(c).get("has_cookie_banner")) and not _summary(c).get("cookie_banner_has_reject"),
@@ -259,3 +269,209 @@ def precondition_holds(violation_type: str, crawl: dict) -> bool:
         return bool(check(crawl))
     except Exception:  # noqa: BLE001 — на кривом crawl не валим весь отчёт
         return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Код-генерация МЕХАНИЧЕСКИХ нарушений (детерминизм).
+#
+# Тип «механический», если «есть/нет» определяется ЧИСТО булевым фактом из crawl,
+# без суждения по тексту. Такие нарушения выписывает КОД (по тем же предусловиям
+# выше), а не LLM — поэтому набор нарушений и сумма штрафов воспроизводимы между
+# прогонами (LLM на одинаковом входе «дрожала»: то выписывала тип, то нет).
+#
+# «Судительные» типы (нужно читать текст документа или определять страну по IP)
+# остаются за LLM — их код выписать не может без потери смысла.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Порядок фиксирован → стабильный порядок генерации (report_builder всё равно
+# пересортирует по severity).
+MECHANICAL: tuple[str, ...] = (
+    "cross_border_transfer",
+    "no_privacy_policy",
+    "prechecked_consent",
+    "tracking_before_consent",
+    "form_without_consent",
+    "no_operator_identification",
+    "cookie_no_reject",
+    "no_cookie_notice",
+    "captcha_no_notice",
+    "no_rkn_notification",
+)
+
+# Типы, требующие суждения LLM (по тексту документа / гео по IP).
+JUDGMENT: tuple[str, ...] = (
+    "server_outside_rf",
+    "policy_incomplete",
+    "consent_combined_with_ads",
+    "no_subject_rights_info",
+)
+
+# Шаблоны описания/рекомендации для механических типов (детерминированная проза).
+_MECH_TEXT: dict[str, tuple[str, str]] = {
+    "cross_border_transfer": (
+        "На сайте подключены зарубежные сервисы/трекеры, передающие данные "
+        "посетителей за пределы РФ.",
+        "Замените зарубежные сервисы на российские аналоги либо обеспечьте "
+        "трансграничную передачу по требованиям ст. 12 152-ФЗ.",
+    ),
+    "no_privacy_policy": (
+        "Сайт обрабатывает персональные данные (формы и/или трекеры), однако "
+        "документ «Политика в отношении обработки персональных данных» не "
+        "опубликован и ссылки на него отсутствуют.",
+        "Разработайте и опубликуйте Политику обработки ПДн по ст. 18.1 152-ФЗ; "
+        "разместите ссылку в подвале сайта и рядом с каждой формой сбора данных.",
+    ),
+    "prechecked_consent": (
+        "Чекбокс согласия на обработку персональных данных проставлен по "
+        "умолчанию — это не является добровольным и осознанным согласием.",
+        "Снимите отметку с чекбокса согласия по умолчанию: пользователь должен "
+        "проставить её сам перед отправкой формы.",
+    ),
+    "tracking_before_consent": (
+        "Трекеры/аналитика срабатывают до получения согласия пользователя на "
+        "обработку персональных данных.",
+        "Откладывайте запуск трекеров до получения явного согласия пользователя.",
+    ),
+    "form_without_consent": (
+        "На сайте присутствует форма сбора персональных данных без чекбокса "
+        "получения согласия субъекта на их обработку.",
+        "Добавьте в форму обязательный чекбокс с текстом согласия на обработку "
+        "ПДн и ссылкой на политику конфиденциальности перед кнопкой отправки.",
+    ),
+    "no_operator_identification": (
+        "В контактах и реквизитах сайта отсутствуют сведения о юридическом лице "
+        "или ИП (наименование, ИНН, ОГРН), что не позволяет идентифицировать "
+        "оператора персональных данных.",
+        "Разместите в подвале сайта или разделе «Контакты» полное наименование "
+        "юрлица (или ФИО ИП), ИНН и ОГРН.",
+    ),
+    "cookie_no_reject": (
+        "На сайте есть cookie-баннер, но в нём отсутствует возможность отклонить "
+        "необязательные файлы cookie.",
+        "Добавьте в cookie-баннер кнопку «Отклонить» наравне с кнопкой согласия.",
+    ),
+    "no_cookie_notice": (
+        "Сайт устанавливает cookie, однако баннер или уведомление об их "
+        "использовании отсутствует.",
+        "Реализуйте отображение баннера с уведомлением об использовании файлов "
+        "cookie при первом посещении сайта.",
+    ),
+    "captcha_no_notice": (
+        "На сайте используется captcha, обрабатывающая данные пользователя, без "
+        "уведомления об этой обработке.",
+        "Добавьте уведомление об обработке данных используемой captcha и ссылку "
+        "на политику конфиденциальности.",
+    ),
+    "no_rkn_notification": (
+        "Сайт обрабатывает персональные данные (через формы и/или трекеры), но "
+        "признаков исполнения обязанности уведомить Роскомнадзор до начала "
+        "обработки не обнаружено.",
+        "Проверьте наличие компании в реестре операторов Роскомнадзора; при "
+        "отсутствии записи подайте уведомление об обработке персональных данных.",
+    ),
+}
+
+
+def _ev_trackers(crawl: dict, *, foreign_only: bool = False) -> str | None:
+    tr = _summary(crawl).get("trackers") or []
+    if foreign_only:
+        tr = [t for t in tr if t.get("cross_border")]
+    names = [str(t.get("name") or "?") for t in tr[:3]]
+    return ("trackers: " + ", ".join(names)) if names else None
+
+
+def _mech_evidence(violation_type: str, crawl: dict) -> list[str]:
+    """Реальные факты из crawl под механическое нарушение (а не пересказ LLM)."""
+    s = _summary(crawl)
+    ev: list[str] = []
+    t = violation_type
+
+    if t == "cross_border_transfer":
+        ev.append("has_cross_border_transfer: true" if s.get("has_cross_border_transfer")
+                  else "обнаружены зарубежные трекеры")
+        tr = _ev_trackers(crawl, foreign_only=True)
+        if tr:
+            ev.append(tr)
+    elif t == "no_privacy_policy":
+        ev.append("has_privacy_policy: false")
+        if (s.get("forms_collecting_pii") or 0) > 0:
+            ev.append(f"forms_collecting_pii: {s.get('forms_collecting_pii')}")
+        tr = _ev_trackers(crawl)
+        if tr:
+            ev.append(tr)
+    elif t == "prechecked_consent":
+        n = s.get("forms_with_prechecked_consent") or 0
+        ev.append(f"forms_with_prechecked_consent: {n}" if n else "pre_checked: true")
+    elif t == "tracking_before_consent":
+        ev.append("tracking_before_consent: true")
+        tr = _ev_trackers(crawl)
+        if tr:
+            ev.append(tr)
+    elif t == "form_without_consent":
+        ev.append(f"forms_pii_without_consent: {s.get('forms_pii_without_consent') or 0}")
+        kinds = s.get("pii_kinds_collected") or []
+        if kinds:
+            ev.append("pii_kinds_collected: " + ", ".join(str(k) for k in kinds[:6]))
+    elif t == "no_operator_identification":
+        ev += ["site_identity.inn: []", "site_identity.ogrn: []", "site_identity.legal_name_hints: []"]
+    elif t == "cookie_no_reject":
+        ev += ["has_cookie_banner: true", "cookie_banner_has_reject: false"]
+    elif t == "no_cookie_notice":
+        ev.append("has_cookie_banner: false")
+        tr = _ev_trackers(crawl)
+        if tr:
+            ev.append(tr)
+    elif t == "captcha_no_notice":
+        ev.append("обнаружена captcha (trackers.category=captcha)")
+    elif t == "no_rkn_notification":
+        if (s.get("forms_collecting_pii") or 0) > 0:
+            ev.append(f"forms_collecting_pii: {s.get('forms_collecting_pii')}")
+        ev.append(f"trackers count: {len(s.get('trackers') or [])}")
+    return ev[:5]
+
+
+def detect_mechanical(crawl: dict) -> list[dict]:
+    """Код-генерация механических нарушений по фактам crawl.
+
+    Возвращает «сырые» нарушения (type/title/description/evidence/recommendation)
+    в том же формате, что раньше присылала LLM — report_builder затем проставит
+    severity/статью/штраф/роль из CATALOG и проверит предусловие (Fix A). Для
+    механических типов предусловие здесь и есть критерий выписки."""
+    out: list[dict] = []
+    for t in MECHANICAL:
+        try:
+            if not precondition_holds(t, crawl):
+                continue
+        except Exception:  # noqa: BLE001
+            continue
+        spec = CATALOG[t]
+        desc, rec = _MECH_TEXT.get(t, ("", ""))
+        out.append({
+            "type": t,
+            "title": spec["title"],
+            "description": desc,
+            "evidence": _mech_evidence(t, crawl),
+            "recommendation": rec,
+        })
+    return out
+
+
+def passed_checks(crawl: dict, violations: list[dict]) -> list[dict]:
+    """Детерминированные «пройденные проверки» по фактам crawl.
+
+    Только то, что можно утверждать без суждения LLM (гео/локализацию не трогаем —
+    она зависит от определения страны моделью)."""
+    s = _summary(crawl)
+    types = {v.get("type") for v in (violations or [])}
+    out: list[dict] = []
+    if (s.get("forms_total") or 0) > 0 and not _any_prechecked(crawl):
+        out.append({
+            "title": "Отсутствие предварительно отмеченных чекбоксов",
+            "detail": "Формы не содержат чекбоксов согласия, установленных по умолчанию.",
+        })
+    if not _has_foreign_tracker(crawl) and "cross_border_transfer" not in types:
+        out.append({
+            "title": "Зарубежные трекеры не обнаружены",
+            "detail": "Передача данных за пределы РФ через сторонние сервисы не выявлена.",
+        })
+    return out
