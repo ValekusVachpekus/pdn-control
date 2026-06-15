@@ -210,6 +210,11 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 function Modal({ open, onClose, children, width = 440, labelId }) {
   const cardRef = useRef(null);
+  // onClose часто пересоздаётся в родителе (напр. handleClose в Auth) — держим в ref,
+  // чтобы effect зависел только от open и НЕ перезапускался на каждый ввод символа
+  // (иначе автофокус прыгал бы на крестик при каждом нажатии клавиши, issue #41).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -220,12 +225,12 @@ function Modal({ open, onClose, children, width = 440, labelId }) {
     const focusables = () => Array.from(card?.querySelectorAll(FOCUSABLE) || [])
       .filter(el => el.offsetParent !== null);
 
-    // Автофокус на первый интерактив внутри окна.
-    const first = focusables()[0];
-    (first || card)?.focus();
+    // Автофокус: сначала первое поле ввода, иначе первый интерактив (не крестик).
+    const field = card?.querySelector('input,textarea,select');
+    (field || focusables()[0] || card)?.focus();
 
     const onKey = e => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') { onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       // Focus trap: цикл по интерактивам внутри модалки.
       const els = focusables();
@@ -242,7 +247,7 @@ function Modal({ open, onClose, children, width = 440, labelId }) {
       // Возврат фокуса на элемент, открывший окно.
       if (trigger && typeof trigger.focus === 'function') trigger.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
     <div onMouseDown={onClose}
