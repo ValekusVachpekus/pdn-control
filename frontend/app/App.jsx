@@ -140,13 +140,15 @@ function App() {
     if (!reportId) return;
     let alive = true;
     let attempts = 0;
+    let timer;
+    const ctrl = new AbortController(); // отменяем in-flight при unmount/смене reportId
     const MAX_ATTEMPTS = 45; // 45 × 2с = 1.5 мин; failed-сканы бэк теперь отдаёт сразу
     setReport(null);
 
     const tick = async () => {
       if (!alive) return;
       try {
-        const r = await fetchReport(reportId);
+        const r = await fetchReport(reportId, { signal: ctrl.signal });
         if (alive) {
           setReport(r);
           // Отчёт мог быть открыт из истории (domain не выставлен) — берём из
@@ -156,11 +158,14 @@ function App() {
           if (r.paid) setPaid(true);
         }
       } catch (err) {
+        if (!alive || err.isAbort) return; // отмена при unmount — молча выходим
         attempts++;
-        if (err.status === 409 && attempts < MAX_ATTEMPTS) {
-          setTimeout(tick, 2000);
+        // 409 (скан ещё идёт) и таймаут запроса — ретраим до лимита.
+        if ((err.status === 409 || err.isTimeout) && attempts < MAX_ATTEMPTS) {
+          timer = setTimeout(tick, 2000);
         } else if (alive) {
-          const msg = err.status === 401 ? 'Войдите в аккаунт' :
+          const msg = err.isTimeout ? 'Сервер не отвечает — попробуйте позже' :
+                      err.status === 401 ? 'Войдите в аккаунт' :
                       err.status === 404 ? 'Отчёт не найден' :
                       'Не удалось загрузить отчёт';
           toast(msg, 'info');
@@ -168,7 +173,7 @@ function App() {
       }
     };
     tick();
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
   }, [reportId]);
 
   const startScan = (d, skip) => {
