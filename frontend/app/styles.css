@@ -175,6 +175,39 @@ select:focus-visible {
 
 .hairline { height: 1px; background: var(--border); border: 0; margin: 0; }
 
+/* ---------- report building blocks (issue #47) ----------
+ * Повторяющиеся статичные паттерны Report.jsx/ReportAppendix.jsx вынесены сюда.
+ * Динамика (цвета по severity, проценты, условные размеры) осталась инлайном. */
+.report-body { padding: 26px 32px 60px; max-width: 1000px; width: 100%; margin: 0 auto; }
+.score-overview { padding: 24px; display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center; }
+.score-gauge-col { display: flex; flex-direction: column; align-items: center; border-right: 1px solid var(--border); padding-right: 8px; }
+.stat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+
+/* утилиты раскладки */
+.col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; min-width: 0; }
+.row-center { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+
+/* секции и заголовки */
+.sec-head { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+.sec-title { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.card-pad { padding: 20px; }
+
+/* плитка на фоне surface-2 (документы, трекеры, формы) */
+.surface-tile { background: var(--surface-2); border: 1px solid var(--border); }
+
+/* нарушения */
+.v-head-btn { width: 100%; border: 0; background: transparent; cursor: pointer; font: inherit;
+  text-align: left; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+.v-detail { padding: 0 18px 18px 70px; animation-duration: .3s; }
+.reco-box { display: flex; gap: 11px; background: var(--accent-soft); border-radius: 11px; padding: 13px 15px; }
+
+/* оверлей-замок премиум-блоков */
+.locked-overlay { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.locked-overlay-inner { position: sticky; top: 0; height: 100vh; display: flex;
+  align-items: center; justify-content: center; }
+
 /* ---- responsive ---- */
 @media (max-width: 768px) {
   .app-layout { flex-direction: column !important; }
