@@ -74,7 +74,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
               </span>
             </div>
           )}
-          <div style={{ display: 'flex', gap: 11, background: 'var(--accent-soft)', borderRadius: 11, padding: '13px 15px' }}>
+          <div className="reco-box">
             <Icon name="bolt" size={18} stroke={2} style={{ color: 'var(--accent-ink)', flexShrink: 0, marginTop: 1 }} />
             <div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent-ink)', marginBottom: 3 }}>Рекомендация</div>
@@ -92,9 +92,8 @@ function ViolationCard({ v, detail, open, onToggle }) {
  * вьюпорта, и она остаётся по центру при скролле в пределах заблюренной зоны. */
 function LockedOverlay({ onUnlock }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}>
-      <div style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex',
-        alignItems: 'center', justifyContent: 'center' }}>
+    <div className="locked-overlay">
+      <div className="locked-overlay-inner">
         <div className="card fade-up" style={{ pointerEvents: 'auto', maxWidth: 420, width: '90%',
           padding: '26px 26px 24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, margin: '0 auto 14px',
@@ -212,21 +211,21 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
       </div>
 
       {/* body */}
-      <div className="report-body" style={{ padding: '26px 32px 60px', maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+      <div className="report-body">
         {/* score overview */}
-        <div className="fade-up card score-overview" style={{ padding: 24, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 28, alignItems: 'center' }}>
-          <div className="score-gauge-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid var(--border)', paddingRight: 8 }}>
+        <div className="fade-up card score-overview">
+          <div className="score-gauge-col">
             <RiskGauge score={r.score} band={r.band} size={250} />
             <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--muted)', textAlign: 'center' }}>
               Оценка рисков · {isSpec ? `сканер v${r.scannerVersion}` : 'чем ниже — тем выше риск'}
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+            <div className="col" style={{ gap: 14, marginBottom: 18 }}>
               <Meter label="Юридическая часть" value={r.legalScore} color="var(--info)" />
               <Meter label="Техническая часть" value={r.techScore} color="var(--accent)" />
             </div>
-            <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+            <div className="stat-grid">
               <StatTile severity="critical" value={r.counts.critical} label="Критичных" />
               <StatTile severity="warning" value={r.counts.warning} label="Предупреждений" />
               <StatTile severity="info" value={r.counts.info} label="Информационных" />
@@ -283,8 +282,8 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
 
         {/* violations */}
         <section style={{ marginTop: 30 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-.01em' }}>Выявленные нарушения</h2>
+          <div className="row-between" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+            <h2 className="sec-title">Выявленные нарушения</h2>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {sevFilters.map(f => (
                 <button key={f.id} onClick={() => setSev(f.id)} className="btn"
@@ -308,7 +307,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div className="col" style={{ gap: 11 }}>
             {filtered.map(v => (
               <ViolationCard key={v.id} v={v} detail={detail} open={!!open[v.id]}
                 onToggle={() => setOpen(o => ({ ...o, [v.id]: !o[v.id] }))} />
@@ -331,7 +330,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
             <Icon name="chevdown" size={18} style={{ marginLeft: 'auto', color: 'var(--faint)', transform: showPassed ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </button>
           {showPassed && (
-            <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <div className="fade-up col" style={{ gap: 8, marginTop: 8 }}>
               {r.passed.map((p, i) => (
                 <div key={i} className="card" style={{ padding: '13px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <Icon name="check" size={18} stroke={2.4} style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
@@ -378,7 +377,7 @@ function InfraCard({ r, isSpec }) {
 
   return (
     <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: st.border }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
+      <div className="sec-head">
         <Icon name="server" size={18} style={{ color: 'var(--ink-2)' }} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Инфраструктура и геолокация</h2>
         <span className={`chip ${st.chip}`} style={{ marginLeft: 'auto' }}>
