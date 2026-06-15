@@ -194,6 +194,7 @@ select:focus-visible {
 .row-between { display: flex; align-items: center; justify-content: space-between; }
 
 /* секции и заголовки */
+.rep-block { padding: 22px; margin-top: 20px; }
 .sec-head { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
 .sec-title { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
 .card-pad { padding: 20px; }
