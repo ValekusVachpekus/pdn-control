@@ -203,21 +203,53 @@ function AppShell({ nav, setNav, children, onNewScan, detail, theme, onToggleThe
   );
 }
 
-/* ---------- Modal (overlay + centered card, ESC/backdrop to close) ---------- */
-function Modal({ open, onClose, children, width = 440 }) {
+/* ---------- Modal (overlay + centered card, ESC/backdrop to close) ----------
+ * A11y (issue #41): role=dialog + aria-modal, aria-labelledby на заголовок
+ * (через проп labelId), focus trap по Tab, автофокус на первый интерактив,
+ * возврат фокуса на триггер при закрытии, блокировка скролла body. */
+const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
+function Modal({ open, onClose, children, width = 440, labelId }) {
+  const cardRef = useRef(null);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = e => e.key === 'Escape' && onClose();
+    // Запоминаем триггер, чтобы вернуть на него фокус после закрытия.
+    const trigger = document.activeElement;
+    const card = cardRef.current;
+
+    const focusables = () => Array.from(card?.querySelectorAll(FOCUSABLE) || [])
+      .filter(el => el.offsetParent !== null);
+
+    // Автофокус на первый интерактив внутри окна.
+    const first = focusables()[0];
+    (first || card)?.focus();
+
+    const onKey = e => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      // Focus trap: цикл по интерактивам внутри модалки.
+      const els = focusables();
+      if (!els.length) { e.preventDefault(); return; }
+      const firstEl = els[0], lastEl = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+      // Возврат фокуса на элемент, открывший окно.
+      if (trigger && typeof trigger.focus === 'function') trigger.focus();
+    };
   }, [open, onClose]);
   if (!open) return null;
   return (
     <div onMouseDown={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: 20, background: 'rgba(15,20,28,.55)', backdropFilter: 'blur(3px)' }}>
-      <div className="card fade-up" onMouseDown={e => e.stopPropagation()}
+      <div className="card fade-up" role="dialog" aria-modal="true" aria-labelledby={labelId}
+        tabIndex={-1} ref={cardRef} onMouseDown={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: width, boxShadow: 'var(--shadow-lg)', position: 'relative',
           maxHeight: '90vh', overflowY: 'auto' }}>
         <button onClick={onClose} aria-label="Закрыть"

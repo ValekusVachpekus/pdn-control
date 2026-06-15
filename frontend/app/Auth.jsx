@@ -96,12 +96,12 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
   };
 
   return (
-    <Modal open={open} onClose={handleClose} width={420}>
+    <Modal open={open} onClose={handleClose} width={420} labelId="auth-title">
       <div style={{ padding: '32px 30px 28px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 22 }}>
           <Logo size={40} />
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-.01em' }}>
+            <h2 id="auth-title" style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-.01em' }}>
               {isRegister ? 'Создать аккаунт' : 'Вход в ПДн Контроль'}
             </h2>
             <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--muted)' }}>

@@ -1,5 +1,5 @@
 /* ===== ПДн Контроль — App orchestrator ===== */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon, AppShell } from './shared.jsx';
 import { useTweaks, TweaksPanel, TweakSection, TweakToggle, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import Landing from './Landing.jsx';
@@ -128,10 +128,19 @@ function App() {
     } catch {}
   }, [screen, nav, domain, reportId]);
 
+  // Тост-таймеры держим в ref и чистим при unmount — иначе setState после
+  // размонтирования (предупреждение React) и утечка таймеров (issue #48).
+  const toastTimers = useRef([]);
+  useEffect(() => () => { toastTimers.current.forEach(clearTimeout); }, []);
+
   const toast = (text, kind = 'info') => {
     const id = Date.now() + Math.random();
     setToasts(x => [...x, { id, text, kind }]);
-    setTimeout(() => setToasts(x => x.filter(i => i.id !== id)), 2800);
+    const timer = setTimeout(() => {
+      setToasts(x => x.filter(i => i.id !== id));
+      toastTimers.current = toastTimers.current.filter(t => t !== timer);
+    }, 2800);
+    toastTimers.current.push(timer);
   };
 
   // Загрузка отчёта с polling'ом: пока скан ещё не завершён, бэк отвечает 409

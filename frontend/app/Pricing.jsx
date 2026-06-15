@@ -102,11 +102,11 @@ function Pricing({ open, onClose, onToast, paid = false, onPaid, user, onRequire
   };
 
   return (
-    <Modal open={open} onClose={onClose} width={720}>
+    <Modal open={open} onClose={onClose} width={720} labelId="pricing-title">
       <div style={{ padding: '32px 30px 30px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div className="label-eyebrow" style={{ marginBottom: 8 }}>Полный отчёт</div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-.01em' }}>
+          <h2 id="pricing-title" style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-.01em' }}>
             Разблокируйте полный отчёт
           </h2>
           <p style={{ margin: '8px auto 0', fontSize: 14, color: 'var(--muted)', maxWidth: 480 }}>
