@@ -175,6 +175,14 @@ function App() {
     const dom = normalizeDomain(d);
     setDomain(dom);
     setPaid(false); // новый отчёт — снова бесплатный тизер до оплаты
+    // ВАЖНО: сбрасываем reportId/report ДО запуска. setReportId(newId) стоит в
+    // .then() (асинхронно), а setScreen('scanning') — синхронный и сработает
+    // раньше. На ПОВТОРНОЙ проверке того же сайта без сброса экран прогресса
+    // смонтируется со СТАРЫМ (уже done) reportId → опрос прогресса сразу вернёт
+    // 100%, а новый обход пойдёт «под» загрузкой отчёта. Сброс в null заставляет
+    // Scanning ждать настоящий новый id.
+    setReportId(null);
+    setReport(null);
     apiStartScan(dom)
       .then(({ reportId }) => setReportId(reportId))
       .catch(() => toast('Не удалось запустить проверку', 'info'));
