@@ -23,7 +23,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
   const s = SEV[v.severity];
   const isSpec = detail === 'specialist';
   return (
-    <div className="card" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
+    <div className="card vcard" style={{ overflow: 'hidden', borderColor: open ? s.color : 'var(--border)',
       transition: 'border-color .2s', boxShadow: open ? 'var(--shadow-md)' : 'var(--shadow-sm)' }}>
       <button onClick={onToggle} className="v-head-btn">
         <div style={{ width: 38, height: 38, borderRadius: 10, background: s.soft, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
