@@ -263,8 +263,8 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
         </div>
 
         {/* conclusion */}
-        <section className="fade-up card" style={{ padding: 22, marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+        <section className="fade-up card rep-block">
+          <div className="row-center" style={{ gap: 9, marginBottom: 12 }}>
             <Icon name="ai" size={18} style={{ color: 'var(--accent)' }} />
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Заключение</h2>
             <span className="chip chip-ok" style={{ fontSize: 11 }}>AI</span>
