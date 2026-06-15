@@ -211,17 +211,22 @@ def _normalize_violations(raw: Any, crawl: dict | None = None) -> list[dict]:
                 log.warning("dropped hallucinated violation '%s' (precondition not met)", vtype)
                 continue
             seen_types.add(vtype)
+            advisory = violation_catalog.is_advisory(vtype)
             out.append({
                 "id": "",
                 "type": vtype,
-                "severity": spec["severity"],
+                # ADVISORY: показываем как info-подсказку без штрафа и без влияния
+                # на score (факт держится на слабой эвристике — фикс. штраф убран).
+                "severity": "info" if advisory else spec["severity"],
                 "article_152fz": spec["article_152fz"],
                 "title": (llm_title or spec["title"])[:200],
-                "description": description[:800],
+                "description": (("Требует ручной проверки. " + description) if advisory
+                                else description)[:800],
                 "evidence": evidence,
                 "target_role": spec["target_role"],
                 "recommendation": recommendation[:800],
-                "fine_rub": spec["fine_rub"],
+                "fine_rub": 0 if advisory else spec["fine_rub"],
+                "advisory": advisory,
             })
         else:
             # Legacy / неизвестный тип: используем то, что прислала LLM, если
@@ -263,7 +268,8 @@ def _compute_score(violations: list[dict], roles: tuple[str, ...] | None = None)
     penalty = sum(
         _SEVERITY_PENALTY.get(v.get("severity"), 0)
         for v in violations
-        if roles is None or v.get("target_role") in roles
+        if not v.get("advisory")  # advisory-подсказки не штрафуют score
+        and (roles is None or v.get("target_role") in roles)
     )
     return max(0, min(100, 100 - penalty))
 

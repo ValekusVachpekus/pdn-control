@@ -20,6 +20,7 @@
 """
 from __future__ import annotations
 
+import re
 from typing import TypedDict
 
 
@@ -154,6 +155,18 @@ def spec_for(violation_type: str) -> ViolationSpec | None:
     return CATALOG.get(violation_type)
 
 
+# ADVISORY-типы: показываются как «проверьте вручную», но НЕ дают штраф и НЕ
+# влияют на score. Причина: их факт держится на слабой эвристике парсера
+# (можно прозевать реально существующие данные), поэтому фиксированный штраф
+# здесь юридически уязвим. Когда парсер станет надёжным — можно вернуть в
+# штрафуемые.
+ADVISORY: frozenset[str] = frozenset({"no_operator_identification"})
+
+
+def is_advisory(violation_type: str) -> bool:
+    return violation_type in ADVISORY
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Фикс A — предусловия (анти-галлюцинация).
 #
@@ -227,6 +240,26 @@ def _has_policy_text(crawl: dict) -> bool:
     return False
 
 
+# Реквизиты оператора в ТЕКСТЕ документов (не только в site_identity). Политика
+# почти всегда называет оператора (ИНН/ОГРН/юр-форму) — если site_identity их
+# прозевал, но в тексте политики они есть, оператор фактически идентифицирован.
+_RE_INN = re.compile(r"ИНН[:\s]*?(\d{10}|\d{12})", re.I)
+_RE_OGRN = re.compile(r"ОГРН(?:ИП)?[:\s]*?(\d{13}|\d{15})", re.I)
+
+
+def _operator_identified(crawl: dict) -> bool:
+    """True, если оператор идентифицирован: в site_identity ИЛИ в тексте
+    собранных документов (политика/согласие) есть ИНН/ОГРН/юр-название."""
+    ident = _identity(crawl)
+    if ident.get("inn") or ident.get("ogrn") or ident.get("legal_name_hints"):
+        return True
+    for d in crawl.get("policy_documents", []) or []:
+        t = d.get("extracted_text") or ""
+        if _RE_INN.search(t) or _RE_OGRN.search(t):
+            return True
+    return False
+
+
 # type → callable(crawl) -> bool. True = факт под нарушением подтверждён.
 _PRECONDITIONS = {
     "cross_border_transfer": lambda c: bool(_summary(c).get("has_cross_border_transfer")) or _has_foreign_tracker(c),
@@ -240,11 +273,10 @@ _PRECONDITIONS = {
     "no_privacy_policy": lambda c: not _summary(c).get("has_privacy_policy") and _processes_pii(c),
     # текстовый: «политика неполная» имеет смысл только если политика есть
     "policy_incomplete": lambda c: bool(_summary(c).get("has_privacy_policy")) and _has_policy_text(c),
-    # только если сайт обрабатывает ПДн (иначе он не оператор и идентифицировать
-    # его 152-ФЗ не обязывает) — иначе ложное срабатывание на статичной визитке
-    "no_operator_identification": lambda c: _processes_pii(c) and not (
-        _identity(c).get("inn") or _identity(c).get("ogrn") or _identity(c).get("legal_name_hints")
-    ),
+    # только если сайт обрабатывает ПДн (иначе он не оператор) И реквизиты не
+    # найдены НИ в site_identity, НИ в тексте документов — снижает ложные
+    # срабатывания, когда парсер прозевал ИНН, но он есть в политике
+    "no_operator_identification": lambda c: _processes_pii(c) and not _operator_identified(c),
     "cookie_no_reject": lambda c: bool(_summary(c).get("has_cookie_banner")) and not _summary(c).get("cookie_banner_has_reject"),
     "no_cookie_notice": lambda c: not _summary(c).get("has_cookie_banner") and _processes_pii(c),
     "captcha_no_notice": lambda c: any(t.get("category") == "captcha" for t in (_summary(c).get("trackers") or [])),

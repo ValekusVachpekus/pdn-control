@@ -91,3 +91,24 @@ def test_mechanical_have_specs_and_text():
         assert vc.spec_for(t) is not None
         desc, rec = vc._MECH_TEXT.get(t, ("", ""))
         assert desc and rec
+
+
+def test_operator_identified_in_policy_suppresses_violation():
+    """Если ИНН есть в ТЕКСТЕ политики (а не в site_identity) — оператор
+    идентифицирован, no_operator_identification НЕ выписывается."""
+    crawl = _pii_crawl()
+    crawl["policy_documents"] = [{
+        "kind": "privacy_policy",
+        "extracted_text": "Оператор: ООО «Ромашка», ИНН 7701234567, г. Москва.",
+    }]
+    types = {v["type"] for v in vc.detect_mechanical(crawl)}
+    assert "no_operator_identification" not in types
+    # без реквизитов где-либо — наоборот, выписывается
+    crawl["policy_documents"] = []
+    types2 = {v["type"] for v in vc.detect_mechanical(crawl)}
+    assert "no_operator_identification" in types2
+
+
+def test_no_operator_identification_is_advisory():
+    assert vc.is_advisory("no_operator_identification") is True
+    assert vc.is_advisory("form_without_consent") is False
