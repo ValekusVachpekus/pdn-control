@@ -222,3 +222,15 @@ select:focus-visible {
   .report-header > div:last-child { width: 100%; }
   .report-header > div:last-child .btn { flex: 1; justify-content: center; }
 }
+
+/* ---- reduced motion (issue #48) ----
+ * Уважаем системную настройку «меньше движения»: гасим анимации и переходы,
+ * оставляя интерфейс полностью функциональным (скан/гейдж сразу в финале). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
