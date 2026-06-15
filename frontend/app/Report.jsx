@@ -176,9 +176,7 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       {/* sticky header */}
-      <div className="report-header" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in oklch, var(--bg), transparent 8%)',
-        backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border)', padding: '16px 32px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <div className="report-header">
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ margin: 0, fontSize: 19, fontWeight: 700, letterSpacing: '-.01em' }}>Отчёт о проверке</h1>
@@ -376,7 +374,7 @@ function InfraCard({ r, isSpec }) {
   const st = STATES[r.infra.localizationStatus] || STATES.unknown;
 
   return (
-    <section className="fade-up card" style={{ padding: 22, marginTop: 20, borderColor: st.border }}>
+    <section className="fade-up card rep-block" style={{ borderColor: st.border }}>
       <div className="sec-head">
         <Icon name="server" size={18} style={{ color: 'var(--ink-2)' }} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Инфраструктура и геолокация</h2>
