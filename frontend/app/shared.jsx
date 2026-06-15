@@ -67,11 +67,17 @@ function Badge({ severity, withLabel = true, size = 13 }) {
   );
 }
 
+/* Уважаем системную «меньше движения»: JS-анимации (rAF/таймеры) тоже гасим. */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+
 /* ---------- Risk gauge (semicircle arc) ---------- */
 function RiskGauge({ score, band, size = 260 }) {
   const bands = RISK_BANDS[band];
   const [shown, setShown] = useState(0);
   useEffect(() => {
+    if (prefersReducedMotion()) { setShown(score); return; } // без анимации — сразу финал
     let raf, start;
     const dur = 900;
     const tick = (ts) => {
@@ -117,7 +123,11 @@ function RiskGauge({ score, band, size = 260 }) {
 /* ---------- mini meter bar ---------- */
 function Meter({ label, value, color }) {
   const [w, setW] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setW(value), 120); return () => clearTimeout(t); }, [value]);
+  useEffect(() => {
+    if (prefersReducedMotion()) { setW(value); return; }
+    const t = setTimeout(() => setW(value), 120);
+    return () => clearTimeout(t);
+  }, [value]);
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>

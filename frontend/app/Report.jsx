@@ -149,15 +149,19 @@ function Report({ r, detail, onToast, onRescan, onDownload, paid = true, onUnloc
   // с фейковым score и пустыми блоками. Чистая заглушка с приглашением повторить.
   // Доп. защита: если бэк не проставил _scan_failed, но score/band не распознаны
   // (UNKNOWN risk_level), всё равно показываем баннер вместо краша при RISK_BANDS[r.band].
+  // Хуки — ДО любого раннего return (Rules of Hooks): иначе при переходе
+  // failed-отчёт → нормальный в том же инстансе Report число хуков меняется
+  // и React падает с «Rendered more hooks than during the previous render».
+  const [sev, setSev] = useState('all');
+  const [role, setRole] = useState('all');
+  const [open, setOpen] = useState({ 'ERR-001': true });
+  const [showPassed, setShowPassed] = useState(false);
+
   const bands = RISK_BANDS[r.band];
   if (r.scanFailed || !bands || r.score == null) {
     return <ScanFailedBanner r={r} onRescan={onRescan} />;
   }
   const isSpec = detail === 'specialist';
-  const [sev, setSev] = useState('all');
-  const [role, setRole] = useState('all');
-  const [open, setOpen] = useState({ 'ERR-001': true });
-  const [showPassed, setShowPassed] = useState(false);
 
   const order = { critical: 0, warning: 1, info: 2 };
   const filtered = r.violations
