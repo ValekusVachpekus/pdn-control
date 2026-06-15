@@ -45,7 +45,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
         </div>
       </button>
       {open && (
-        <div className="fade-up" style={{ padding: '0 18px 18px 70px', animationDuration: '.3s' }}>
+        <div className="fade-up v-detail">
           <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{v.desc}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             <span className="chip chip-neutral"><Icon name="doc" size={13} /> {v.article}</span>
@@ -54,7 +54,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
           {isSpec && (
             <div style={{ marginBottom: 14 }}>
               <div className="label-eyebrow" style={{ marginBottom: 7 }}>Где обнаружено</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="col" style={{ gap: 6 }}>
                 {v.where.map((w, i) => (
                   <div key={i} className="mono" style={{ fontSize: 12, color: 'var(--ink-2)', background: 'var(--surface-2)',
                     border: '1px solid var(--border)', borderRadius: 8, padding: '7px 11px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
