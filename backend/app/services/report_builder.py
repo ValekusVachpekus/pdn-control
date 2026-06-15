@@ -426,16 +426,22 @@ def _normalize_ai_analysis(raw: Any, crawl: dict | None = None) -> list[dict]:
                 continue
             quote = (is_in.get("quote") or "").strip()
             problem = (is_in.get("problem") or "").strip()
-            if not quote or not problem:
+            if not problem:
                 continue
-            # Фикс B: цитата должна реально присутствовать в тексте документа.
-            if not _quote_is_real(quote, source_norm):
-                log.warning("dropped hallucinated quote in ai_analysis: %r", quote[:80])
-                continue
+            # Фикс B (смягчён): раньше при несовпадении цитаты выбрасывали ВСЮ
+            # находку — так молча терялись настоящие проблемы в политике (ложные
+            # негативы в аудиторском продукте опаснее лишней осторожности). Теперь
+            # находку (problem/fix/article) СОХРАНЯЕМ, но непроверенную дословно
+            # цитату НЕ показываем (чтобы не выдать выдумку за оригинал) и помечаем.
+            quote_ok = bool(quote) and _quote_is_real(quote, source_norm)
+            if quote and not quote_ok:
+                log.warning("unverified ai_analysis quote — kept finding, dropped quote: %r", quote[:80])
             issues_out.append({
-                "quote": quote[:300],
+                "quote": quote[:300] if quote_ok else "",
+                "quote_verified": quote_ok,
                 "article": (is_in.get("article") or "").strip()[:60],
-                "problem": problem[:600],
+                "problem": (problem if quote_ok
+                            else "(цитата не подтверждена дословно в тексте) " + problem)[:600],
                 "fix": (is_in.get("fix") or "").strip()[:600],
             })
 
