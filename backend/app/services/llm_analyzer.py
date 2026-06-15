@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import logging
 import time as _time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 import httpx
@@ -91,6 +92,7 @@ def _chat(system: str, user: str, *, max_tokens: int = 2000) -> dict:
         except httpx.HTTPStatusError as exc:
             last_exc = exc
             if exc.response.status_code >= 500 and attempt < 2:
+                log.warning("LLM %s, retry %d/2", exc.response.status_code, attempt + 1)
                 _time.sleep(2 ** attempt)
                 continue
             raise LLMError(f"LLM {exc.response.status_code}: {exc.response.text[:200]}") from exc
@@ -98,6 +100,7 @@ def _chat(system: str, user: str, *, max_tokens: int = 2000) -> dict:
                 httpx.ConnectError) as exc:
             last_exc = exc
             if attempt < 2:
+                log.warning("LLM transport error (%s), retry %d/2", type(exc).__name__, attempt + 1)
                 _time.sleep(2 ** attempt)
                 continue
             raise LLMError(f"LLM transport error after retries: {exc}") from exc
@@ -131,8 +134,10 @@ def _safe(fn: Callable[[], Any], default: Any) -> Any:
     except LLMError as exc:
         log.warning("LLM sub-call failed, skipping: %s", exc)
         return default
-    except Exception as exc:  # noqa: BLE001
-        log.warning("LLM sub-call unexpected error, skipping: %s", exc)
+    except Exception:  # noqa: BLE001
+        # неожиданная ошибка (баг в коде под-вызова) — логируем С ТРЕЙСОМ, чтобы
+        # best-effort не прятал реальные баги под пустым результатом
+        log.exception("LLM sub-call unexpected error, skipping")
         return default
 
 
@@ -409,23 +414,33 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
     # 1) Механические нарушения — код (детерминированно).
     violations: list[dict] = list(violation_catalog.detect_mechanical(crawl))
 
-    # 2) Судительные нарушения + ai_analysis — по одному вызову на документ.
+    # 2-3) Разбор документов + гео — НЕЗАВИСИМЫЕ под-вызовы, гоним ПАРАЛЛЕЛЬНО,
+    # чтобы суммарное wall-time было ~ одного вызова, а не суммы (иначе 3 документа
+    # + гео последовательно с ретраями рискуют упереться в таймаут таска).
+    docs = _collect_documents(crawl)
     ai_analysis: list[dict] = []
-    for name, text in _collect_documents(crawl).items():
-        res = _safe(lambda n=name, t=text: _analyze_document(n, t), {})
-        if res.get("analysis"):
-            ai_analysis.append(res["analysis"])
-        violations.extend(res.get("violations", []))
+    with ThreadPoolExecutor(max_workers=max(1, len(docs) + 1)) as ex:
+        doc_futures = {
+            name: ex.submit(_safe, lambda n=name, t=text: _analyze_document(n, t), {})
+            for name, text in docs.items()
+        }
+        geo_future = ex.submit(_safe, lambda: _analyze_geo(crawl), {})
 
-    # 3) Гео по IP — отдельный маленький вызов.
-    geo = _safe(lambda: _analyze_geo(crawl), {})
+        for name, fut in doc_futures.items():
+            res = fut.result()
+            if res.get("analysis"):
+                ai_analysis.append(res["analysis"])
+            violations.extend(res.get("violations", []))
+
+        geo = geo_future.result()
     infra = geo.get("infrastructure_and_geo") or {}
     violations.extend(geo.get("violations", []))
 
     # 4) Пройденные проверки — код (детерминированно).
     passed = violation_catalog.passed_checks(crawl, violations)
 
-    # 5) Итоговое заключение — маленький вызов, с детерминированным fallback.
+    # 5) Итоговое заключение — зависит от итогового списка нарушений, поэтому
+    # ПОСЛЕ параллельной фазы. Маленький вызов, с детерминированным fallback.
     executive = _safe(lambda: _exec_summary(crawl, violations),
                       _fallback_verdict(crawl, violations))
 

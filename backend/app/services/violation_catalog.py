@@ -271,6 +271,25 @@ def precondition_holds(violation_type: str, crawl: dict) -> bool:
         return True
 
 
+def precondition_confirmed(violation_type: str, crawl: dict) -> bool:
+    """СТРОГИЙ предикат для КОД-ГЕНЕРАЦИИ нарушений (detect_mechanical).
+
+    В отличие от precondition_holds (мягкий ВАЛИДАТОР, fail-OPEN: на ошибке
+    возвращает True, чтобы не выбросить присланное LLM), здесь семантика
+    обратная — fail-CLOSED: нет предусловия или любая ошибка → False. Код
+    НИКОГДА не выписывает нарушение без РЕАЛЬНО подтверждённого факта, иначе
+    fail-open превратился бы в фабрикацию нарушений на кривом crawl."""
+    if violation_type not in CATALOG:
+        return False
+    check = _PRECONDITIONS.get(violation_type)
+    if check is None:
+        return False  # нет признака для подтверждения → не выписываем
+    try:
+        return bool(check(crawl))
+    except Exception:  # noqa: BLE001 — факт не подтверждён → не выписываем
+        return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Код-генерация МЕХАНИЧЕСКИХ нарушений (детерминизм).
 #
@@ -295,7 +314,12 @@ MECHANICAL: tuple[str, ...] = (
     "cookie_no_reject",
     "no_cookie_notice",
     "captcha_no_notice",
-    "no_rkn_notification",
+    # ВНИМАНИЕ: no_rkn_notification сюда НЕ входит сознательно. Его предусловие —
+    # лишь "сайт обрабатывает ПДн", а факт самого нарушения (компания НЕ уведомила
+    # РКН) краулер проверить не может — это внешний реестр, в crawl признака нет.
+    # Выписывать его безусловно = ложное срабатывание + фиксированный штраф 300k
+    # на каждом PII-сайте. Поэтому код его не генерирует; при необходимости его
+    # стоит вынести в отдельный блок «проверьте вручную» БЕЗ суммы штрафа.
 )
 
 # Типы, требующие суждения LLM (по тексту документа / гео по IP).
@@ -436,13 +460,13 @@ def detect_mechanical(crawl: dict) -> list[dict]:
     Возвращает «сырые» нарушения (type/title/description/evidence/recommendation)
     в том же формате, что раньше присылала LLM — report_builder затем проставит
     severity/статью/штраф/роль из CATALOG и проверит предусловие (Fix A). Для
-    механических типов предусловие здесь и есть критерий выписки."""
+    механических типов предусловие здесь и есть критерий выписки.
+
+    Используем СТРОГИЙ precondition_confirmed (fail-closed): факт не подтверждён
+    или ошибка → нарушение НЕ выписываем (без фабрикации на кривом crawl)."""
     out: list[dict] = []
     for t in MECHANICAL:
-        try:
-            if not precondition_holds(t, crawl):
-                continue
-        except Exception:  # noqa: BLE001
+        if not precondition_confirmed(t, crawl):
             continue
         spec = CATALOG[t]
         desc, rec = _MECH_TEXT.get(t, ("", ""))
