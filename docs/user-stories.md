@@ -22,15 +22,15 @@ current state for quick traceability. Do not duplicate full mutable story conten
 | ID | Short title | MoSCoW priority | Story Points | Issue | Requirement status | Work Status | Sprint |
 |---|---|---|---|---|---|---|---|
 | US-12 | Server-side URL validation / anti-SSRF | Must Have | 8 | [#69](https://github.com/ValekusVachpekus/pdn-control/issues/69) | Active | Ready | [Sprint 1](https://github.com/ValekusVachpekus/pdn-control/milestone/1) |
-| US-01 | Basic website scan | Must Have | 5 | [#58](https://github.com/ValekusVachpekus/pdn-control/issues/58) | Active | To Do | — |
-| US-02 | Total potential fine display | Must Have | 3 | [#59](https://github.com/ValekusVachpekus/pdn-control/issues/59) | Active | To Do | — |
-| US-03 | Detailed list of violations | Must Have | 5 | [#60](https://github.com/ValekusVachpekus/pdn-control/issues/60) | Active | To Do | — |
-| US-04 | Legal article references | Must Have | 3 | [#61](https://github.com/ValekusVachpekus/pdn-control/issues/61) | Active | To Do | — |
-| US-05 | Free tier limited check | Must Have | 3 | [#62](https://github.com/ValekusVachpekus/pdn-control/issues/62) | Active | To Do | — |
-| US-06 | Paid tier full analysis | Must Have | 8 | [#63](https://github.com/ValekusVachpekus/pdn-control/issues/63) | Active | To Do | — |
-| US-07 | Compliance score (0–100) | Must Have | 5 | [#64](https://github.com/ValekusVachpekus/pdn-control/issues/64) | Active | To Do | — |
-| US-08 | PDF report download | Should Have | 8 | [#65](https://github.com/ValekusVachpekus/pdn-control/issues/65) | Active | To Do | — |
-| US-09 | Multi-page and JS crawling | Could Have | 13 | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | Active | To Do | — |
+| US-01 | Basic website scan | Must Have | 5 | [#58](https://github.com/ValekusVachpekus/pdn-control/issues/58) | Active | Done | — |
+| US-02 | Total potential fine display | Must Have | 3 | [#59](https://github.com/ValekusVachpekus/pdn-control/issues/59) | Active | Done | — |
+| US-03 | Detailed list of violations | Must Have | 5 | [#60](https://github.com/ValekusVachpekus/pdn-control/issues/60) | Active | Done | — |
+| US-04 | Legal article references | Must Have | 3 | [#61](https://github.com/ValekusVachpekus/pdn-control/issues/61) | Active | Done | — |
+| US-05 | Free tier limited check | Must Have | 3 | [#62](https://github.com/ValekusVachpekus/pdn-control/issues/62) | Active | Done | — |
+| US-06 | Paid tier full analysis | Must Have | 8 | [#63](https://github.com/ValekusVachpekus/pdn-control/issues/63) | Active | Done | — |
+| US-07 | Compliance score (0–100) | Must Have | 5 | [#64](https://github.com/ValekusVachpekus/pdn-control/issues/64) | Active | Done | — |
+| US-08 | PDF report download | Should Have | 8 | [#65](https://github.com/ValekusVachpekus/pdn-control/issues/65) | Active | Done | — |
+| US-09 | Multi-page and JS crawling | Could Have | 13 | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | Active | Done | — |
 | US-10 | Captcha block notification | Could Have | 3 | [#67](https://github.com/ValekusVachpekus/pdn-control/issues/67) | Active | To Do | — |
 | US-13 | Scan-finished notification (link/email) | Could Have | 5 | [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70) | Active | To Do | — |
 | US-11 | Automatic AI code remediation | Won't Have | 13 _(not counted)_ | [#68](https://github.com/ValekusVachpekus/pdn-control/issues/68) | Active | To Do | — |
