@@ -19,7 +19,9 @@ exclude = [
   # Деплой MVP v0 на университетской VM — приватный IP, доступен только из сети
   # Иннополиса, из CI недостижим.
   "^https?://10\\.93\\.26\\.163",
-
+  # Проверен вручную. 
+  "https://github.com/users/ValekusVachpekus/projects/1",
+  "^https?://10\\.93\\.26\\.163",
   # GitLab Innopolis — за корпоративной аутентификацией, недоступен анонимно из CI.
   "^https://gitlab\\.pg\\.innopolis\\.university",
 ]

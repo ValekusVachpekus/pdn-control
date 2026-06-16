@@ -30,11 +30,15 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
 - [crowler/CONTRACT.md](crowler/CONTRACT.md) — контракт парсер → бэкенд (схема JSON фактов).
 - Контракт единого JSON (бэкенд → фронтенд и PDF) — см. `PDFreport/example.json` и
   `frontend/app/example-report.json` (эталонная фикстура).
+- [docs/user-stories.md](docs/user-stories.md) — индекс бэклога: пользовательские истории
+  (`US-xx`) с ссылками на GitHub Issues (живой источник) и статусом трассируемости.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — рабочий процесс: ветки, PR, релизы.
 - [CHANGELOG.md](CHANGELOG.md) — история изменений (Keep a Changelog / SemVer).
 
 ## Отчёты по неделям
 
+- [reports/week3/README.md](reports/week3/README.md) — индекс сдачи Assignment 3
+  (продуктовый бэклог, рефайнмент, оценка в Story Points, спринт).
 - [reports/week2/README.md](reports/week2/README.md) — индекс сдачи Assignment 2
   (user stories, прототип, MVP v0, встреча с заказчиком, анализ).
 - [reports/week2/mvp-v0-report.md](reports/week2/mvp-v0-report.md) — описание MVP v0,
