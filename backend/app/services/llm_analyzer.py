@@ -63,7 +63,19 @@ _DISABLE_THINKING = {
 }
 
 
-def _chat(system: str, user: str, *, max_tokens: int = 2000) -> dict:
+def _retry_after_sec(resp: httpx.Response, default: float) -> float:
+    """Сколько ждать перед ретраем: уважаем заголовок Retry-After (сек), но не
+    больше 30с, иначе — экспоненциальный бэкофф по умолчанию."""
+    ra = resp.headers.get("Retry-After")
+    if ra:
+        try:
+            return min(float(ra), 30.0)
+        except ValueError:
+            pass
+    return default
+
+
+def _chat(system: str, user: str, *, max_tokens: int = 3000) -> dict:
     """Один запрос к LLM, JSON-ответ. Поднимает LLMError при сбое."""
     s = get_settings()
     if not s.llm_api_key:
@@ -101,11 +113,15 @@ def _chat(system: str, user: str, *, max_tokens: int = 2000) -> dict:
                 break
         except httpx.HTTPStatusError as exc:
             last_exc = exc
-            if exc.response.status_code >= 500 and attempt < 2:
-                log.warning("LLM %s, retry %d/2", exc.response.status_code, attempt + 1)
-                _time.sleep(2 ** attempt)
+            code = exc.response.status_code
+            # 429 (rate limit) ретраим тоже — параллельный бёрст под-вызовов
+            # делает его вероятнее; уважаем Retry-After.
+            if (code == 429 or code >= 500) and attempt < 2:
+                wait = _retry_after_sec(exc.response, 2 ** attempt)
+                log.warning("LLM %s, retry %d/2 after %.1fs", code, attempt + 1, wait)
+                _time.sleep(wait)
                 continue
-            raise LLMError(f"LLM {exc.response.status_code}: {exc.response.text[:200]}") from exc
+            raise LLMError(f"LLM {code}: {exc.response.text[:200]}") from exc
         except (httpx.ReadTimeout, httpx.WriteError, httpx.RemoteProtocolError,
                 httpx.ConnectError) as exc:
             last_exc = exc
@@ -120,9 +136,15 @@ def _chat(system: str, user: str, *, max_tokens: int = 2000) -> dict:
         raise LLMError(f"LLM exhausted retries: {last_exc}")
 
     try:
-        content = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
     except (KeyError, IndexError) as exc:
         raise LLMError(f"LLM response without content: {exc}") from exc
+
+    # Обрезка по лимиту токенов → JSON неполный → ниже упадёт парсинг и находки
+    # этого документа потеряются. Логируем явно, чтобы это было видно.
+    if choice.get("finish_reason") == "length":
+        log.warning("LLM output truncated (finish_reason=length) — raise max_tokens")
 
     try:
         return json.loads(content)
@@ -224,6 +246,10 @@ def _fz_article(num: str) -> str:
 
 def _articles_block(nums: tuple[str, ...]) -> str:
     parts = [a for a in (_fz_article(n) for n in nums) if a]
+    if nums and not parts:
+        # ни одна статья не извлеклась (нет файла / переверстали fz_152.txt) —
+        # судительный вызов молча упадёт обратно на «память» модели. Сигналим.
+        log.warning("law grounding empty for articles %s — fz_152.txt format changed?", nums)
     return ("\n\n".join(parts)) if parts else ""
 
 
@@ -298,7 +324,9 @@ def _analyze_document(doc_name: str, text: str) -> dict:
         .replace("{TYPES}", ", ".join(allowed) if allowed else "(никаких)")
     )
     user = f"Документ: {doc_name}\n\n--- ТЕКСТ ---\n{text}"
-    res = _chat(system, user, max_tokens=2000)
+    # 4000: длинная политика с несколькими issues (quote+problem+fix) +
+    # missing_sections/strengths легко превышает 2000 → обрезка → потеря разбора.
+    res = _chat(system, user, max_tokens=4000)
 
     analysis = res.get("analysis") if isinstance(res.get("analysis"), dict) else None
     if analysis is not None:
@@ -460,11 +488,14 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
     violations: list[dict] = list(violation_catalog.detect_mechanical(crawl))
 
     # 2-3) Разбор документов + гео — НЕЗАВИСИМЫЕ под-вызовы, гоним ПАРАЛЛЕЛЬНО,
-    # чтобы суммарное wall-time было ~ одного вызова, а не суммы (иначе 3 документа
-    # + гео последовательно с ретраями рискуют упереться в таймаут таска).
+    # но max_workers=2: ограничиваем бёрст, чтобы не провоцировать 429 у провайдера
+    # (429 теперь ретраится в _chat, но меньше параллелизма — меньше шанс).
     docs = _collect_documents(crawl)
+    has_server_ip = bool((crawl.get("meta", {}) or {}).get("server_ip"))
+    llm_attempts = len(docs) + (1 if has_server_ip else 0)
+    llm_ok = 0
     ai_analysis: list[dict] = []
-    with ThreadPoolExecutor(max_workers=max(1, len(docs) + 1)) as ex:
+    with ThreadPoolExecutor(max_workers=2) as ex:
         doc_futures = {
             name: ex.submit(_safe, lambda n=name, t=text: _analyze_document(n, t), {})
             for name, text in docs.items()
@@ -473,13 +504,26 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
 
         for name, fut in doc_futures.items():
             res = fut.result()
+            if res:  # непустой → под-вызов отработал (на сбое _safe вернёт {})
+                llm_ok += 1
             if res.get("analysis"):
                 ai_analysis.append(res["analysis"])
             violations.extend(res.get("violations", []))
 
         geo = geo_future.result()
+    if has_server_ip and geo:
+        llm_ok += 1
     infra = geo.get("infrastructure_and_geo") or {}
     violations.extend(geo.get("violations", []))
+
+    # Взаимоисключение локализационных нарушений: cross_border_transfer (факт
+    # парсера: зарубежные трекеры) и server_outside_rf (догадка LLM о стране) —
+    # это одна и та же ст. 18 ч. 5 и один и тот же штраф. Если есть оба — оставляем
+    # cross_border_transfer (на факте), убираем server_outside_rf, чтобы не
+    # удваивать штраф/score за одну проблему локализации.
+    vtypes = {v.get("type") for v in violations}
+    if "cross_border_transfer" in vtypes and "server_outside_rf" in vtypes:
+        violations = [v for v in violations if v.get("type") != "server_outside_rf"]
 
     # 4) Пройденные проверки — код (детерминированно).
     passed = violation_catalog.passed_checks(crawl, violations)
@@ -489,10 +533,18 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
     executive = _safe(lambda: _exec_summary(crawl, violations),
                       _fallback_verdict(crawl, violations))
 
+    # Деградация: были LLM-под-вызовы, но НИ ОДИН не удался (полный отказ
+    # провайдера) → отчёт собран из механики + fallback, реального AI-разбора нет.
+    # Не выдаём его за AI-powered (см. report_builder).
+    ai_degraded = llm_attempts > 0 and llm_ok == 0
+    if ai_degraded:
+        log.warning("all %d LLM sub-calls failed — report is mechanical-only", llm_attempts)
+
     return {
         "violations": violations,
         "ai_analysis": ai_analysis,
         "infrastructure_and_geo": infra,
         "executive_summary": executive,
         "passed_checks": passed,
+        "_ai_degraded": ai_degraded,
     }

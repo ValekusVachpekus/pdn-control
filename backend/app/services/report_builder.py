@@ -439,15 +439,23 @@ def _normalize_ai_analysis(raw: Any, crawl: dict | None = None) -> list[dict]:
             # негативы в аудиторском продукте опаснее лишней осторожности). Теперь
             # находку (problem/fix/article) СОХРАНЯЕМ, но непроверенную дословно
             # цитату НЕ показываем (чтобы не выдать выдумку за оригинал) и помечаем.
-            quote_ok = bool(quote) and _quote_is_real(quote, source_norm)
-            if quote and not quote_ok:
+            #
+            # Различаем три случая: цитата дана и подтверждена; дана, но не
+            # подтверждена (тогда префикс-предупреждение); цитаты не было вовсе
+            # (НЕ вешаем «не подтверждена» — это вводило бы в заблуждение).
+            has_quote = bool(quote)
+            quote_ok = has_quote and _quote_is_real(quote, source_norm)
+            if has_quote and not quote_ok:
                 log.warning("unverified ai_analysis quote — kept finding, dropped quote: %r", quote[:80])
+                problem_out = "(цитата не подтверждена дословно в тексте) " + problem
+            else:
+                problem_out = problem
             issues_out.append({
                 "quote": quote[:300] if quote_ok else "",
                 "quote_verified": quote_ok,
+                "quote_provided": has_quote,
                 "article": (is_in.get("article") or "").strip()[:60],
-                "problem": (problem if quote_ok
-                            else "(цитата не подтверждена дословно в тексте) " + problem)[:600],
+                "problem": problem_out[:600],
                 "fix": (is_in.get("fix") or "").strip()[:600],
             })
 
@@ -515,6 +523,8 @@ def assemble(
             "data_collection_points": _data_collection_points(crawl),
             "ai_analysis": ai_analysis,
         },
-        # маркер для фронта/PDF: всё юр-содержание — от AI
-        "_ai_powered": True,
+        # маркер для фронта/PDF: всё юр-содержание — от AI. Сбрасываем в False,
+        # если ВСЕ LLM-под-вызовы упали (отчёт собран из механики + fallback) —
+        # чтобы не выдавать «AI-разбор», которого фактически не было.
+        "_ai_powered": not llm_output.get("_ai_degraded", False),
     }
