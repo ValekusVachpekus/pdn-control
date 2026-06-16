@@ -5,9 +5,9 @@ the live backlog is in GitHub Issues + the GitHub Project board.
 
 ## Deliverables
 
-- [backlog.md](backlog.md) — counted Product Backlog (22 PBIs), Story-Point estimation
-  (**total = 135 SP**), DEEP rationale, the current Sprint Backlog (Sprint 1, 21 SP), the MVP v1
-  scope (53 SP), and the GitHub Project board setup guide.
+- [backlog.md](backlog.md) — counted Product Backlog (18 PBIs), Story-Point estimation
+  (**total = 111 SP**), DEEP rationale, the current Sprint Backlog (Sprint 1, 21 SP), the MVP v1
+  scope, and the GitHub Project board structure.
 
 ## Maintained product docs (not Course Tasks)
 
@@ -24,7 +24,7 @@ the live backlog is in GitHub Issues + the GitHub Project board.
 
 - Migrated 13 user stories (US-01…US-13) from Assignment 2 into issues with ≥3 Gherkin
   acceptance criteria each (US-12/US-13 added during refinement; US-11 parked as Won't-Have).
-- Promoted 3 existing bugs/tasks (#34, #54, #55) into full PBIs, added a CI testing PBI
-  (#71) and an OAuth (Яндекс/ВК) login task (#72), and formalized 5 already-Done supporting
-  tasks (#13, #18, #28, #31, #50) as PBIs in MVP v1 → 22 counted PBIs.
+- Promoted bugs/tasks (#34, #54) into full PBIs and formalized 5 already-Done supporting
+  tasks (#13, #18, #28, #31, #50) as PBIs on the board → 18 counted PBIs. OTP #55, US-13 #70,
+  CI #71 and OAuth #72 are kept as off-board issues (future scope, not counted).
 - Opened Sprint 1 (stabilization) with implementer/reviewer roles per Process Requirements.
