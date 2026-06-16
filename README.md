@@ -37,6 +37,8 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
 
 ## Отчёты по неделям
 
+- [reports/week3/README.md](reports/week3/README.md) — индекс сдачи Assignment 3
+  (продуктовый бэклог, рефайнмент, оценка в Story Points, спринт).
 - [reports/week2/README.md](reports/week2/README.md) — индекс сдачи Assignment 2
   (user stories, прототип, MVP v0, встреча с заказчиком, анализ).
 - [reports/week2/mvp-v0-report.md](reports/week2/mvp-v0-report.md) — описание MVP v0,
