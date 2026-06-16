@@ -32,8 +32,8 @@ current state for quick traceability. Do not duplicate full mutable story conten
 | US-07 | Compliance score (0–100) | Must Have | [#64](https://github.com/ValekusVachpekus/pdn-control/issues/64) | Active | Done | — |
 | US-08 | PDF report download | Should Have | [#65](https://github.com/ValekusVachpekus/pdn-control/issues/65) | Active | Done | — |
 | US-10 | Captcha block notification | Should Have | [#67](https://github.com/ValekusVachpekus/pdn-control/issues/67) | Active | Done | — |
+| US-13 | Scan-finished notification (link/email) | Could Have | [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70) | Active | Ready | [Sprint 1](https://github.com/ValekusVachpekus/pdn-control/milestone/1) |
 | US-09 | Multi-page and JS crawling | Could Have | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | Active | Done | — |
-| US-13 | Scan-finished notification (link/email) | Could Have | [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70) | Active | To Do | — |
 | US-11 | Automatic AI code remediation | Won't Have | [#68](https://github.com/ValekusVachpekus/pdn-control/issues/68) | Active | — | — |
 
 > Note: US-13 (#70) is an Active user story but is not currently placed on the Product Backlog
