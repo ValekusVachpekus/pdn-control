@@ -5,9 +5,9 @@ the live backlog is in GitHub Issues + the GitHub Project board.
 
 ## Deliverables
 
-- [backlog.md](backlog.md) — counted Product Backlog (18 PBIs), Story-Point estimation
-  (**total = 111 SP**), DEEP rationale, the current Sprint Backlog (Sprint 1, 21 SP), the MVP v1
-  scope, and the GitHub Project board structure.
+- [backlog.md](backlog.md) — counted Product Backlog (19 PBIs), Story-Point estimation
+  (**total = 116 SP**), DEEP rationale, the current Sprint Backlog (Sprint 1, 26 SP), the MVP v1
+  scope (55 SP), and the GitHub Project board structure.
 
 ## Maintained product docs (not Course Tasks)
 
