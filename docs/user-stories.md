@@ -36,5 +36,5 @@ current state for quick traceability. Do not duplicate full mutable story conten
 | US-09 | Multi-page and JS crawling | Could Have | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | Active | Done | — |
 | US-11 | Automatic AI code remediation | Won't Have | [#68](https://github.com/ValekusVachpekus/pdn-control/issues/68) | Active | — | — |
 
-> Note: US-13 (#70) is an Active user story but is not currently placed on the Product Backlog
-> board (kept as an issue only). US-10 (#67) and US-12 (#69) Work Status mirror the board.
+> Note: US-13 (#70) was pulled into Sprint 1 as a Ready item (it is Could-Have, so it is not
+> part of MVP v1). US-10 (#67) and US-12 (#69) Work Status mirror the board.
