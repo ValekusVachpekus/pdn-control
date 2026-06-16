@@ -160,7 +160,13 @@ def spec_for(violation_type: str) -> ViolationSpec | None:
 # (можно прозевать реально существующие данные), поэтому фиксированный штраф
 # здесь юридически уязвим. Когда парсер станет надёжным — можно вернуть в
 # штрафуемые.
-ADVISORY: frozenset[str] = frozenset({"no_operator_identification"})
+ADVISORY: frozenset[str] = frozenset({
+    "no_operator_identification",
+    # no_rkn_notification кодом не генерится (убран из MECHANICAL), но остаётся в
+    # каталоге. Помечаем advisory, чтобы СТАРЫЙ кэш/любой внешний источник, приславший
+    # этот тип, не добавил ложный штраф 300k (предусловие fail-open пропустило бы его).
+    "no_rkn_notification",
+})
 
 
 def is_advisory(violation_type: str) -> bool:
@@ -197,13 +203,18 @@ def _has_foreign_tracker(crawl: dict) -> bool:
 
 
 def _processes_pii(crawl: dict) -> bool:
-    """Сайт обрабатывает ПДн: есть трекеры/сторонние домены или формы с PII."""
+    """Сайт обрабатывает ПДн: есть трекеры/сторонние домены или формы С ПДн.
+
+    ВАЖНО: считаем именно forms_collecting_pii, а НЕ forms_total. forms_total
+    включает любые формы (поиск, фильтры, подписка), которые ПДн не собирают —
+    по ним нельзя делать вывод «оператор ПДн» и выписывать штраф за отсутствие
+    политики. Иначе статичный сайт с одной формой поиска получает ложный
+    no_privacy_policy (60k)."""
     s = _summary(crawl)
     return (
         bool(s.get("trackers"))
         or (s.get("third_party_domain_count") or 0) > 0
         or (s.get("forms_collecting_pii") or 0) > 0
-        or (s.get("forms_total") or 0) > 0
     )
 
 
@@ -225,11 +236,18 @@ def _any_prechecked(crawl: dict) -> bool:
 
 
 def _has_consent_text(crawl: dict) -> bool:
+    # текст согласия в чекбоксах форм...
     for p in crawl.get("pages", []) or []:
         for f in p.get("forms", []) or []:
             for cb in f.get("consent_checkboxes", []) or []:
                 if (cb.get("full_text") or cb.get("label") or "").strip():
                     return True
+    # ...ИЛИ отдельный документ-согласие: LLM выписывает consent_combined_with_ads
+    # именно по его тексту, поэтому предусловие должно учитывать и этот источник
+    # (иначе валидатор ошибочно дропнет находку как «галлюцинацию»).
+    for d in crawl.get("policy_documents", []) or []:
+        if d.get("kind") == "consent" and (d.get("extracted_text") or "").strip():
+            return True
     return False
 
 

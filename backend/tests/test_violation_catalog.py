@@ -112,3 +112,38 @@ def test_operator_identified_in_policy_suppresses_violation():
 def test_no_operator_identification_is_advisory():
     assert vc.is_advisory("no_operator_identification") is True
     assert vc.is_advisory("form_without_consent") is False
+
+
+def test_search_only_form_is_not_pii_operator():
+    """Статичный сайт с НЕ-ПДн формой (поиск) не оператор → ноль нарушений и
+    никакого ложного no_privacy_policy/штрафа (forms_total>0, но
+    forms_collecting_pii=0)."""
+    crawl = {
+        "meta": {}, "summary": {
+            "has_privacy_policy": False, "forms_total": 1, "forms_collecting_pii": 0,
+            "has_cookie_banner": False, "third_party_domain_count": 0, "trackers": [],
+        },
+        "site_identity": {"inn": [], "ogrn": [], "legal_name_hints": []},
+        "pages": [{"url": "https://x/", "forms": [{"pii_kinds": [], "consent_checkboxes": []}]}],
+        "policy_documents": [],
+    }
+    assert vc.processes_pii(crawl) is False
+    assert [v["type"] for v in vc.detect_mechanical(crawl)] == []
+
+
+def test_consent_doc_text_satisfies_precondition():
+    """consent_combined_with_ads из разбора документа-согласия не должен
+    отбрасываться: предусловие учитывает текст документа kind=consent."""
+    crawl = {
+        "summary": {"trackers": []},
+        "pages": [],
+        "policy_documents": [{"kind": "consent",
+                              "extracted_text": "Я согласен на обработку ПДн и на рекламную рассылку."}],
+    }
+    assert vc.precondition_holds("consent_combined_with_ads", crawl) is True
+
+
+def test_rkn_is_advisory_if_ever_emitted():
+    """Латентная защита: если no_rkn_notification всё же придёт (старый кэш),
+    он advisory → без штрафа."""
+    assert vc.is_advisory("no_rkn_notification") is True

@@ -438,7 +438,7 @@ _EXEC_SYSTEM = """\
 """
 
 
-def _exec_summary(crawl: dict[str, Any], violations: list[dict]) -> dict:
+def _exec_summary(crawl: dict[str, Any], violations: list[dict]) -> dict | None:
     s = crawl.get("summary", {}) or {}
     titles = [f"- {v.get('title') or v.get('type')}" for v in violations]
     facts = (
@@ -453,7 +453,7 @@ def _exec_summary(crawl: dict[str, Any], violations: list[dict]) -> dict:
     res = res if isinstance(res, dict) else {}
     if res.get("verdict"):
         return {"verdict": res.get("verdict"), "verdict_plain": res.get("verdict_plain") or res.get("verdict")}
-    return _fallback_verdict(crawl, violations)
+    return None  # LLM не дала вердикт → пусть оркестратор подставит fallback (и учтёт деградацию)
 
 
 def _fallback_verdict(crawl: dict[str, Any], violations: list[dict]) -> dict:
@@ -529,9 +529,15 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
     passed = violation_catalog.passed_checks(crawl, violations)
 
     # 5) Итоговое заключение — зависит от итогового списка нарушений, поэтому
-    # ПОСЛЕ параллельной фазы. Маленький вызов, с детерминированным fallback.
-    executive = _safe(lambda: _exec_summary(crawl, violations),
-                      _fallback_verdict(crawl, violations))
+    # ПОСЛЕ параллельной фазы. Это тоже LLM-под-вызов — учитываем в деградации:
+    # на сбое/без вердикта подставляем детерминированный fallback.
+    llm_attempts += 1
+    exec_res = _safe(lambda: _exec_summary(crawl, violations), None)
+    if exec_res:
+        llm_ok += 1
+        executive = exec_res
+    else:
+        executive = _fallback_verdict(crawl, violations)
 
     # Деградация: были LLM-под-вызовы, но НИ ОДИН не удался (полный отказ
     # провайдера) → отчёт собран из механики + fallback, реального AI-разбора нет.
