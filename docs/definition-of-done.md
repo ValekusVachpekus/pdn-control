@@ -22,8 +22,9 @@ A PBI is **Done** when:
    branch. `main` stays releasable.
 6. **No known regressions** — the change does not break existing functionality; determinism
    and anti-SSRF invariants still hold.
-7. **Documentation updated** — user-facing/dev docs, contracts, `CHANGELOG.md`, and
-   `docs/user-stories.md` (status mirror) are updated when the change affects them.
+7. **`CHANGELOG.md` updated if the change is user-visible** — and other affected
+   documentation (user-facing/dev docs, contracts, `docs/user-stories.md` status mirror) is
+   updated when the change affects it.
 8. **Backlog reflects reality** — the issue is closed, and the board Work Status/fields are
    updated to `Done`.
 
