@@ -38,6 +38,11 @@ Requirements). Story Points use the Modified Fibonacci scale `1, 2, 3, 5, 8, 13,
 
 By MoSCoW: Must = 8+5+3+5+3+3+8+5+8 = **48**; Should = 8+5+5 = **18**; Could = 13+3+5+8 = **29**.
 
+> **Work Status snapshot:** the MVP v1 feature stories US-01…US-09 (#58–#66) are already
+> implemented and merged into `main`, so they are **Done** (45 SP delivered). Remaining open
+> work: Sprint 1 hardening (US-12 #69, #34, #54) plus US-10, US-13, OTP #55 and CI #71.
+> Done PBIs still count toward the 15-PBI minimum (only Won't/Removed/Course-Task issues do not).
+
 ### Not counted (excluded by Process Requirements)
 
 | PBI | Issue | Type | MoSCoW | SP | Reason |
