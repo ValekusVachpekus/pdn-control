@@ -22,7 +22,7 @@ current state for quick traceability. Do not duplicate full mutable story conten
 
 | ID | Short title | MoSCoW priority | Issue | Requirement status | Work Status | Sprint |
 |---|---|---|---|---|---|---|
-| US-12 | Server-side URL validation / anti-SSRF | Must Have | [#69](https://github.com/ValekusVachpekus/pdn-control/issues/69) | Active | In Progress | [Sprint 1](https://github.com/ValekusVachpekus/pdn-control/milestone/1) |
+| US-12 | Server-side URL validation / anti-SSRF | Must Have | [#69](https://github.com/ValekusVachpekus/pdn-control/issues/69) | Active | Done | [Sprint 1](https://github.com/ValekusVachpekus/pdn-control/milestone/1) |
 | US-01 | Basic website scan | Must Have | [#58](https://github.com/ValekusVachpekus/pdn-control/issues/58) | Active | Done | — |
 | US-02 | Total potential fine display | Must Have | [#59](https://github.com/ValekusVachpekus/pdn-control/issues/59) | Active | Done | — |
 | US-03 | Detailed list of violations | Must Have | [#60](https://github.com/ValekusVachpekus/pdn-control/issues/60) | Active | Done | — |
