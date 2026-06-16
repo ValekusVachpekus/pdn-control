@@ -18,18 +18,18 @@ Requirements). Story Points use the Modified Fibonacci scale `1, 2, 3, 5, 8, 13,
 | # | PBI | Issue | Type | MoSCoW | SP | Work Status | Sprint |
 |---|---|---|---|---|---|---|---|
 | 1 | US-12 Server-side URL validation / anti-SSRF | [#69](https://github.com/ValekusVachpekus/pdn-control/issues/69) | User Story | Must | 8 | Ready | Sprint 1 |
-| 2 | US-01 Basic website scan | [#58](https://github.com/ValekusVachpekus/pdn-control/issues/58) | User Story | Must | 5 | To Do | — |
-| 3 | US-02 Total potential fine display | [#59](https://github.com/ValekusVachpekus/pdn-control/issues/59) | User Story | Must | 3 | To Do | — |
-| 4 | US-03 Detailed list of violations | [#60](https://github.com/ValekusVachpekus/pdn-control/issues/60) | User Story | Must | 5 | To Do | — |
-| 5 | US-04 Legal article references | [#61](https://github.com/ValekusVachpekus/pdn-control/issues/61) | User Story | Must | 3 | To Do | — |
-| 6 | US-05 Free tier limited check | [#62](https://github.com/ValekusVachpekus/pdn-control/issues/62) | User Story | Must | 3 | To Do | — |
-| 7 | US-06 Paid tier full analysis | [#63](https://github.com/ValekusVachpekus/pdn-control/issues/63) | User Story | Must | 8 | To Do | — |
-| 8 | US-07 Compliance score (0–100) | [#64](https://github.com/ValekusVachpekus/pdn-control/issues/64) | User Story | Must | 5 | To Do | — |
-| 9 | US-08 PDF report download | [#65](https://github.com/ValekusVachpekus/pdn-control/issues/65) | User Story | Should | 8 | To Do | — |
+| 2 | US-01 Basic website scan | [#58](https://github.com/ValekusVachpekus/pdn-control/issues/58) | User Story | Must | 5 | Done | — |
+| 3 | US-02 Total potential fine display | [#59](https://github.com/ValekusVachpekus/pdn-control/issues/59) | User Story | Must | 3 | Done | — |
+| 4 | US-03 Detailed list of violations | [#60](https://github.com/ValekusVachpekus/pdn-control/issues/60) | User Story | Must | 5 | Done | — |
+| 5 | US-04 Legal article references | [#61](https://github.com/ValekusVachpekus/pdn-control/issues/61) | User Story | Must | 3 | Done | — |
+| 6 | US-05 Free tier limited check | [#62](https://github.com/ValekusVachpekus/pdn-control/issues/62) | User Story | Must | 3 | Done | — |
+| 7 | US-06 Paid tier full analysis | [#63](https://github.com/ValekusVachpekus/pdn-control/issues/63) | User Story | Must | 8 | Done | — |
+| 8 | US-07 Compliance score (0–100) | [#64](https://github.com/ValekusVachpekus/pdn-control/issues/64) | User Story | Must | 5 | Done | — |
+| 9 | US-08 PDF report download | [#65](https://github.com/ValekusVachpekus/pdn-control/issues/65) | User Story | Should | 8 | Done | — |
 | 10 | Free-report bypass fix | [#54](https://github.com/ValekusVachpekus/pdn-control/issues/54) | Bug | Should | 5 | Ready | Sprint 1 |
 | 11 | CI: regression tests (crawler & rule-engine) | [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71) | Task | Should | 5 | To Do | — |
 | 12 | Determinism of scan results | [#34](https://github.com/ValekusVachpekus/pdn-control/issues/34) | Bug | Must | 8 | In Progress | Sprint 1 |
-| 13 | US-09 Multi-page and JS crawling | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | User Story | Could | 13 | To Do | — |
+| 13 | US-09 Multi-page and JS crawling | [#66](https://github.com/ValekusVachpekus/pdn-control/issues/66) | User Story | Could | 13 | Done | — |
 | 14 | US-10 Captcha block notification | [#67](https://github.com/ValekusVachpekus/pdn-control/issues/67) | User Story | Could | 3 | To Do | — |
 | 15 | US-13 Scan-finished notification | [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70) | User Story | Could | 5 | To Do | — |
 | 16 | Passwordless OTP auth (e-mail) | [#55](https://github.com/ValekusVachpekus/pdn-control/issues/55) | Task | Could | 8 | To Do | — |
