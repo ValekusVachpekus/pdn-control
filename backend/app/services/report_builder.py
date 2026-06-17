@@ -211,17 +211,22 @@ def _normalize_violations(raw: Any, crawl: dict | None = None) -> list[dict]:
                 log.warning("dropped hallucinated violation '%s' (precondition not met)", vtype)
                 continue
             seen_types.add(vtype)
+            advisory = violation_catalog.is_advisory(vtype)
             out.append({
                 "id": "",
                 "type": vtype,
-                "severity": spec["severity"],
+                # ADVISORY: показываем как info-подсказку без штрафа и без влияния
+                # на score (факт держится на слабой эвристике — фикс. штраф убран).
+                "severity": "info" if advisory else spec["severity"],
                 "article_152fz": spec["article_152fz"],
                 "title": (llm_title or spec["title"])[:200],
-                "description": description[:800],
+                "description": (("Требует ручной проверки. " + description) if advisory
+                                else description)[:800],
                 "evidence": evidence,
                 "target_role": spec["target_role"],
                 "recommendation": recommendation[:800],
-                "fine_rub": spec["fine_rub"],
+                "fine_rub": 0 if advisory else spec["fine_rub"],
+                "advisory": advisory,
             })
         else:
             # Legacy / неизвестный тип: используем то, что прислала LLM, если
@@ -263,7 +268,8 @@ def _compute_score(violations: list[dict], roles: tuple[str, ...] | None = None)
     penalty = sum(
         _SEVERITY_PENALTY.get(v.get("severity"), 0)
         for v in violations
-        if roles is None or v.get("target_role") in roles
+        if not v.get("advisory")  # advisory-подсказки не штрафуют score
+        and (roles is None or v.get("target_role") in roles)
     )
     return max(0, min(100, 100 - penalty))
 
@@ -426,16 +432,30 @@ def _normalize_ai_analysis(raw: Any, crawl: dict | None = None) -> list[dict]:
                 continue
             quote = (is_in.get("quote") or "").strip()
             problem = (is_in.get("problem") or "").strip()
-            if not quote or not problem:
+            if not problem:
                 continue
-            # Фикс B: цитата должна реально присутствовать в тексте документа.
-            if not _quote_is_real(quote, source_norm):
-                log.warning("dropped hallucinated quote in ai_analysis: %r", quote[:80])
-                continue
+            # Фикс B (смягчён): раньше при несовпадении цитаты выбрасывали ВСЮ
+            # находку — так молча терялись настоящие проблемы в политике (ложные
+            # негативы в аудиторском продукте опаснее лишней осторожности). Теперь
+            # находку (problem/fix/article) СОХРАНЯЕМ, но непроверенную дословно
+            # цитату НЕ показываем (чтобы не выдать выдумку за оригинал) и помечаем.
+            #
+            # Различаем три случая: цитата дана и подтверждена; дана, но не
+            # подтверждена (тогда префикс-предупреждение); цитаты не было вовсе
+            # (НЕ вешаем «не подтверждена» — это вводило бы в заблуждение).
+            has_quote = bool(quote)
+            quote_ok = has_quote and _quote_is_real(quote, source_norm)
+            if has_quote and not quote_ok:
+                log.warning("unverified ai_analysis quote — kept finding, dropped quote: %r", quote[:80])
+                problem_out = "(цитата не подтверждена дословно в тексте) " + problem
+            else:
+                problem_out = problem
             issues_out.append({
-                "quote": quote[:300],
+                "quote": quote[:300] if quote_ok else "",
+                "quote_verified": quote_ok,
+                "quote_provided": has_quote,
                 "article": (is_in.get("article") or "").strip()[:60],
-                "problem": problem[:600],
+                "problem": problem_out[:600],
                 "fix": (is_in.get("fix") or "").strip()[:600],
             })
 
@@ -503,6 +523,8 @@ def assemble(
             "data_collection_points": _data_collection_points(crawl),
             "ai_analysis": ai_analysis,
         },
-        # маркер для фронта/PDF: всё юр-содержание — от AI
-        "_ai_powered": True,
+        # маркер для фронта/PDF: всё юр-содержание — от AI. Сбрасываем в False,
+        # если ВСЕ LLM-под-вызовы упали (отчёт собран из механики + fallback) —
+        # чтобы не выдавать «AI-разбор», которого фактически не было.
+        "_ai_powered": not llm_output.get("_ai_degraded", False),
     }

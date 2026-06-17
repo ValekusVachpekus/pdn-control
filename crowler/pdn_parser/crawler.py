@@ -190,7 +190,14 @@ class Crawler:
                     pass
 
         summary = build_summary(pages)
-        identity = extract_identity(page_texts)
+        # Реквизиты ищем и в видимом тексте страниц, И в тексте политик/согласий:
+        # оператор почти всегда назван в политике (ИНН/ОГРН/юр-название), даже
+        # если в футере его нет. Это резко снижает ложное «оператор не определён».
+        policy_texts = [
+            d.extracted_text for d in policy_documents
+            if getattr(d, "extracted_text", None)
+        ]
+        identity = extract_identity(page_texts + policy_texts)
         status = self._status(pages, errors)
         meta = ScanMeta(
             scan_id=scan_id or new_scan_id(),
