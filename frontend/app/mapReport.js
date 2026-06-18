@@ -86,8 +86,10 @@ export function mapReport(j) {
     violations: (j.violations ?? []).map(v => ({
       id: v.id,
       severity: v.severity,
-      for: ROLE_RU[v.target_role] ?? v.target_role,
-      title: v.title,
+      // В free-режиме бэкенд обезличивает нарушения (только id+severity), поэтому
+      // role/title могут отсутствовать — даём плейсхолдер для "запертой" карточки.
+      for: v.target_role ? (ROLE_RU[v.target_role] ?? v.target_role) : null,
+      title: v.title ?? 'Доступно после оплаты',
       article: v.article_152fz,
       articleShort: articleShort(v.article_152fz),
       desc: v.description,

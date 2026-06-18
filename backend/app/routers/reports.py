@@ -39,18 +39,17 @@ def _free_view(report: dict) -> dict:
     выше fold'а (заголовок, рисковая шкала, executive summary, сводные счётчики)."""
     es = report.get("executive_summary", {}) or {}
     violations = report.get("violations", []) or []
-    # Из деталей оставляем только id/severity/article/title — без description,
-    # evidence, recommendation и fine_rub. Этого достаточно, чтобы фронт показал
-    # список заблюренных карточек с шапками, но не раскрыл, что именно нашли.
+    # Обезличиваем нарушения: только id + severity. Заголовок, статью, роль и детали
+    # НЕ отдаём — иначе сняв blur через DevTools можно прочитать суть каждого нарушения
+    # (Issue #54, Scenario 3). Фронт по этим данным рисует N "запертых" карточек,
+    # окрашенных по критичности, без читаемого текста.
     minimal_violations = [
-        {
-            "id": v.get("id"),
-            "severity": v.get("severity"),
-            "article_152fz": v.get("article_152fz"),
-            "title": v.get("title"),
-            "target_role": v.get("target_role"),
-        }
+        {"id": v.get("id"), "severity": v.get("severity")}
         for v in violations
+    ]
+    # passed_checks — без detail (детали проверок премиум; счётчик есть в stats).
+    minimal_passed = [
+        {"title": p.get("title")} for p in (es.get("passed_checks") or [])
     ]
     return {
         "document_meta": report.get("document_meta", {}),
@@ -60,7 +59,7 @@ def _free_view(report: dict) -> dict:
             "verdict_plain": es.get("verdict_plain"),
             "stats": es.get("stats", {}),
             "total_fine_rub": es.get("total_fine_rub"),
-            "passed_checks": es.get("passed_checks", []),
+            "passed_checks": minimal_passed,
         },
         # Детали — заглушки, чтобы фронту было что отрисовать в "запертом" виде.
         "infrastructure_and_geo": {
