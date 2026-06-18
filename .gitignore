@@ -25,6 +25,7 @@ npm-debug.log*
 # --- Python / crowler, PDFreport ---
 .venv/
 venv/
+uv.lock
 __pycache__/
 *.py[cod]
 .pytest_cache/
