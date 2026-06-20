@@ -37,10 +37,12 @@ function ViolationCard({ v, detail, open, onToggle }) {
           <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.01em', lineHeight: 1.3 }}>{v.title}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <span className="chip chip-neutral" style={{ fontSize: 11.5 }}>
-            <Icon name={FOR_ICON[v.for]} size={13} /> {v.for}
-          </span>
-          {isSpec && <span className="kbd">{v.articleShort}</span>}
+          {v.for && (
+            <span className="chip chip-neutral" style={{ fontSize: 11.5 }}>
+              <Icon name={FOR_ICON[v.for]} size={13} /> {v.for}
+            </span>
+          )}
+          {isSpec && v.articleShort && <span className="kbd">{v.articleShort}</span>}
           <Icon name="chevdown" size={18} style={{ color: 'var(--faint)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
         </div>
       </button>
@@ -48,8 +50,8 @@ function ViolationCard({ v, detail, open, onToggle }) {
         <div className="fade-up v-detail">
           <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{v.desc}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-            <span className="chip chip-neutral"><Icon name="doc" size={13} /> {v.article}</span>
-            <span className="chip chip-neutral"><Icon name={FOR_ICON[v.for]} size={13} /> Адресовано: {v.for}</span>
+            {v.article && <span className="chip chip-neutral"><Icon name="doc" size={13} /> {v.article}</span>}
+            {v.for && <span className="chip chip-neutral"><Icon name={FOR_ICON[v.for]} size={13} /> Адресовано: {v.for}</span>}
           </div>
           {isSpec && (
             <div style={{ marginBottom: 14 }}>

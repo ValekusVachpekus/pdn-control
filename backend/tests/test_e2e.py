@@ -181,11 +181,16 @@ async def _run_flow():
         assert rep["_paid"] is False
         assert isinstance(rep["scoring"]["overall_score"], int)
         assert rep["executive_summary"]["total_fine_rub"]  # сумма штрафа видна
-        # ключевая проверка: детали нарушений вырезаны
+        # ключевая проверка: нарушения обезличены до id+severity (Issue #54),
+        # ни заголовка/статьи/роли, ни деталей — иначе DevTools раскроет суть
         for v in rep["violations"]:
-            assert "description" not in v, v
-            assert "evidence" not in v, v
-            assert "fine_rub" not in v, v
+            assert set(v.keys()) <= {"id", "severity"}, v
+            assert "title" not in v and "article_152fz" not in v, v
+            assert "target_role" not in v, v
+            assert "description" not in v and "evidence" not in v and "fine_rub" not in v, v
+        # passed_checks — без detail (детали проверок премиум)
+        for p in rep["executive_summary"]["passed_checks"]:
+            assert "detail" not in p, p
         assert rep["infrastructure_and_geo"]["server_country_ru"] is None
         assert rep["technical_appendix"]["documents_found"] == []
 
