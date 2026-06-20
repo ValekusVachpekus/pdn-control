@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdn-control/schema/parser-result-1.2.json",
+  "title": "PDn Control parser result",
+  "description": "Контракт ответа парсера ПДн Контроль (schema 1.2). Парсер отдаёт факты, не вердикты.",
+  "type": "object",
+  "required": ["schema_version", "meta", "summary", "site_identity", "policy_documents", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "meta": { "$ref": "#/$defs/meta" },
+    "summary": { "$ref": "#/$defs/summary" },
+    "site_identity": { "$ref": "#/$defs/site_identity" },
+    "policy_documents": { "type": "array", "items": { "$ref": "#/$defs/policy_document" } },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } }
+  },
+  "$defs": {
+    "pii_kind": {
+      "type": ["string", "null"],
+      "enum": ["email", "phone", "name", "address", "birthdate", "passport", "payment", "other", null]
+    },
+    "tracker_category": {
+      "type": "string",
+      "enum": ["analytics", "tag_manager", "ad_pixel", "session_replay", "crm_widget",
+               "chat_widget", "captcha", "maps", "social", "payment", "cdn", "other"]
+    },
+    "policy_kind": {
+      "type": "string",
+      "enum": ["privacy_policy", "consent", "cookie_policy", "terms"]
+    },
+    "meta": {
+      "type": "object",
+      "required": ["scan_id", "parser_version", "requested_url", "start_url", "base_domain",
+                   "started_at", "finished_at", "duration_ms", "status", "config",
+                   "robots_respected", "pages_requested_limit", "pages_crawled", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "scan_id": { "type": "string" },
+        "parser_version": { "type": "string" },
+        "requested_url": { "type": "string" },
+        "start_url": { "type": "string" },
+        "base_domain": { "type": "string" },
+        "started_at": { "type": "string" },
+        "finished_at": { "type": "string" },
+        "duration_ms": { "type": "integer" },
+        "status": { "type": "string", "enum": ["ok", "partial", "failed"] },
+        "config": { "type": "object" },
+        "robots_respected": { "type": "boolean" },
+        "pages_requested_limit": { "type": "integer" },
+        "pages_crawled": { "type": "integer" },
+        "errors": { "type": "array", "items": { "type": "string" } },
+        "server_ip": { "type": ["string", "null"], "description": "IP origin'а стартовой страницы (через Playwright Response.server_addr). Страну/хостинг/локализацию определяет LLM на бэке." }
+      }
+    },
+    "summary_tracker": {
+      "type": "object",
+      "required": ["name", "category", "third_party", "cross_border", "found_on"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "$ref": "#/$defs/tracker_category" },
+        "third_party": { "type": "boolean" },
+        "cross_border": { "type": "boolean" },
+        "found_on": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["pages_crawled", "has_privacy_policy", "privacy_policy_urls",
+                   "has_consent_doc", "has_cookie_policy", "has_cookie_banner",
+                   "cookie_banner_has_reject", "tracking_before_consent",
+                   "forms_total", "forms_collecting_pii", "forms_pii_without_consent",
+                   "forms_with_prechecked_consent", "pii_kinds_collected",
+                   "cookies_total", "third_party_cookies", "trackers", "tracker_categories",
+                   "has_cross_border_transfer", "third_party_domains", "third_party_domain_count"],
+      "additionalProperties": false,
+      "properties": {
+        "pages_crawled": { "type": "integer" },
+        "has_privacy_policy": { "type": "boolean" },
+        "privacy_policy_urls": { "type": "array", "items": { "type": "string" } },
+        "has_consent_doc": { "type": "boolean" },
+        "has_cookie_policy": { "type": "boolean" },
+        "has_cookie_banner": { "type": "boolean" },
+        "cookie_banner_has_reject": { "type": "boolean" },
+        "tracking_before_consent": { "type": "boolean" },
+        "forms_total": { "type": "integer" },
+        "forms_collecting_pii": { "type": "integer" },
+        "forms_pii_without_consent": { "type": "integer" },
+        "forms_with_prechecked_consent": { "type": "integer" },
+        "pii_kinds_collected": { "type": "array", "items": { "type": "string" } },
+        "cookies_total": { "type": "integer" },
+        "third_party_cookies": { "type": "integer" },
+        "trackers": { "type": "array", "items": { "$ref": "#/$defs/summary_tracker" } },
+        "tracker_categories": { "type": "array", "items": { "type": "string" } },
+        "has_cross_border_transfer": { "type": "boolean" },
+        "third_party_domains": { "type": "array", "items": { "type": "string" } },
+        "third_party_domain_count": { "type": "integer" }
+      }
+    },
+    "site_identity": {
+      "type": "object",
+      "required": ["legal_name_hints", "inn", "ogrn", "contact_emails", "contact_phones"],
+      "additionalProperties": false,
+      "properties": {
+        "legal_name_hints": { "type": "array", "items": { "type": "string" } },
+        "inn": { "type": "array", "items": { "type": "string" } },
+        "ogrn": { "type": "array", "items": { "type": "string" } },
+        "contact_emails": { "type": "array", "items": { "type": "string" } },
+        "contact_phones": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "policy_document": {
+      "type": "object",
+      "required": ["url", "kind", "fetch_status", "word_count", "truncated", "extracted_text", "text_path"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "kind": { "$ref": "#/$defs/policy_kind" },
+        "fetch_status": { "type": ["integer", "null"] },
+        "word_count": { "type": "integer" },
+        "truncated": { "type": "boolean" },
+        "extracted_text": { "type": ["string", "null"] },
+        "text_path": { "type": ["string", "null"] }
+      }
+    },
+    "form_field": {
+      "type": "object",
+      "required": ["name", "type", "required", "pii", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "required": { "type": "boolean" },
+        "pii": { "$ref": "#/$defs/pii_kind" },
+        "label": { "type": "string" }
+      }
+    },
+    "consent_checkbox": {
+      "type": "object",
+      "required": ["label", "full_text", "pre_checked", "links_to_policy", "matched_keywords"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "full_text": { "type": "string" },
+        "pre_checked": { "type": "boolean" },
+        "links_to_policy": { "type": "boolean" },
+        "matched_keywords": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "form": {
+      "type": "object",
+      "required": ["action", "method", "fields", "pii_kinds", "has_file_upload",
+                   "consent_checkboxes", "policy_links"],
+      "additionalProperties": false,
+      "properties": {
+        "action": { "type": ["string", "null"] },
+        "method": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/form_field" } },
+        "pii_kinds": { "type": "array", "items": { "type": "string" } },
+        "has_file_upload": { "type": "boolean" },
+        "consent_checkboxes": { "type": "array", "items": { "$ref": "#/$defs/consent_checkbox" } },
+        "policy_links": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cookie": {
+      "type": "object",
+      "required": ["name", "domain", "third_party", "http_only", "secure", "expires"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "domain": { "type": "string" },
+        "third_party": { "type": "boolean" },
+        "http_only": { "type": "boolean" },
+        "secure": { "type": "boolean" },
+        "expires": { "type": ["number", "null"] }
+      }
+    },
+    "cookie_banner": {
+      "type": ["object", "null"],
+      "required": ["present", "full_text", "text_excerpt", "has_accept_button",
+                   "has_reject_button", "has_settings", "matched_keywords"],
+      "additionalProperties": false,
+      "properties": {
+        "present": { "type": "boolean" },
+        "full_text": { "type": "string" },
+        "text_excerpt": { "type": "string" },
+        "has_accept_button": { "type": "boolean" },
+        "has_reject_button": { "type": "boolean" },
+        "has_settings": { "type": "boolean" },
+        "matched_keywords": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "tracker": {
+      "type": "object",
+      "required": ["name", "category", "third_party", "cross_border", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "$ref": "#/$defs/tracker_category" },
+        "third_party": { "type": "boolean" },
+        "cross_border": { "type": "boolean" },
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "policy_link": {
+      "type": "object",
+      "required": ["url", "anchor_text", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "anchor_text": { "type": "string" },
+        "kind": { "$ref": "#/$defs/policy_kind" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["url", "final_url", "status", "title", "depth", "error",
+                   "forms", "cookies", "cookie_banner", "trackers", "policy_links",
+                   "third_party_domains"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "final_url": { "type": "string" },
+        "status": { "type": ["integer", "null"] },
+        "title": { "type": "string" },
+        "depth": { "type": "integer" },
+        "error": { "type": ["string", "null"] },
+        "forms": { "type": "array", "items": { "$ref": "#/$defs/form" } },
+        "cookies": { "type": "array", "items": { "$ref": "#/$defs/cookie" } },
+        "cookie_banner": { "$ref": "#/$defs/cookie_banner" },
+        "trackers": { "type": "array", "items": { "$ref": "#/$defs/tracker" } },
+        "policy_links": { "type": "array", "items": { "$ref": "#/$defs/policy_link" } },
+        "third_party_domains": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

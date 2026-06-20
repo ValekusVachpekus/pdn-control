@@ -1,0 +1,93 @@
+# Полный стек ПДн Контроль: api + db + redis + celery + crowler + pdfreport.
+# Запуск:  docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pdn
+      POSTGRES_PASSWORD: pdn
+      POSTGRES_DB: pdn
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdn -d pdn"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "6379:6379"
+
+  crowler:
+    build: ../crowler
+    image: pdn-control-crowler:latest
+    init: true
+    environment:
+      MAX_CONCURRENT_SCANS: "2"
+      SCAN_TIMEOUT_SEC: "300"
+    shm_size: "1gb"
+    ports:
+      - "8010:8010"
+
+  pdfreport:
+    build: ../PDFreport
+    image: pdn-control/pdfreport:latest
+    ports:
+      - "8020:8020"
+
+  api:
+    build: .
+    env_file:
+      - path: .env.secret
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CRAWLER_URL: http://crowler:8010
+      PDFREPORT_URL: http://pdfreport:8020
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "8000:8000"
+    # ИЗМЕНЕНО: теперь контейнер сам накатывает миграции перед запуском сервера
+    command: >
+      sh -c "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: .
+    env_file:
+      - path: .env.secret
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CRAWLER_URL: http://crowler:8010
+      PDFREPORT_URL: http://pdfreport:8020
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2 -Q scans
+
+  frontend:
+    build: ../frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

@@ -1,0 +1,3 @@
+# Зависимости для тестов парсера (см. tests/).
+-r requirements.txt
+pytest>=8

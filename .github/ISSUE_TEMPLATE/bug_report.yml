@@ -1,0 +1,55 @@
+name: Баг-репорт
+description: Сообщить об ошибке в работе сервиса
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание проблемы
+      description: Что не работает.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Перейти на …
+        2. Ввести …
+        3. Нажать …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Окружение
+      description: ОС, браузер/версия, подсервис (frontend/crowler/PDFreport), версия/коммит.
+      placeholder: |
+        - ОС:
+        - Браузер:
+        - Подсервис:
+        - Версия/коммит:
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки фикса
+      description: При каких условиях баг считается исправленным.
+      placeholder: |
+        - [ ] …
+    validations:
+      required: true

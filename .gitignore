@@ -1,0 +1,52 @@
+# --- Секреты и локальная конфигурация ---
+.env
+.env.secret
+.env.*.local
+.env.*
+!.env.example
+*.local
+
+# --- Заметки агента ---
+CLAUDE.md
+
+# --- ОС ---
+.DS_Store
+Thumbs.db
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+# Случайный экспорт дизайн-инструмента, не часть сборки
+/frontend/ПДн Контроль.html
+
+# --- Python / crowler, PDFreport ---
+.venv/
+venv/
+uv.lock
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- IDE / агенты ---
+.claude/
+.idea/
+.vscode/
+
+# --- Сгенерированные артефакты ---
+*.pdf
+*.png
+data.json
+backend/test*.db
+backend/*.json
+# --- Сгенерированные артефакты отчётов ---
+*.pdf
+*.png
+data.json
+
+# Скриншоты отчётов трекаем (перебивает правило *.png выше).
+!reports/**/images/*.png
