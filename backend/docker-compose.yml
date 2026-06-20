@@ -30,6 +30,9 @@ services:
   crowler:
     build: ../crowler
     image: pdn-control-crowler:latest
+    # Chromium форкает дочерние процессы (zygote/GPU/renderer). PID 1 в контейнере
+    # (uvicorn) их не reap'ит → зомби. init: true запускает tini как PID 1,
+    # который автоматически пожинает осиротевшие процессы.
     init: true
     environment:
       MAX_CONCURRENT_SCANS: "2"
@@ -44,6 +47,9 @@ services:
     ports:
       - "8020:8020"
 
+  # Секреты (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*) кладём в .env.secret рядом
+  # с этим файлом. Он подключается через env_file. Адреса инфраструктуры
+  # (DB/Redis/сервисы) — явно ниже, чтобы compose не зависел от внешнего файла.
   api:
     build: .
     env_file:
@@ -62,9 +68,8 @@ services:
       redis: { condition: service_healthy }
     ports:
       - "8000:8000"
-    # ИЗМЕНЕНО: теперь контейнер сам накатывает миграции перед запуском сервера
     command: >
-      sh -c "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   worker:
     build: .

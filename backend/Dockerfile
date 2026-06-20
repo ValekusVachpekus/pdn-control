@@ -7,6 +7,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=300 \
     PIP_RETRIES=10
 
+# Опциональный mirror PyPI (например, mirrors.aliyun.com или nexus компании).
+# Передаётся через docker build / docker compose: build.args.PIP_INDEX_URL.
 ARG PIP_INDEX_URL=
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 
@@ -18,17 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 1. Сначала копируем только файл зависимостей
 COPY pyproject.toml ./
+RUN pip install --upgrade pip && pip install .
 
-# 2. Сразу копируем код проекта, чтобы pip видел пакет 'app'
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
+# Тексты законов — нужны llm_analyzer'у на каждый вызов
 COPY resources ./resources
-
-# 3. Теперь устанавливаем проект в режиме редактирования (или просто установку)
-RUN pip install --upgrade pip && pip install .
 
 EXPOSE 8000
 

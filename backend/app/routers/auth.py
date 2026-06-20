@@ -6,7 +6,6 @@
 будет готов, поменяем только тело функции.
 """
 from __future__ import annotations
-from ..services.mailer import generate_otp, send_verification_email
 
 from datetime import datetime, timezone
 
@@ -38,30 +37,14 @@ async def register(body: RegisterIn, session: AsyncSession = Depends(get_session
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already registered")
 
-    # 1. Генерируем 6-значный OTP-код
-    otp_code = generate_otp()
-
-    # 2. Отправляем код через Resend на почту пользователя
-    email_result = send_verification_email(body.email.lower(), otp_code)
-    
-    # Если Resend вернул ошибку (например, неверный API ключ) — прерываем регистрацию
-    if not email_result["success"]:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send verification email. Please try again later."
-        )
-
-    # 3. Создаем пользователя, но со статусом is_verified=False и записываем ему код
     user = User(
         email=body.email.lower(),
         password_hash=hash_password(body.password),
         consent_at=datetime.now(timezone.utc),
         consent_policy_version=POLICY_VERSION,
-        is_verified=False,          # Пользователь еще не подтвердил почту
-        verification_code=otp_code  # Записываем код в БД для последующей проверки
     )
     session.add(user)
-    await session.flush()  # Получаем user.id до окончательного коммита
+    await session.flush()  # чтобы получить user.id до коммита
 
     token = create_access_token(user.id)
     return AuthOut(token=token, user=UserOut.model_validate(user))
