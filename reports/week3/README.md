@@ -39,10 +39,8 @@ the live backlog is in GitHub Issues + the GitHub Project board.
 
 ## Screenshots
 *(Вставь сюда скриншоты из папки images/)*
-![Product Backlog](images/backlog.png)
-![Sprint Backlog](images/sprint_board.png)
-![MVP v1 Release](images/release.png)
-![MVP v1 Release](images/release.png)
+![Product Backlog](images/productback.png)
+![Sprint Backlog](images/sprint.png)
 ![MVP v1 View](images/mvp_view.png)
-![Example PR](images/pr_example.png)
-![Live MVP](images/live_mvp.png)
+![Example PR](images/pr.png)
+![Live MVP](images/mvp1.png)
