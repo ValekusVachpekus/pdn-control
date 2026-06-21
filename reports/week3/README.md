@@ -9,7 +9,6 @@
 Index for the Week 3 submission. These are **Course Task artifacts** (reporting/evidence); the live backlog is maintained in GitHub Issues and the Project Board.
 
 ## Backlog, Scope & Refinement
-## Backlog, Scope & Refinement
 - [Historical User Stories (Week 2)](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week2/user-stories.md)
 - [Current User Story Index (Week 3)](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/user-stories.md)
 - [Definition of Done](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/definition-of-done.md)
@@ -65,12 +64,8 @@ The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabil
 ## Screenshots
 ![Product Backlog](images/productback.png)
 ![Sprint Backlog](images/sprint.png)
-<<<<<<< HEAD
 ![Sprint Milestone](images/milestone.png)
 ![MVP version field](images/mvp_view.png)
 ![SemVer Release](images/release.png)
-=======
-![MVP v1 View](images/mvp2.png)
->>>>>>> 306e2794723662ec6aee316d44db408ddd11ed48
 ![Example PR](images/pr.png)
 ![Live MVP](images/mvp1.png)
