@@ -24,6 +24,12 @@ exclude = [
   "^https?://10\\.93\\.26\\.163",
   # GitLab Innopolis — за корпоративной аутентификацией, недоступен анонимно из CI.
   "^https://gitlab\\.pg\\.innopolis\\.university",
+
+  # Ссылки версий из CHANGELOG (compare/<tag> и releases/tag/<tag>) резолвятся только
+  # после публикации релиза, поэтому в PR, который этот релиз нарезает, недостижимы.
+  # GitHub генерирует их автоматически — проверять до публикации нечего.
+  "^https://github\\.com/ValekusVachpekus/pdn-control/compare/",
+  "^https://github\\.com/ValekusVachpekus/pdn-control/releases/tag/",
 ]
 
 # Письма (mailto:) не проверяем.

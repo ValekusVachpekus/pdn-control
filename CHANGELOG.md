@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-21
+
 ### Added
 
 - Фоновый режим проверки: со страницы сканирования можно вернуться в главное меню,
@@ -78,4 +80,5 @@
   30x-редиректящий на внутренний адрес, не проходит. Дублирующая проверка на входе
   `/api/scans` (defense-in-depth).
 
-[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/commits/main
+[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.0.0...main
+[1.0.0]: https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0
