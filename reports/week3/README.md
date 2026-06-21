@@ -1,31 +1,74 @@
-# Week 3 — Assignment 3 (Product Backlog, Refinement & Estimation)
+# Assignment 3 — ПДн Контроль (Week 3 Report)
 
-Index of the Week 3 submission. These are **Course Task artifacts** (reporting/evidence);
-the live backlog is in GitHub Issues + the GitHub Project board.
+**Project Description:** A specialized web service designed for preliminary technical audits of small and medium business websites to identify typical 152-FZ ("On Personal Data") compliance risks. It provides risk-scoring, violation lists, and legal remediation steps.
 
-## Deliverables
+- **License:** [Root MIT LICENSE](https://github.com/ValekusVachpekus/pdn-control/blob/main/LICENSE)
+- **Process Requirements:** [Process_Requirements.md](https://gitlab.pg.innopolis.university/search?search=re&nav_source=navbar&project_id=3315&group_id=5842&search_code=true&repository_ref=main)
+- **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 
-- [backlog.md](backlog.md) — counted Product Backlog (19 PBIs), Story-Point estimation
-  (**total = 116 SP**), DEEP rationale, the current Sprint Backlog (Sprint 1, 26 SP), the MVP v1
-  scope (55 SP), and the GitHub Project board structure.
+Index for the Week 3 submission. These are **Course Task artifacts** (reporting/evidence); the live backlog is maintained in GitHub Issues and the Project Board.
 
-## Maintained product docs (not Course Tasks)
+## Backlog, Scope & Refinement
+- [Historical User Stories (Week 2)](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week2/user-stories.md)
+- [Current User Story Index (Week 3)](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/user-stories.md)
+- [Definition of Done](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/definition-of-done.md)
+- [Backlog Summary & Rationale](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week3/backlog.md)
 
-- [`docs/user-stories.md`](../../docs/user-stories.md) — user-story → issue traceability index.
-- [`docs/definition-of-done.md`](../../docs/definition-of-done.md) — team Definition of Done.
+**Backlog Statistics:**
+- **Total Product Backlog:** 116 Story Points (19 PBIs).
+- **Current Sprint 1 Size:** 26 Story Points.
+- **MVP v1 Scope:** 55 Story Points. 
 
-## Authoritative live sources
+**MVP v1 Scope Description:** 
+The selected MVP v1 scope includes core URL scanning, server-side SSRF protection, deterministic results, and fine calculations. It covers the most critical "Must-Have" features required for a safe public launch.
 
-- Issues: <https://github.com/ValekusVachpekus/pdn-control/issues> (label `user story` for stories)
-- Sprint 1 milestone: <https://github.com/ValekusVachpekus/pdn-control/milestone/1>
-- Project board: _add URL after creating the board (see `backlog.md` §5)._
+**PBI & Process Explanation:** 
+We use standard Scrum PBIs: User Stories for functionality, Bugs for stabilization, and Tasks for infrastructure. Statuses follow the flow: To Do → Ready → In Progress → Review → Done. MVP scope is tracked via the "MVP version" custom field and filtered views.
 
-## What changed during refinement (Parts 1–3)
+## Authoritative Live Sources
+- **Sprint 1 Milestone:** [https://github.com/ValekusVachpekus/pdn-control/milestone/1](https://github.com/ValekusVachpekus/pdn-control/milestone/1)
+- **Product Backlog Board:** [https://github.com/users/ValekusVachpekus/projects/1/views/1](https://github.com/users/ValekusVachpekus/projects/1/views/1)
+- **Sprint Backlog Board:** [https://github.com/users/ValekusVachpekus/projects/1/views/2](https://github.com/users/ValekusVachpekus/projects/1/views/2)
+- **MVP v1 Filtered View:** [Filtered Project Board View](https://github.com/users/ValekusVachpekus/projects/1/views/1?filterQuery=mvp-version%3A%22MVP+v1%22)
 
-- Migrated 13 user stories (US-01…US-13) from Assignment 2 into issues with ≥3 Gherkin
-  acceptance criteria each (US-12/US-13 added during refinement; US-11 parked as Won't-Have).
-- Promoted bugs/tasks (#34, #54) into full PBIs, formalized 5 already-Done supporting
-  tasks (#13, #18, #28, #31, #50) as PBIs, and pulled US-13 (#70) into Sprint 1 as a Ready
-  item → 19 counted PBIs. OTP #55, CI #71 and OAuth #72 are kept as off-board issues (future
-  scope, not counted).
-- Opened Sprint 1 (stabilization) with implementer/reviewer roles per Process Requirements.
+## Roadmap Summary
+The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to authentication (OAuth login), deterministic GeoIP-based hosting detection, and passwordless onboarding.
+
+## Artifacts, Evidence & Templates
+- **MVP v1 Live Deployment:** [http://10.93.26.163:8080/](http://10.93.26.163:8080/) *(Note: Internal University IP).*
+- **SemVer Release (MVP v1):** [v1.0.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
+- **Video Demonstration (< 2 min):** [Google Drive](https://drive.google.com/file/d/1702wC4z85jI1-pVNCTJYlckcvn1J3m_s/view?usp=sharing)
+- **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/README.md)
+- **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
+- **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
+## Customer Feedback & Status
+- **Feedback Integration:** Based on Assignment 2 feedback, we increased the UI contrast of the "Total Fine" display and implemented strict server-side URL validation.
+- **Verification Evidence:** MVP v1 acceptance criteria were verified in the linked PRs — anti-SSRF (US-12) in [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57), free-report gating (bug #54) in [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77), deterministic results (bug #34) in [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56).
+- **Current Status:** MVP v1 core features are fully implemented and merged into the protected `main` branch.
+- **Next Steps:** Implement OAuth login ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)), deterministic GeoIP hosting detection ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)), and passwordless OTP ([#55](https://github.com/ValekusVachpekus/pdn-control/issues/55)).
+
+## Weekly Reports
+- [Customer Review Summary](customer-review-summary.md)
+- [Customer Review Transcript](customer-review-transcript.md)
+- [Reflection](reflection.md)
+- [Retrospective](retrospective.md)
+- [LLM Usage Report](llm-report.md)
+- [CHANGELOG.md](../../CHANGELOG.md)
+
+## Contribution Traceability
+| Member | Issues Assigned | PRs/MRs Created | Review Activity |
+|---|---|---|---|
+| Ksenya Koroleva | — | [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) | Approved [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) |
+| Aleksandr Martiushev | #56 | [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56) | Approved [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) |
+| Airat Mingazov | #29, #57 | [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57) | Approved [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77) |
+| Ilia Shchetkov | #74, #77, #82 | [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77), [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) | Approved [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57), [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29) |
+| Maksim Shakhrai | — | [#80](https://github.com/ValekusVachpekus/pdn-control/pull/80) | Approved [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) |
+
+## Screenshots
+![Product Backlog](images/productback.png)
+![Sprint Backlog](images/sprint.png)
+![Sprint Milestone](images/milestone.png)
+![MVP version field](images/mvp_view.png)
+![SemVer Release](images/release.png)
+![Example PR](images/pr.png)
+![Live MVP](images/mvp1.png)
