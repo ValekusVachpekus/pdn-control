@@ -16,7 +16,7 @@
 - **Process Gaps:** We discovered that our CI/CD pipeline lacks automated testing for crawler logic, which led to some "flaky" results during the sprint.
 
 ## Planned response
-- **Next Sprint Focus:** We will prioritize resolving the deterministic scan results and implementing the PDF export (US-08) to fulfill the Should-Have requirements.
+- **Next Sprint Focus:** We will prioritize OAuth login ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) and deterministic GeoIP-based hosting detection ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)) to strengthen onboarding and audit accuracy.
 - **Process Improvement:** We will add more specific acceptance criteria to the PR template to avoid superficial reviews.
-- **Technical Debt:** We plan to address the remaining bugs identified in Sprint 1 (Issue [#54](https://github.com/ValekusVachpekus/pdn-control/issues/54)) as the very first step of the next Sprint.
-- **Documentation:** We will keep our `docs/roadmap.md` updated to reflect the new priority of the tracker detection logic.
+- **Technical Debt:** We will close the CI/CD gap by adding automated regression tests for the crawler & rule-engine ([#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)) as an early step of the next Sprint.
+- **Documentation:** We will keep our `docs/roadmap.md` updated to reflect the new priority of authentication and geo-localization work.

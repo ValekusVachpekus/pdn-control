@@ -27,8 +27,8 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
 ## Sprint 2: Enhanced Analysis & Reporting (Near-term)
 *   **Milestone:** Sprint 2 (To be created)
 *   **Dates:** 2026-06-22 — 2026-06-28
-*   **Sprint Goal:** Expand scanning depth and provide professional export options.
-*   **Focus:** Multi-page crawling and tracker detection logic.
+*   **Sprint Goal:** Strengthen authentication, onboarding, and geo-localization accuracy.
+*   **Focus:** OAuth login, deterministic GeoIP hosting detection, and passwordless onboarding.
 *   **Planned Items:**
     *   [Task]  OAuth login via Yandex & VK (redirect flow) ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72))
     *   [Task]  Determine hosting country from IP deterministically (GeoIP), not by LLM guess ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75))
@@ -41,5 +41,5 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
 *   **Sprint Goal:** Implement deep AI analysis of legal texts and improve user retention.
 *   **Focus:** LLM-powered policy auditing and automated remediation recommendations.
 *   **Planned Items:**
-    *   [US-09] Multi-page and JS crawling for SPAs
-    *   [US-10] Captcha block notification system
+    *   [US-11] Automatic AI code remediation suggestions (currently Won't-Have; future candidate)
+    *   [Task] Deeper LLM policy auditing across documents (cross-document consistency)

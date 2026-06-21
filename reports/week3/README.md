@@ -32,7 +32,7 @@ We use standard Scrum PBIs: User Stories for functionality, Bugs for stabilizati
 - **MVP v1 Filtered View:** [Filtered Project Board View](https://github.com/users/ValekusVachpekus/projects/1/views/1?filterQuery=mvp-version%3A%22MVP+v1%22)
 
 ## Roadmap Summary
-The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to multi-page crawling and tracker detection logic to enhance audit depth.
+The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to authentication (OAuth login), deterministic GeoIP-based hosting detection, and passwordless onboarding.
 
 ## Artifacts, Evidence & Templates
 - **MVP v1 Live Deployment:** [http://10.93.26.163:8080/](http://10.93.26.163:8080/) *(Note: Internal University IP).*
@@ -43,8 +43,9 @@ The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabil
 - **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
 ## Customer Feedback & Status
 - **Feedback Integration:** Based on Assignment 2 feedback, we increased the UI contrast of the "Total Fine" display and implemented strict server-side URL validation.
+- **Verification Evidence:** MVP v1 acceptance criteria were verified in the linked PRs — anti-SSRF (US-12) in [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57), free-report gating (bug #54) in [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77), deterministic results (bug #34) in [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56).
 - **Current Status:** MVP v1 core features are fully implemented and merged into the protected `main` branch.
-- **Next Steps:** Implement multi-page crawling (US-09) and tracker detection (Task #28).
+- **Next Steps:** Implement OAuth login ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)), deterministic GeoIP hosting detection ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)), and passwordless OTP ([#55](https://github.com/ValekusVachpekus/pdn-control/issues/55)).
 
 ## Weekly Reports
 - [Customer Review Summary](customer-review-summary.md)
