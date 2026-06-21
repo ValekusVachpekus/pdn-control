@@ -4,7 +4,7 @@
 
 - **License:** [Root MIT LICENSE](https://github.com/ValekusVachpekus/pdn-control/blob/main/LICENSE)
 - **Process Requirements:** [Process_Requirements.md](https://gitlab.pg.innopolis.university/search?search=re&nav_source=navbar&project_id=3315&group_id=5842&search_code=true&repository_ref=main)
-- **Issue Template:** [Link to Issue Templates](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
+- **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 
 Index for the Week 3 submission. These are **Course Task artifacts** (reporting/evidence); the live backlog is maintained in GitHub Issues and the Project Board.
 
@@ -32,17 +32,19 @@ We use standard Scrum PBIs: User Stories for functionality, Bugs for stabilizati
 - **MVP v1 Filtered View:** [Filtered Project Board View](https://github.com/users/ValekusVachpekus/projects/1/views/1?filterQuery=mvp-version%3A%22MVP+v1%22)
 
 ## Roadmap Summary
-The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to professional reporting (PDF export) and tracker detection logic to enhance audit depth.
+The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to multi-page crawling and tracker detection logic to enhance audit depth.
 
 ## Artifacts, Evidence & Templates
 - **MVP v1 Live Deployment:** [http://10.93.26.163:8080/](http://10.93.26.163:8080/) *(Note: Internal University IP).*
+- **SemVer Release (MVP v1):** [v1.0.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
+- **Video Demonstration (< 2 min):** [Google Drive](https://drive.google.com/file/d/1702wC4z85jI1-pVNCTJYlckcvn1J3m_s/view?usp=sharing)
 - **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/README.md)
-- **Issue Templates:** [Link to Issue Templates](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
+- **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 - **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
 ## Customer Feedback & Status
 - **Feedback Integration:** Based on Assignment 2 feedback, we increased the UI contrast of the "Total Fine" display and implemented strict server-side URL validation.
 - **Current Status:** MVP v1 core features are fully implemented and merged into the protected `main` branch.
-- **Next Steps:** Implement US-08 (PDF Export) and Task #28 (Tracker detection).
+- **Next Steps:** Implement multi-page crawling (US-09) and tracker detection (Task #28).
 
 ## Weekly Reports
 - [Customer Review Summary](customer-review-summary.md)
@@ -55,11 +57,11 @@ The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabil
 ## Contribution Traceability
 | Member | Issues Assigned | PRs/MRs Created | Review Activity |
 |---|---|---|---|
-| Ksenya Koroleva | | [PR #...]() | Approved #82 |
-| Aleksandr Martiushev | #56| [PR #56]| Approved # |
-| Airat Mingazov | #29, #57 | [PR #29,57] | Approved #74, #77|
-| Ilia Shchetkov | #74, #77, #82 | [PR #74,77,82]| Approved #56, #57,#29 |
-| Maksim Shakhrai |- | [-](-) | -|
+| Ksenya Koroleva | — | — | Approved [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) |
+| Aleksandr Martiushev | #56 | [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56) | — |
+| Airat Mingazov | #29, #57 | [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57) | Approved [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77) |
+| Ilia Shchetkov | #74, #77, #82 | [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77), [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) | Approved [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57), [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29) |
+| Maksim Shakhrai | — | — | — |
 
 ## Screenshots
 ![Product Backlog](images/productback.png)
