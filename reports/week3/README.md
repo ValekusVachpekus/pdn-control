@@ -9,9 +9,10 @@
 Index for the Week 3 submission. These are **Course Task artifacts** (reporting/evidence); the live backlog is maintained in GitHub Issues and the Project Board.
 
 ## Backlog, Scope & Refinement
+## Backlog, Scope & Refinement
 - [Historical User Stories (Week 2)](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week2/user-stories.md)
 - [Current User Story Index (Week 3)](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/user-stories.md)
-- [Definition of Done](.https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/definition-of-done.md)
+- [Definition of Done](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/definition-of-done.md)
 - [Backlog Summary & Rationale](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week3/backlog.md)
 
 **Backlog Statistics:**
@@ -35,14 +36,10 @@ We use standard Scrum PBIs: User Stories for functionality, Bugs for stabilizati
 The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabilization and core security (Anti-SSRF). For the next Sprint, the focus shifts to professional reporting (PDF export) and tracker detection logic to enhance audit depth.
 
 ## Artifacts, Evidence & Templates
-- **MVP v1 Live Deployment:** [http://10.93.26.163:8080/](http://10.93.26.163:8080/) *(Note: Internal University IP, accessible via VPN only).*
-- **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/reports/week3/README.md)
-- **Video Demo:** [https://drive.google.com/file/d/1702wC4z85jI1-pVNCTJYlckcvn1J3m_s/view?usp=sharing](https://drive.google.com/file/d/1702wC4z85jI1-pVNCTJYlckcvn1J3m_s/view?usp=sharing)
-- **SemVer Release (MVP v1):** [v1.0.0 Release](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
+- **MVP v1 Live Deployment:** [http://10.93.26.163:8080/](http://10.93.26.163:8080/) *(Note: Internal University IP).*
+- **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/README.md)
+- **Issue Templates:** [Link to Issue Templates](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 - **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
-- **Reviewed PR Example:** [Reviewed PR #82](https://github.com/ValekusVachpekus/pdn-control/pull/82)
-- **Verification Evidence:** All completed MVP v1 PBIs have verified acceptance criteria documented in [Closed Issues](https://github.com/ValekusVachpekus/pdn-control/issues?q=is%3Aissue+is%3Aclosed).
-
 ## Customer Feedback & Status
 - **Feedback Integration:** Based on Assignment 2 feedback, we increased the UI contrast of the "Total Fine" display and implemented strict server-side URL validation.
 - **Current Status:** MVP v1 core features are fully implemented and merged into the protected `main` branch.
@@ -68,8 +65,12 @@ The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabil
 ## Screenshots
 ![Product Backlog](images/productback.png)
 ![Sprint Backlog](images/sprint.png)
+<<<<<<< HEAD
 ![Sprint Milestone](images/milestone.png)
 ![MVP version field](images/mvp_view.png)
 ![SemVer Release](images/release.png)
+=======
+![MVP v1 View](images/mvp2.png)
+>>>>>>> 306e2794723662ec6aee316d44db408ddd11ed48
 ![Example PR](images/pr.png)
 ![Live MVP](images/mvp1.png)

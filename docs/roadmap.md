@@ -28,9 +28,8 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
 *   **Milestone:** Sprint 2 (To be created)
 *   **Dates:** 2026-06-22 — 2026-06-28
 *   **Sprint Goal:** Expand scanning depth and provide professional export options.
-*   **Focus:** Multi-page crawling, tracker detection logic, and PDF report generation.
+*   **Focus:** Multi-page crawling and tracker detection logic.
 *   **Planned Items:**
-    *   [US-08] PDF report download ([#65](https://github.com/users/ValekusVachpekus/projects/1/views/1?pane=issue&itemId=200915655&issue=ValekusVachpekus%7Cpdn-control%7C65))
     *   [Task]  OAuth login via Yandex & VK (redirect flow) ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72))
     *   [Task]  Determine hosting country from IP deterministically (GeoIP), not by LLM guess ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75))
     *   [Task] Passwordless OTP ([#55](https://github.com/ValekusVachpekus/pdn-control/issues/55))
@@ -43,5 +42,4 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
 *   **Focus:** LLM-powered policy auditing and automated remediation recommendations.
 *   **Planned Items:**
     *   [US-09] Multi-page and JS crawling for SPAs
-    *   [Task] AI-analysis of privacy policy texts
     *   [US-10] Captcha block notification system
