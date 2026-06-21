@@ -58,10 +58,10 @@ The [Roadmap](../../docs/roadmap.md) direction for the current Sprint was stabil
 | Member | Issues Assigned | PRs/MRs Created | Review Activity |
 |---|---|---|---|
 | Ksenya Koroleva | — | [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) | Approved [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) |
-| Aleksandr Martiushev | #56 | [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56) | — |
+| Aleksandr Martiushev | #56 | [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56) | Approved [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) |
 | Airat Mingazov | #29, #57 | [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57) | Approved [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77) |
 | Ilia Shchetkov | #74, #77, #82 | [#74](https://github.com/ValekusVachpekus/pdn-control/pull/74), [#77](https://github.com/ValekusVachpekus/pdn-control/pull/77), [#82](https://github.com/ValekusVachpekus/pdn-control/pull/82) | Approved [#56](https://github.com/ValekusVachpekus/pdn-control/pull/56), [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57), [#29](https://github.com/ValekusVachpekus/pdn-control/pull/29) |
-| Maksim Shakhrai | — | [#80](https://github.com/ValekusVachpekus/pdn-control/pull/80) | — |
+| Maksim Shakhrai | — | [#80](https://github.com/ValekusVachpekus/pdn-control/pull/80) | Approved [#79](https://github.com/ValekusVachpekus/pdn-control/pull/79) |
 
 ## Screenshots
 ![Product Backlog](images/productback.png)
