@@ -57,8 +57,7 @@ the live backlog is maintained in GitHub Issues and the Project Board.
 - **CI quality-gate issue:** [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)
 - **CI workflow:** <!-- PLACEHOLDER: ссылка на .github/workflows/ci.yml после мёржа #71 -->
 - **Coverage report / badge:** <!-- PLACEHOLDER: ссылка на coverage отчёт после настройки CI -->
-- **Branch protection rules:** <img width="609" height="832" alt="изображение" src="https://github.com/user-attachments/assets/d3ee0b32-0fd0-4048-a247-c9d1fa48e089" />
-
+- **Branch protection rules:** ![Branch protection rules](images/branch-protection.png)
 - Increment PRs this Sprint: [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85),
   [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87),
   [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89),
@@ -138,24 +137,34 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 ## Contribution Traceability
 
-| Member | Issues Assigned | PRs/MRs Created | Review Activity |
+| Member (GitHub) | Issues Assigned / Created | PRs Created | Review Activity |
 |---|---|---|---|
-| Ksenya Koroleva | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
-| Aleksandr Martiushev | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
-| Airat Mingazov | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
-| Ilia Shchetkov | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
-| Maksim Shakhrai | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
+| Ilia Shchetkov (`ValekusVachpekus`) | Created [#88](https://github.com/ValekusVachpekus/pdn-control/issues/88) | [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87), [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89), [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90), [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91), [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92), [#93](https://github.com/ValekusVachpekus/pdn-control/pull/93) | Approved [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85) |
+| Ksenya Koroleva (`kskorqueen`) | — | [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85) | Approved [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87), [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89), [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90), [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91), [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92) |
+| Airat Mingazov (`azenlrd`) | Assigned [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71), [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75), [#86](https://github.com/ValekusVachpekus/pdn-control/issues/86) | — | — |
+| Aleksandr Martiushev (`alexzhal1`) | Assigned [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70); created [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75) | — | — |
+| Maksim Shakhrai (`ShakhraiMaksim`) | <!-- PLACEHOLDER: вклад в этом спринте не зафиксирован в Issue/PR — заполнить при наличии --> | — | — |
+
+> Source: GitHub issue assignees/authors and PR reviews on the Assignment 4 Sprint
+> (milestone [#2](https://github.com/ValekusVachpekus/pdn-control/milestone/2)). Implementation
+> of the CI gate ([#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)) and GeoIP
+> ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)) is in progress.
 
 ## Screenshots
 
 Sprint Backlog:
-<img width="1869" height="856" alt="изображение" src="https://github.com/user-attachments/assets/661020e5-774e-4309-99ba-1e8abd08b35c" />
-<img width="1774" height="514" alt="изображение" src="https://github.com/user-attachments/assets/f88059f0-847c-4f2e-b993-a577585e53af" />
+
+![Sprint Backlog](images/sprint-backlog-1.png)
+![Sprint Backlog (filtered by milestone)](images/sprint-backlog-2.png)
 
 Sprint Milestone:
-<img width="1867" height="828" alt="изображение" src="https://github.com/user-attachments/assets/964e0950-61c3-46cc-b789-614f08c6e714" />
 
-<!-- ![CI green](images/ci.png) -->
+![Sprint Milestone](images/sprint-milestone.png)
+
 Branch Protection:
-<img width="609" height="832" alt="изображение" src="https://github.com/user-attachments/assets/d3ee0b32-0fd0-4048-a247-c9d1fa48e089" />
+
+![Branch protection rules](images/branch-protection.png)
+
+<!-- PLACEHOLDER: добавить images/ci.png (зелёный CI) и images/release.png (v1.1.0) когда будут готовы -->
+<!-- ![CI green](images/ci.png) -->
 <!-- ![Release v1.1.0](images/release.png) -->
