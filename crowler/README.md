@@ -130,6 +130,8 @@ crowler/
     policy_text.py  # скачивание и очистка текстов политик для LLM
     identity.py     # извлечение реквизитов оператора (ИНН/ОГРН/контакты)
     signatures.py   # сигнатуры трекеров/CRM (+ cross_border) и ключевые слова
+    geoip.py        # детерминированная страна хостинга по IP (offline GeoLite2)
+    data/           # offline GeoIP-базы (.mmdb, не коммитятся; см. data/README.md)
     models.py       # структуры данных (dataclasses -> JSON)
     schema.json     # JSON Schema контракта (Draft 2020-12)
     utils.py        # URL/домены, scan_id, время

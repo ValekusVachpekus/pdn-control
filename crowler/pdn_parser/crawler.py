@@ -22,6 +22,7 @@ from playwright.async_api import async_playwright
 
 from . import detectors
 from .fetcher import DEFAULT_UA, fetch_page
+from .geoip import resolve_geo
 from .ssrf import SSRFGuard
 from .identity import extract_identity
 from .models import SCHEMA_VERSION, CrawlResult, PageData, ScanMeta
@@ -199,6 +200,9 @@ class Crawler:
         ]
         identity = extract_identity(page_texts + policy_texts)
         status = self._status(pages, errors)
+        # Страну/CDN по IP резолвим ДЕТЕРМИНИРОВАННО из offline GeoIP-базы (не LLM).
+        # Без IP / приватный IP / нет базы → server_country=null, скан не падает.
+        geo = resolve_geo(start_server_ip)
         meta = ScanMeta(
             scan_id=scan_id or new_scan_id(),
             parser_version=PARSER_VERSION,
@@ -224,6 +228,12 @@ class Crawler:
             pages_crawled=len(pages),
             errors=errors,
             server_ip=start_server_ip,
+            server_country=geo.server_country,
+            server_country_source=geo.server_country_source,
+            server_is_cdn=geo.server_is_cdn,
+            server_country_confidence=geo.server_country_confidence,
+            hosting_provider=geo.hosting_provider,
+            server_asn=geo.server_asn,
         )
         return CrawlResult(
             meta=meta,

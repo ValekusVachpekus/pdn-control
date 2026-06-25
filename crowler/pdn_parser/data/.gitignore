@@ -1,0 +1,3 @@
+# Базы GeoIP не коммитим: они большие, лицензионные (MaxMind GeoLite2) и
+# обновляются отдельно через scripts/download_geoip.py / Dockerfile при сборке.
+*.mmdb
