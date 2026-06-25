@@ -72,11 +72,24 @@ def test_resolves_country_high_confidence(monkeypatch):
 
 def test_foreign_country(monkeypatch):
     _install(monkeypatch, country={"8.8.8.8": "US"})
-    # 8.8.8.8 — это Google (ASN 15169 в CDN_ASNS), без ASN-базы попадёт ли в CDN?
-    # ASN-базы нет, и в статическом списке диапазонов Google нет → не CDN.
+    # ASN-базы нет, в статическом списке диапазонов 8.8.8.8 нет → не CDN.
     r = resolve_geo("8.8.8.8")
     assert r.server_country == "US"
     assert r.server_country_confidence == "high"
+
+
+def test_cloud_hosting_is_not_cdn(monkeypatch):
+    # AWS — облако общего назначения: origin-IP и есть место хранения ПДн. НЕ
+    # помечаем CDN, иначе реальное нарушение локализации ускользнёт от штрафа.
+    _install(monkeypatch,
+             country={"52.1.2.3": "US"},
+             asn={"52.1.2.3": (16509, "Amazon.com, Inc.")})
+    r = resolve_geo("52.1.2.3")
+    assert r.server_is_cdn is False
+    assert r.server_country == "US"
+    assert r.server_country_confidence == "high"   # облако не занижает уверенность
+    assert r.hosting_provider == "Amazon.com, Inc."  # но провайдера фиксируем
+    assert r.server_asn == 16509
 
 
 # ─── детерминизм ─────────────────────────────────────────────────────────────

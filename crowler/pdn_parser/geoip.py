@@ -35,26 +35,36 @@ _ASN_DB = "GeoLite2-ASN.mmdb"
 _DEFAULT_DB_DIR = Path(__file__).resolve().parent / "data"
 
 
-# ASN крупных CDN/облаков. Если IP принадлежит такому ASN, GeoIP вернёт страну
-# узла CDN, а не сервера, где реально лежат ПДн → помечаем результат как CDN,
-# чтобы бэк не штрафовал «вслепую». Значение — человекочитаемое имя сети.
+# ASN настоящих reverse-proxy CDN: запрос терминируется на КРАЮ CDN, а origin
+# (где реально лежат ПДн) — в другом месте и часто в другой стране. Поэтому при
+# попадании сюда ставим server_is_cdn=True и confidence="low": бэк не должен
+# штрафовать по стране края. Значение — человекочитаемое имя сети.
 CDN_ASNS: dict[int, str] = {
     13335: "Cloudflare",
     209242: "Cloudflare",
-    15169: "Google",
-    16509: "Amazon (AWS/CloudFront)",
-    14618: "Amazon (AWS)",
     54113: "Fastly",
     20940: "Akamai",
     16625: "Akamai",
     12222: "Akamai",
     35994: "Akamai",
-    8075: "Microsoft (Azure)",
     60068: "CDN77",
     22822: "Edgio (Limelight)",
-    19551: "Incapsula/Imperva",
-    13414: "Twitter",
-    32934: "Meta (Facebook)",
+    19551: "Imperva (Incapsula)",
+}
+
+# ASN облачных хостеров общего назначения. В ОТЛИЧИЕ от reverse-proxy CDN здесь
+# origin-IP обычно И ЕСТЬ место хранения данных → страна надёжна, и это НЕ повод
+# занижать уверенность. Иначе реальное нарушение локализации (БД ПДн на AWS
+# us-east-1 — самый дорогой штраф по ст. 18 ч. 5, ради которого всё и делается)
+# ускользнёт от санкции (ложный негатив). Имя провайдера заполняем, но
+# server_is_cdn НЕ ставим — confidence остаётся "high".
+# Оговорка: ASN 16509 покрывает и EC2 (origin), и CloudFront (CDN-край) — по ASN
+# их не различить; сознательно выбираем сторону «не прятать облачный origin».
+CLOUD_ASNS: dict[int, str] = {
+    16509: "Amazon (AWS)",
+    14618: "Amazon (AWS)",
+    15169: "Google (GCP)",
+    8075: "Microsoft (Azure)",
 }
 
 # Статический фолбэк по диапазонам — на случай, когда в образ положили только
@@ -99,14 +109,16 @@ class GeoResult:
 
     ``server_country``       ISO-2 ("RU", "US", …) или None, если не определили.
     ``server_country_source`` "geoip" если страна из базы; None — иначе.
-    ``server_is_cdn``        IP принадлежит известному CDN/облаку → страна узла
-                             CDN может не совпадать с местом хранения ПДн.
+    ``server_is_cdn``        IP принадлежит reverse-proxy CDN (Cloudflare/Fastly/
+                             Akamai …) → страна края CDN может не совпадать с
+                             местом хранения ПДн. Облачный хостинг (AWS/Azure/GCP)
+                             CDN'ом НЕ считается: его origin = место хранения.
     ``server_country_confidence`` "high" | "low" | "unknown":
-        high   — страна из базы и это не CDN;
+        high   — страна из базы и это не reverse-proxy CDN (в т.ч. облако);
         low    — страна из базы, но IP за CDN (origin может быть в другой стране);
         unknown — страну определить не удалось.
     ``hosting_provider``     организация-владелец ASN (если есть ASN-база), иначе
-                             имя CDN из статического фолбэка, иначе None.
+                             ярлык CDN/облака из встроенных списков, иначе None.
     ``server_asn``           номер автономной системы (если есть ASN-база).
     """
 
@@ -226,10 +238,13 @@ def resolve_geo(ip_str: str | None) -> GeoResult:
         return GeoResult()
 
     asn, org = _lookup_asn(str(ip))
+    # CDN определяем только по reverse-proxy ASN/диапазонам. Облако (CLOUD_ASNS)
+    # CDN'ом НЕ считаем: его origin = место хранения, страна надёжна.
     cdn_name = CDN_ASNS.get(asn) if asn is not None else None
     if cdn_name is None:
         cdn_name = _cdn_name_by_network(ip)
     is_cdn = cdn_name is not None
+    cloud_name = CLOUD_ASNS.get(asn) if asn is not None else None
 
     country = _lookup_country(str(ip))
     source = "geoip" if country else None
@@ -238,7 +253,8 @@ def resolve_geo(ip_str: str | None) -> GeoResult:
     else:
         confidence = "unknown"
 
-    provider = org or (cdn_name if is_cdn else None)
+    # Провайдер: имя из ASN-базы предпочтительнее; иначе ярлык CDN/облака.
+    provider = org or cdn_name or cloud_name
 
     return GeoResult(
         server_country=country,
