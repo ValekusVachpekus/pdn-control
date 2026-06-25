@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pdn-control/schema/parser-result-1.2.json",
+  "$id": "https://pdn-control/schema/parser-result-1.4.json",
   "title": "PDn Control parser result",
-  "description": "Контракт ответа парсера ПДн Контроль (schema 1.2). Парсер отдаёт факты, не вердикты.",
+  "description": "Контракт ответа парсера ПДн Контроль (schema 1.4). Парсер отдаёт факты, не вердикты.",
   "type": "object",
   "required": ["schema_version", "meta", "summary", "site_identity", "policy_documents", "pages"],
   "additionalProperties": false,
@@ -49,7 +49,13 @@
         "pages_requested_limit": { "type": "integer" },
         "pages_crawled": { "type": "integer" },
         "errors": { "type": "array", "items": { "type": "string" } },
-        "server_ip": { "type": ["string", "null"], "description": "IP origin'а стартовой страницы (через Playwright Response.server_addr). Страну/хостинг/локализацию определяет LLM на бэке." }
+        "server_ip": { "type": ["string", "null"], "description": "IP origin'а стартовой страницы (через Playwright Response.server_addr)." },
+        "server_country": { "type": ["string", "null"], "description": "Страна хостинга (ISO-2) по server_ip, определённая детерминированно из offline GeoIP-базы (MaxMind GeoLite2). null, если IP пуст/приватный/неопределим. schema 1.4." },
+        "server_country_source": { "type": ["string", "null"], "enum": ["geoip", null], "description": "Источник server_country: \"geoip\" из локальной базы, либо null." },
+        "server_is_cdn": { "type": "boolean", "description": "IP принадлежит reverse-proxy CDN (Cloudflare/Fastly/Akamai…) — страна края CDN может не совпадать с местом хранения ПДн. Облачный хостинг (AWS/Azure/GCP) CDN не считается: его origin = место хранения." },
+        "server_country_confidence": { "type": "string", "enum": ["high", "low", "unknown"], "description": "Уверенность: high — страна из базы и не reverse-proxy CDN (в т.ч. облако); low — страна из базы, но IP за CDN; unknown — страну определить не удалось." },
+        "hosting_provider": { "type": ["string", "null"], "description": "Организация-владелец ASN (если есть ASN-база) либо имя CDN; иначе null." },
+        "server_asn": { "type": ["integer", "null"], "description": "Номер автономной системы (ASN) по server_ip, если есть ASN-база; иначе null." }
       }
     },
     "summary_tracker": {

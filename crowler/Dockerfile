@@ -16,6 +16,19 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 # Код пакета (schema.json лежит внутри пакета и копируется вместе с ним).
 COPY pdn_parser ./pdn_parser
+COPY scripts ./scripts
+
+# Offline GeoIP-база (MaxMind GeoLite2) для детерминированной страны хостинга.
+# Бандлим в образ при сборке, если передан license key:
+#   docker build --build-arg MAXMIND_LICENSE_KEY=xxxxx ...
+# Без ключа сборка не падает — meta.server_country будет null (страну не
+# выдумываем). Лицензия/атрибуция MaxMind — в pdn_parser/data/README.md.
+ARG MAXMIND_LICENSE_KEY=""
+RUN if [ -n "$MAXMIND_LICENSE_KEY" ]; then \
+        python scripts/download_geoip.py --out pdn_parser/data ; \
+    else \
+        echo "MAXMIND_LICENSE_KEY не задан — GeoIP-база не бандлится; server_country=null"; \
+    fi
 
 EXPOSE 8010
 
