@@ -57,7 +57,8 @@ the live backlog is maintained in GitHub Issues and the Project Board.
 - **CI quality-gate issue:** [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)
 - **CI workflow:** <!-- PLACEHOLDER: ссылка на .github/workflows/ci.yml после мёржа #71 -->
 - **Coverage report / badge:** <!-- PLACEHOLDER: ссылка на coverage отчёт после настройки CI -->
-- **Branch protection rules:** <!-- PLACEHOLDER: скриншот/описание правил защиты main -->
+- **Branch protection rules:** <img width="609" height="832" alt="изображение" src="https://github.com/user-attachments/assets/d3ee0b32-0fd0-4048-a247-c9d1fa48e089" />
+
 - Increment PRs this Sprint: [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85),
   [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87),
   [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89),
@@ -105,7 +106,7 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 - **Previous SemVer Release:** [v1.0.0 — MVP v1](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
 - **New SemVer Release (this Sprint):** <!-- PLACEHOLDER: ссылка на release v1.1.0 после создания тега -->
-- **Live Deployment (customer/own infra):** <!-- PLACEHOLDER: URL развёрнутого сервиса (после деплоя #88/#86) -->
+- **Live Deployment (customer/own infra):** [Deployment](https://pdn.neurolife.tech/)
 - **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/README.md)
 - **CHANGELOG:** [CHANGELOG.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/CHANGELOG.md)
 
@@ -119,7 +120,7 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 ## Presentation & Demo (Parts 14–15)
 
-- **Presentation slides:** <!-- PLACEHOLDER: ссылка на презентацию -->
+- **Presentation slides:** [Google_Slides](https://docs.google.com/presentation/d/1Q-_exoXPRqnNcbyqoNFkQcO9qhIGusvAypSvbCq9BpA/edit?usp=sharing)
 - **Video Demonstration (< 2 min):** <!-- PLACEHOLDER: ссылка на демо-видео (Google Drive) -->
 
 ## LLM Usage (Part 16)
@@ -137,8 +138,6 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 ## Contribution Traceability
 
-<!-- PLACEHOLDER: проставить реальное распределение участников (issues / PRs / reviews) за этот спринт -->
-
 | Member | Issues Assigned | PRs/MRs Created | Review Activity |
 |---|---|---|---|
 | Ksenya Koroleva | <!-- TODO --> | <!-- TODO --> | <!-- TODO --> |
@@ -149,9 +148,14 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 ## Screenshots
 
-<!-- PLACEHOLDER: добавить скриншоты в reports/week4/images/ и раскомментировать -->
-<!-- ![Sprint Backlog](images/sprint.png) -->
-<!-- ![Sprint Milestone](images/milestone.png) -->
+Sprint Backlog:
+<img width="1869" height="856" alt="изображение" src="https://github.com/user-attachments/assets/661020e5-774e-4309-99ba-1e8abd08b35c" />
+<img width="1774" height="514" alt="изображение" src="https://github.com/user-attachments/assets/f88059f0-847c-4f2e-b993-a577585e53af" />
+
+Sprint Milestone:
+<img width="1867" height="828" alt="изображение" src="https://github.com/user-attachments/assets/964e0950-61c3-46cc-b789-614f08c6e714" />
+
 <!-- ![CI green](images/ci.png) -->
-<!-- ![Branch protection](images/branch-protection.png) -->
+Branch Protection:
+<img width="609" height="832" alt="изображение" src="https://github.com/user-attachments/assets/d3ee0b32-0fd0-4048-a247-c9d1fa48e089" />
 <!-- ![Release v1.1.0](images/release.png) -->
