@@ -27,8 +27,8 @@ the live backlog is maintained in GitHub Issues and the Project Board.
 
 | PBI | Title | SP | Status |
 |---|---|---|---|
-| [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71) | CI quality gate: tests, coverage, QA check & branch protection | 8 | Open |
-| [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75) | Deterministic GeoIP hosting detection | 5 | Open |
+| [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71) | CI quality gate: tests, coverage, QA check & branch protection | 8 | Done ([#95](https://github.com/ValekusVachpekus/pdn-control/pull/95)) |
+| [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75) | Deterministic GeoIP hosting detection | 5 | Done ([#95](https://github.com/ValekusVachpekus/pdn-control/pull/95)) |
 | [#86](https://github.com/ValekusVachpekus/pdn-control/issues/86) | Front via Caddy on 443 + TLS | 3 | Done |
 | [#88](https://github.com/ValekusVachpekus/pdn-control/issues/88) | Deploy to customer infra + DNS migration | 5 | Done |
 
@@ -54,16 +54,20 @@ the live backlog is maintained in GitHub Issues and the Project Board.
 
 ## Testing, Coverage & CI (Parts 5, 7, 8)
 
-- **CI quality-gate issue:** [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)
-- **CI workflow:** <!-- PLACEHOLDER: ссылка на .github/workflows/ci.yml после мёржа #71 -->
-- **Coverage report / badge:** <!-- PLACEHOLDER: ссылка на coverage отчёт после настройки CI -->
-- **Branch protection rules:** ![Branch protection rules](images/branch-protection.png)
+- **CI quality-gate issue:** [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71) — **Done** via PR [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95).
+- **CI workflow:** [.github/workflows/ci.yml](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/workflows/ci.yml) — 7 required jobs (lint, crowler, backend-unit, backend-integration, pdfreport, frontend, security).
+- **Testing strategy & coverage gate:** [docs/testing.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/testing.md) + per-module gate [scripts/check_coverage.py](https://github.com/ValekusVachpekus/pdn-control/blob/main/scripts/check_coverage.py) (≥ 30 % on critical modules).
+- **Additional QA check (SAST):** Bandit (severity ≥ medium) + pip-audit, in the `security` job — distinct from lint and link-check.
+- **Branch protection rules:** required checks + review on `main` (command in [docs/testing.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/testing.md); applied by a repo admin).
+
+  ![Branch protection rules](images/branch-protection.png)
 - Increment PRs this Sprint: [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85),
   [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87),
   [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89),
   [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90),
   [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91),
-  [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92).
+  [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92),
+  [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95) (CI gate + GeoIP).
 
 ## User Acceptance Tests (Part 10)
 
@@ -141,14 +145,16 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 |---|---|---|---|
 | Ilia Shchetkov (`ValekusVachpekus`) | Created [#88](https://github.com/ValekusVachpekus/pdn-control/issues/88) | [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87), [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89), [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90), [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91), [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92), [#93](https://github.com/ValekusVachpekus/pdn-control/pull/93) | Approved [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85) |
 | Ksenya Koroleva (`kskorqueen`) | — | [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85) | Approved [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87), [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89), [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90), [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91), [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92) |
-| Airat Mingazov (`azenlrd`) | Assigned [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71), [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75), [#86](https://github.com/ValekusVachpekus/pdn-control/issues/86) | — | — |
+| Airat Mingazov (`azenlrd`) | Assigned [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71), [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75), [#86](https://github.com/ValekusVachpekus/pdn-control/issues/86) | [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95) (CI gate + GeoIP) | — |
 | Aleksandr Martiushev (`alexzhal1`) | Assigned [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70); created [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75) | — | — |
 | Maksim Shakhrai (`ShakhraiMaksim`) | <!-- PLACEHOLDER: вклад в этом спринте не зафиксирован в Issue/PR — заполнить при наличии --> | — | — |
 
 > Source: GitHub issue assignees/authors and PR reviews on the Assignment 4 Sprint
-> (milestone [#2](https://github.com/ValekusVachpekus/pdn-control/milestone/2)). Implementation
-> of the CI gate ([#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)) and GeoIP
-> ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)) is in progress.
+> (milestone [#2](https://github.com/ValekusVachpekus/pdn-control/milestone/2)). The CI gate
+> ([#71](https://github.com/ValekusVachpekus/pdn-control/issues/71)) and deterministic GeoIP
+> ([#75](https://github.com/ValekusVachpekus/pdn-control/issues/75)) were delivered together in
+> PR [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95) — all Sprint technical PBIs
+> are now Done.
 
 ## Screenshots
 
