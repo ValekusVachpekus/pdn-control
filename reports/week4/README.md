@@ -23,3 +23,15 @@ Sprint**:
 
 - **US-13 scan-finished notification ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70))** — kept In Progress because the Sprint prioritized quality automation, CI gates, and deployment over new features; it carries into the next Sprint.
 - **DNS redirect ([#88](https://github.com/ValekusVachpekus/pdn-control/issues/88))** — the DNS change itself is a **customer-side action**. The team provides the deployment configuration and assistance; the cut-over depends on the customer redirecting their domain.
+
+### Quality automation (Part 7 & 8)
+
+The Assignment 4 quality gate ([#71](https://github.com/ValekusVachpekus/pdn-control/issues/71))
+is a maintained CI pipeline ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)):
+unit + integration tests across crowler/backend/PDFreport/frontend, per-module
+coverage on critical modules (≥ 30 %), a SAST/dependency security scan, and branch
+protection requiring green checks + review on `main`. It guards the anti-SSRF
+([#69](https://github.com/ValekusVachpekus/pdn-control/issues/69)) and determinism
+([#34](https://github.com/ValekusVachpekus/pdn-control/issues/34)) invariants with
+regression tests. Strategy, critical modules, and run instructions:
+[`docs/testing.md`](../../docs/testing.md).

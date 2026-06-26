@@ -21,5 +21,23 @@ dependencies = [
     "email-validator>=2.2",
 ]
 
+[project.optional-dependencies]
+# Тестовый профиль для CI/локального прогона: pip install -e .[test]
+test = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Пакет приложения — один (`app`). Без явного указания setuptools видит несколько
+# верхнеуровневых каталогов (app/alembic/scripts/tests/resources) и отказывается
+# угадывать → пакет не устанавливался (`pip install -e .` падал). Фиксируем.
+packages = ["app"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

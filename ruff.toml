@@ -1,0 +1,12 @@
+# Конфиг линтера Python-стека (backend, crowler, PDFreport) для CI-гейта #71.
+# Набор правил — дефолтный для ruff (Pyflakes F + базовые pycodestyle E),
+# этого достаточно как обязательный lint-гейт. Полный автоформат (ruff format)
+# пока advisory (не блокирует) — см. docs/testing.md.
+target-version = "py311"
+line-length = 100
+
+extend-exclude = [
+    "node_modules",
+    "**/.venv",
+    "**/alembic/versions",  # автогенерируемые миграции
+]

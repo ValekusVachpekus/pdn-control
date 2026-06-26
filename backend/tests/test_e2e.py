@@ -103,6 +103,18 @@ def _fake_scan_site_sync(url, *, max_pages, **kw):
     return sample
 
 
+def _fake_call_llm(crawl):
+    """Герметичный заменитель LLM для e2e: без внешнего API и без LLM_API_KEY.
+
+    Отдаём детерминированный «механический» вывод (как call_llm на крае без AI):
+    нарушения из rule-engine, чтобы проверить связку API→БД→отчёт, а не доступность
+    внешней модели. _ai_degraded=True помечает, что AI-слоя в этом прогоне не было.
+    """
+    from app.services.violation_catalog import detect_mechanical
+
+    return {"violations": detect_mechanical(crawl), "_ai_degraded": True}
+
+
 async def _run_flow():
     import httpx
     from httpx import ASGITransport
@@ -164,8 +176,9 @@ async def _run_flow():
         r = await client.post("/api/scans", json={"url": "http://localhost"}, headers=auth)
         assert r.status_code == 422
 
-        # Сабмит проверки (парсер замокан)
-        with patch("app.workers.tasks.scan_site_sync", side_effect=_fake_scan_site_sync):
+        # Сабмит проверки (парсер и LLM замоканы — тест герметичен, без внешних API)
+        with patch("app.workers.tasks.scan_site_sync", side_effect=_fake_scan_site_sync), \
+             patch("app.workers.tasks.call_llm", side_effect=_fake_call_llm):
             r = await client.post("/api/scans", json={"url": "example.ru"}, headers=auth)
         assert r.status_code == 201, r.text
         report_id = r.json()["report_id"]
