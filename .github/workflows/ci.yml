@@ -1,0 +1,178 @@
+name: CI
+
+# Качество-гейт Assignment 4 (#71): тесты (unit+integration), покрытие критических
+# модулей, lint и дополнительная QA-проверка (SAST). Запускается на каждый PR и на
+# push в защищённую ветку main. Имена job'ов = required checks в branch protection.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ── Lint (обязательный гейт) ────────────────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install ruff==0.6.9
+      - name: ruff check (lint)
+        run: ruff check backend/app crowler/pdn_parser PDFreport
+      - name: ruff format --check (advisory)
+        # Полный автоформат пока не применён к кодовой базе — не блокируем мердж,
+        # но показываем дрейф формата. См. docs/testing.md.
+        continue-on-error: true
+        run: ruff format --check backend/app crowler/pdn_parser PDFreport
+
+  # ── Crowler: unit + регрессии anti-SSRF/детерминизм + покрытие ──────────────
+  crowler:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crowler
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -r requirements.txt pytest pytest-cov
+      - name: Tests + coverage
+        run: |
+          pytest tests/ -q \
+            --cov=pdn_parser.ssrf --cov=pdn_parser.geoip \
+            --cov-report=term-missing --cov-report=json:coverage.json
+      - name: Per-module coverage gate (>=30%)
+        run: |
+          python ../scripts/check_coverage.py coverage.json --min 30 \
+            pdn_parser/ssrf.py pdn_parser/geoip.py
+
+  # ── Backend: unit + интеграция (без БД) + покрытие ──────────────────────────
+  backend-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -e .[test]
+      - name: Unit + integration tests (excl. e2e) + coverage
+        env:
+          DATABASE_URL: postgresql+asyncpg://pdn:pdn@127.0.0.1:5432/pdn
+          JWT_SECRET: test-test-test-test-test-test-test
+          LLM_API_KEY: ""
+        run: |
+          pytest tests/ -q --ignore=tests/test_e2e.py \
+            --cov=app.services.violation_catalog --cov=app.services.llm_cache \
+            --cov-report=term-missing --cov-report=json:coverage.json
+      - name: Per-module coverage gate (>=30%)
+        run: |
+          python ../scripts/check_coverage.py coverage.json --min 30 \
+            app/services/violation_catalog.py app/services/llm_cache.py
+
+  # ── Backend: интеграция через реальный Postgres (API e2e) ───────────────────
+  backend-integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pdn
+          POSTGRES_PASSWORD: pdn
+          POSTGRES_DB: pdn
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U pdn"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -e .[test]
+      - name: API e2e (register/login/scan/report/billing)
+        env:
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest tests/test_e2e.py -q
+
+  # ── PDFreport: валидация контракта + (если есть typst) компиляция PDF ────────
+  pdfreport:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PDFreport
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: typst-community/setup-typst@v4
+      - run: pip install fastapi "uvicorn[standard]" pytest httpx
+      - run: pytest tests/ -q
+
+  # ── Frontend: сборка + unit (vitest) ────────────────────────────────────────
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  # ── Дополнительная QA-проверка: SAST (Bandit) + аудит зависимостей ──────────
+  # Отдельный статус, отличный от lint и link-check. Bandit — обязательный гейт
+  # (падает на находках severity>=medium в нашем коде). pip-audit — информативно
+  # (не блокируем мердж из-за CVE в транзитивных зависимостях вышестоящих пакетов).
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install bandit==1.7.10 pip-audit==2.7.3
+      - name: Bandit SAST (severity >= medium, обязательный гейт)
+        run: bandit -r backend/app crowler/pdn_parser PDFreport --severity-level medium
+      - name: pip-audit dependency scan (advisory)
+        continue-on-error: true
+        # Crowler фиксирует зависимости в requirements.txt; backend — в pyproject
+        # (аудитим установленное окружение). Информативно: CVE в транзитивных
+        # зависимостях не должны блокировать мердж продуктовой фичи.
+        run: |
+          pip-audit -r crowler/requirements.txt || true
+          pip install -e ./backend && pip-audit || true

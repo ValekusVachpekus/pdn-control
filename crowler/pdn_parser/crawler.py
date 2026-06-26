@@ -14,9 +14,10 @@ import time
 import urllib.robotparser
 from collections import deque
 from urllib.parse import urljoin, urlparse
-from xml.etree import ElementTree
 
+import defusedxml.ElementTree as DET
 import httpx
+from defusedxml.common import DefusedXmlException
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
@@ -342,7 +343,7 @@ class Crawler:
             resp = await _guarded_get(sitemap_url, headers={"User-Agent": DEFAULT_UA})
             if resp.status_code == 200:
                 seeds.extend(self._parse_sitemap(resp.text, base_domain))
-        except (httpx.HTTPError, ElementTree.ParseError, _SSRFBlocked):
+        except (httpx.HTTPError, DET.ParseError, DefusedXmlException, _SSRFBlocked):
             pass
         # Стартовая страница ВСЕГДА первая (с неё снимаем server_ip и она
         # приоритетна для обхода). Остальные seed'ы из sitemap сортируем —
@@ -360,9 +361,12 @@ class Crawler:
     @staticmethod
     def _parse_sitemap(xml_text: str, base_domain: str) -> list[str]:
         urls: list[str] = []
+        # defusedxml: sitemap приходит от недоверенного сайта — отбиваем XXE/billion
+        # laughs/внешние сущности. Любой парс-сбой или запрещённая конструкция →
+        # пустой список (sitemap опционален, скан не должен падать).
         try:
-            root = ElementTree.fromstring(xml_text)
-        except ElementTree.ParseError:
+            root = DET.fromstring(xml_text)
+        except (DET.ParseError, DefusedXmlException):
             return urls
         for loc in root.iter():
             if loc.tag.endswith("loc") and loc.text:

@@ -10,7 +10,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_env: str = "dev"
-    app_host: str = "0.0.0.0"
+    # Слушаем все интерфейсы намеренно: сервис работает в контейнере, наружу его
+    # публикует reverse-proxy/оркестратор, а не сам процесс. nosec B104.
+    app_host: str = "0.0.0.0"  # noqa: S104  # nosec B104
     app_port: int = 8000
 
     database_url: str = "postgresql+asyncpg://pdn:pdn@db:5432/pdn"
