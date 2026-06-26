@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 
 
 class PIIKind(str, Enum):
@@ -213,9 +213,18 @@ class ScanMeta:
     pages_crawled: int = 0
     errors: list[str] = field(default_factory=list)
     # IP сервера стартовой страницы (после HTTP-редиректов) — снимается через
-    # Playwright Response.server_addr(). Страну/хостинг/локализацию по этому
-    # IP определяет LLM на бэке. Если страница не загрузилась — null.
+    # Playwright Response.server_addr(). Если страница не загрузилась — null.
     server_ip: str | None = None
+    # Страна хостинга по server_ip, определённая ДЕТЕРМИНИРОВАННО из offline
+    # GeoIP-базы (MaxMind GeoLite2), а не «знаниями» LLM. См. pdn_parser/geoip.py.
+    # Введено в schema 1.4. Пустой/приватный/неопределимый IP → server_country=null
+    # (страну не выдумываем: цена ложного штрафа по ст. 18 ч. 5 152-ФЗ максимальна).
+    server_country: str | None = None          # ISO-2 ("RU", "US", …) или null
+    server_country_source: str | None = None   # "geoip" | null
+    server_is_cdn: bool = False                 # IP за известным CDN/облаком
+    server_country_confidence: str = "unknown"  # "high" | "low" | "unknown"
+    hosting_provider: str | None = None         # организация ASN / имя CDN | null
+    server_asn: int | None = None               # номер автономной системы | null
 
 
 @dataclass

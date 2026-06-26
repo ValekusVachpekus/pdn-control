@@ -3,6 +3,15 @@ playwright>=1.40
 beautifulsoup4>=4.12
 httpx>=0.27
 
+# Безопасный парсинг недоверенного XML (sitemap.xml внешних сайтов) — защита от
+# XXE / billion laughs / внешних сущностей вместо stdlib xml.etree.
+defusedxml>=0.7
+
+# Детерминированное определение страны хостинга по IP из offline-базы MaxMind
+# GeoLite2 (вместо «знаний» LLM). Сама база (.mmdb) — не пакет: кладётся в
+# pdn_parser/data/ через scripts/download_geoip.py (см. data/README.md).
+geoip2>=4.7
+
 # HTTP-микросервис
 fastapi>=0.110
 uvicorn[standard]>=0.29

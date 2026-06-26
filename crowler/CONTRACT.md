@@ -27,7 +27,7 @@ JSON обслуживает трёх потребителей. Это объяс
 ## Верхний уровень
 
 ```jsonc
-{ "schema_version": "1.2", "meta": {…}, "summary": {…}, "site_identity": {…},
+{ "schema_version": "1.4", "meta": {…}, "summary": {…}, "site_identity": {…},
   "policy_documents": [ {…} ], "pages": [ {…} ] }
 ```
 
@@ -59,7 +59,13 @@ JSON обслуживает трёх потребителей. Это объяс
 | `pages_requested_limit` | number | Лимит страниц на этот скан (= `config.max_pages`). |
 | `pages_crawled` | number | Сколько страниц фактически обойдено. |
 | `errors` | array&lt;string&gt; | Ошибки уровня обхода (заблокировано robots, таймаут и т.п.). |
-| `server_ip` | string \| null | IP origin'а стартовой страницы — снимается через `Response.server_addr()` Playwright. Страну/хостинг/локализацию по этому IP определяет LLM на бэке. `null`, если страница не загрузилась. **Введено в schema 1.3.** |
+| `server_ip` | string \| null | IP origin'а стартовой страницы — снимается через `Response.server_addr()` Playwright. `null`, если страница не загрузилась. **Введено в schema 1.3.** |
+| `server_country` | string \| null | Страна хостинга (ISO-2: `RU`, `US`, …) по `server_ip`, определённая **детерминированно** из offline GeoIP-базы (MaxMind GeoLite2) в парсере, а не «знаниями» LLM. Один и тот же IP всегда даёт одну страну. `null`, если IP пуст/приватный/неопределим или база не подключена — **страну не выдумываем** (цена ложного штрафа по ст. 18 ч. 5 152-ФЗ максимальна). **Введено в schema 1.4.** |
+| `server_country_source` | string \| null | Источник `server_country`: `"geoip"` — из локальной базы; `null` — страну определить не удалось. |
+| `server_is_cdn` | bool | IP принадлежит **reverse-proxy CDN** (Cloudflare, Fastly, Akamai, CDN77, Edgio, Imperva) по ASN или статическому списку диапазонов. Тогда `server_country` — страна **края CDN**, а не обязательно место хранения ПДн: бэк не должен штрафовать вслепую. **Облачный хостинг (AWS/Azure/GCP) CDN'ом не считается** — у него origin-IP обычно и есть место хранения, иначе реальное нарушение локализации ускользнёт от штрафа. |
+| `server_country_confidence` | enum | `high` — страна из базы и это не reverse-proxy CDN (в т.ч. облако-хостинг); `low` — страна из базы, но IP за CDN (origin может быть в другой стране); `unknown` — страну определить не удалось. |
+| `hosting_provider` | string \| null | Организация-владелец ASN (если подключена GeoLite2-ASN), иначе имя CDN, иначе `null`. |
+| `server_asn` | number \| null | Номер автономной системы (ASN) по `server_ip`, если подключена GeoLite2-ASN; иначе `null`. |
 
 **Значения `status`:**
 - `failed` — стартовая страница не загрузилась / `pages_crawled == 0`.

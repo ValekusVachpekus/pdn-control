@@ -31,6 +31,12 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+# Артефакты тестов/покрытия и editable-сборки (генерятся в CI и локально)
+.coverage
+coverage.json
+coverage.xml
+htmlcov/
+*.egg-info/
 
 # --- IDE / агенты ---
 .claude/

@@ -14,14 +14,16 @@ import time
 import urllib.robotparser
 from collections import deque
 from urllib.parse import urljoin, urlparse
-from xml.etree import ElementTree
 
+import defusedxml.ElementTree as DET
 import httpx
+from defusedxml.common import DefusedXmlException
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
 from . import detectors
 from .fetcher import DEFAULT_UA, fetch_page
+from .geoip import resolve_geo
 from .ssrf import SSRFGuard
 from .identity import extract_identity
 from .models import SCHEMA_VERSION, CrawlResult, PageData, ScanMeta
@@ -199,6 +201,9 @@ class Crawler:
         ]
         identity = extract_identity(page_texts + policy_texts)
         status = self._status(pages, errors)
+        # Страну/CDN по IP резолвим ДЕТЕРМИНИРОВАННО из offline GeoIP-базы (не LLM).
+        # Без IP / приватный IP / нет базы → server_country=null, скан не падает.
+        geo = resolve_geo(start_server_ip)
         meta = ScanMeta(
             scan_id=scan_id or new_scan_id(),
             parser_version=PARSER_VERSION,
@@ -224,6 +229,12 @@ class Crawler:
             pages_crawled=len(pages),
             errors=errors,
             server_ip=start_server_ip,
+            server_country=geo.server_country,
+            server_country_source=geo.server_country_source,
+            server_is_cdn=geo.server_is_cdn,
+            server_country_confidence=geo.server_country_confidence,
+            hosting_provider=geo.hosting_provider,
+            server_asn=geo.server_asn,
         )
         return CrawlResult(
             meta=meta,
@@ -332,7 +343,7 @@ class Crawler:
             resp = await _guarded_get(sitemap_url, headers={"User-Agent": DEFAULT_UA})
             if resp.status_code == 200:
                 seeds.extend(self._parse_sitemap(resp.text, base_domain))
-        except (httpx.HTTPError, ElementTree.ParseError, _SSRFBlocked):
+        except (httpx.HTTPError, DET.ParseError, DefusedXmlException, _SSRFBlocked):
             pass
         # Стартовая страница ВСЕГДА первая (с неё снимаем server_ip и она
         # приоритетна для обхода). Остальные seed'ы из sitemap сортируем —
@@ -350,9 +361,12 @@ class Crawler:
     @staticmethod
     def _parse_sitemap(xml_text: str, base_domain: str) -> list[str]:
         urls: list[str] = []
+        # defusedxml: sitemap приходит от недоверенного сайта — отбиваем XXE/billion
+        # laughs/внешние сущности. Любой парс-сбой или запрещённая конструкция →
+        # пустой список (sitemap опционален, скан не должен падать).
         try:
-            root = ElementTree.fromstring(xml_text)
-        except ElementTree.ParseError:
+            root = DET.fromstring(xml_text)
+        except (DET.ParseError, DefusedXmlException):
             return urls
         for loc in root.iter():
             if loc.tag.endswith("loc") and loc.text:
