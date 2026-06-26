@@ -165,7 +165,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: pip install bandit==1.7.10 pip-audit==2.7.3
+      - run: pip install bandit==1.8.6 pip-audit==2.7.3
       - name: Bandit SAST (severity >= medium, обязательный гейт)
         run: bandit -r backend/app crowler/pdn_parser PDFreport --severity-level medium
       - name: pip-audit dependency scan (advisory)
