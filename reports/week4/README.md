@@ -171,6 +171,9 @@ Branch Protection:
 
 ![Branch protection rules](images/branch-protection.png)
 
-<!-- PLACEHOLDER: добавить images/ci.png (зелёный CI) и images/release.png (v1.1.0) когда будут готовы -->
-<!-- ![CI green](images/ci.png) -->
+CI quality gate (green):
+
+![CI quality gate green](images/ci.png)
+
+<!-- PLACEHOLDER: добавить images/release.png (v1.1.0) когда будет готов тег -->
 <!-- ![Release v1.1.0](images/release.png) -->
