@@ -80,6 +80,14 @@ the live backlog is maintained in GitHub Issues and the Project Board.
   PDF report ([US-08 #65](https://github.com/ValekusVachpekus/pdn-control/issues/65)),
   anti-SSRF ([US-12 #69](https://github.com/ValekusVachpekus/pdn-control/issues/69)).
 
+### UAT execution at the Sprint Review (2026-06-27)
+
+The customer re-executed all five scenarios live against the deployment on **their own
+infrastructure** (v1.1.0). **Result: 5 / 5 Pass** — basic scan, total fine, free/paid gating,
+PDF download, and anti-SSRF all passed. No scenario failed. Six **minor UI defects** were spotted
+during execution; they did not block any scenario and are tracked as the customer-feedback items
+below. Full results: [customer-review-summary.md](customer-review-summary.md).
+
 ## Customer Feedback Response (Part 2)
 
 Source of feedback: the **Sprint Review with the customer on 2026-06-21** (see
@@ -105,6 +113,20 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 - **US-13 scan-finished notification ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70))** — kept In Progress because the Sprint prioritized quality automation, CI gates, and deployment over new features; it carries into the next Sprint.
 - **DNS redirect ([#88](https://github.com/ValekusVachpekus/pdn-control/issues/88))** — the DNS change itself is a **customer-side action**. The team provides the deployment configuration and assistance; the cut-over depends on the customer redirecting their domain.
 
+### New feedback from the Week 4 Sprint Review / UAT (2026-06-27)
+
+Six items raised by the customer during live UAT on the production deployment. All accepted for
+the next Sprint (issues to be filed); none were rejected.
+
+| Feedback point | Resulting PBI or issue | Status | Response |
+|---|---|---|---|
+| Starting a check while logged out is blocked, but the loading screen still opens. | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Planned (next Sprint) | Stop the loading screen from showing on an unauthenticated check; route the user to registration. |
+| From the empty history screen there is no obvious way back to the main page ("New check" not discoverable). | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100) | Planned (next Sprint) | Make the "New check" / back-to-main action more prominent and intuitive on the empty-history state. |
+| A useless "0" fine is shown when owner-side personal-data checks cannot be assessed. | [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101) | Planned (next Sprint) | Hide the `0` value where the check is not applicable instead of rendering a misleading zero. |
+| "Data collection points" looks empty when the forms are on the main page. | [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Planned (next Sprint) | Label the location (e.g. "Main page") so found forms are not shown as empty. |
+| The cookie-banner violation is addressed to the Marketer; it should go to the Developer. | [#103](https://github.com/ValekusVachpekus/pdn-control/issues/103) | Planned (next Sprint) | Change the violation's `target_role` for the cookie-banner rule from `marketer` to `developer`. |
+| Use a third-party email provider instead of a local SMTP server on the customer's machine. | [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104) | Planned (next Sprint) | Integrate a third-party email provider; the team sends the customer the records to add on their side. |
+
 ## Release & Deployment (Part 9)
 
 - **Previous SemVer Release:** [v1.0.0 — MVP v1](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
@@ -115,11 +137,15 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 
 ## Sprint Review, Retrospective & Reflection (Parts 11–13)
 
-- **Customer Review Summary:** [customer-review-summary.md](customer-review-summary.md) <!-- PLACEHOLDER: заполнить после встречи с заказчиком -->
-- **Customer Review Transcript:** [customer-review-transcript.md](customer-review-transcript.md) <!-- PLACEHOLDER: заполнить после встречи -->
-- **Customer Review Notes:** [customer-review-notes.md](customer-review-notes.md) <!-- PLACEHOLDER: заметки со встречи -->
-- **Retrospective:** [retrospective.md](retrospective.md) <!-- PLACEHOLDER: заполнить после ретро -->
-- **Reflection:** [reflection.md](reflection.md) <!-- PLACEHOLDER: заполнить после ретро -->
+The Sprint Review on **2026-06-27** was one recorded session that also covered the
+customer-executed UAT (see *User Acceptance Tests* above). The customer accepted the increment
+and confirmed the Sprint Goal was met. Transcript publication reuses the consent obtained at the
+Week 3 review; exact UAT/Review timecodes are in the private Moodle submission.
+
+- **Customer Review Summary:** [customer-review-summary.md](customer-review-summary.md)
+- **Customer Review Transcript (public):** [customer-review-transcript.md](customer-review-transcript.md)
+- **Retrospective:** [retrospective.md](retrospective.md)
+- **Reflection:** [reflection.md](reflection.md)
 
 ## Presentation & Demo (Parts 14–15)
 
@@ -147,7 +173,7 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 | Ksenya Koroleva (`kskorqueen`) | — | [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85) | Approved [#87](https://github.com/ValekusVachpekus/pdn-control/pull/87), [#89](https://github.com/ValekusVachpekus/pdn-control/pull/89), [#90](https://github.com/ValekusVachpekus/pdn-control/pull/90), [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91), [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92) |
 | Airat Mingazov (`azenlrd`) | Assigned [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71), [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75), [#86](https://github.com/ValekusVachpekus/pdn-control/issues/86) | [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95) (CI gate + GeoIP) | — |
 | Aleksandr Martiushev (`alexzhal1`) | Assigned [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70); created [#75](https://github.com/ValekusVachpekus/pdn-control/issues/75) | — | — |
-| Maksim Shakhrai (`ShakhraiMaksim`) | <!-- PLACEHOLDER: вклад в этом спринте не зафиксирован в Issue/PR — заполнить при наличии --> | — | — |
+| Maksim Shakhrai (`ShakhraiMaksim`) | operated the recording of the Sprint Review / UAT session (2026-06-27) | — | — |
 
 > Source: GitHub issue assignees/authors and PR reviews on the Assignment 4 Sprint
 > (milestone [#2](https://github.com/ValekusVachpekus/pdn-control/milestone/2)). The CI gate
