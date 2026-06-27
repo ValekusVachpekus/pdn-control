@@ -20,10 +20,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Пакет приложения (`app`) нужен уже на этапе `pip install .`: pyproject объявляет
+# `[tool.setuptools] packages = ["app"]`, поэтому каталог копируем ДО установки,
+# иначе сборка wheel падает с `package directory 'app' does not exist`.
 COPY pyproject.toml ./
+COPY app ./app
 RUN pip install --upgrade pip && pip install .
 
-COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
 # Тексты законов — нужны llm_analyzer'у на каждый вызов
