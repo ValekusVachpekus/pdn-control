@@ -108,7 +108,7 @@ above. Two points are intentionally **not fully closed in the Assignment 4 Sprin
 ## Release & Deployment (Part 9)
 
 - **Previous SemVer Release:** [v1.0.0 — MVP v1](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0)
-- **New SemVer Release (this Sprint):** <!-- PLACEHOLDER: ссылка на release v1.1.0 после создания тега -->
+- **New SemVer Release (this Sprint):** [v1.1.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0) (maps to Sprint milestone [#2](https://github.com/ValekusVachpekus/pdn-control/milestone/2))
 - **Live Deployment (customer/own infra):** [Deployment](https://pdn.neurolife.tech/)
 - **Access & Run Instructions:** [Root README.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/README.md)
 - **CHANGELOG:** [CHANGELOG.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/CHANGELOG.md)
