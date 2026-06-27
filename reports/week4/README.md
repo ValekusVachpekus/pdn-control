@@ -150,7 +150,7 @@ Week 3 review; exact UAT/Review timecodes are in the private Moodle submission.
 ## Presentation & Demo (Parts 14–15)
 
 - **Presentation slides:** [Google_Slides](https://docs.google.com/presentation/d/1Q-_exoXPRqnNcbyqoNFkQcO9qhIGusvAypSvbCq9BpA/edit?usp=sharing)
-- **Video Demonstration (< 2 min):** <!-- PLACEHOLDER: ссылка на демо-видео (Google Drive) -->
+- **Video Demonstration (< 2 min):** _pending — добавить ссылку после записи (Part 15); та же ссылка дублируется в релизе [v1.1.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0)._
 
 ## LLM Usage (Part 16)
 
@@ -201,5 +201,6 @@ CI quality gate (green):
 
 ![CI quality gate green](images/ci.png)
 
-<!-- PLACEHOLDER: добавить images/release.png (v1.1.0) когда будет готов тег -->
-<!-- ![Release v1.1.0](images/release.png) -->
+SemVer Release (v1.1.0):
+
+![Release v1.1.0](images/release.png)
