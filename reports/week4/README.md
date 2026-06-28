@@ -150,7 +150,7 @@ Week 3 review; exact UAT/Review timecodes are in the private Moodle submission.
 ## Presentation & Demo (Parts 14–15)
 
 - **Presentation slides:** [Google_Slides](https://docs.google.com/presentation/d/1Q-_exoXPRqnNcbyqoNFkQcO9qhIGusvAypSvbCq9BpA/edit?usp=sharing)
-- **Video Demonstration (< 2 min):** _pending — добавить ссылку после записи (Part 15); та же ссылка дублируется в релизе [v1.1.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0)._
+- **Video Demonstration (< 2 min):** [Demo video (Google Drive)](https://drive.google.com/file/d/1_ep2iFhQ_XVV5VsKl6w4WUhFH_F__X5i/view) — also linked from release [v1.1.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0).
 
 ## LLM Usage (Part 16)
 
