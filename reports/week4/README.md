@@ -57,8 +57,8 @@ the live backlog is maintained in GitHub Issues and the Project Board.
 - **CI quality-gate issue:** [#71](https://github.com/ValekusVachpekus/pdn-control/issues/71) — **Done** via PR [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95).
 - **CI workflow:** [.github/workflows/ci.yml](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/workflows/ci.yml) — 7 required jobs (lint, crowler, backend-unit, backend-integration, pdfreport, frontend, security).
 - **Testing strategy & coverage gate:** [docs/testing.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/testing.md) + per-module gate [scripts/check_coverage.py](https://github.com/ValekusVachpekus/pdn-control/blob/main/scripts/check_coverage.py) (≥ 30 % on critical modules).
-- **Additional QA check (SAST):** Bandit (severity ≥ medium) + pip-audit, in the `security` job — distinct from lint and link-check.
-- **Branch protection rules:** required checks + review on `main` (command in [docs/testing.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/testing.md); applied by a repo admin).
+- **Additional QA check (SAST):** Bandit (severity ≥ medium) + pip-audit, in the `security` job — distinct from lint and link-check (full write-up below).
+- **Branch protection rules:** enforced on `main` via a GitHub **ruleset** (`assignment2-rules`, active): required status checks **and** a required review by another member, plus deletion / non-fast-forward protection. Direct push to `main` is blocked.
 
   ![Branch protection rules](images/branch-protection.png)
 - Increment PRs this Sprint: [#85](https://github.com/ValekusVachpekus/pdn-control/pull/85),
@@ -68,6 +68,40 @@ the live backlog is maintained in GitHub Issues and the Project Board.
   [#91](https://github.com/ValekusVachpekus/pdn-control/pull/91),
   [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92),
   [#95](https://github.com/ValekusVachpekus/pdn-control/pull/95) (CI gate + GeoIP).
+
+### Unit & integration tests (Parts 20–21)
+
+**Unit tests:**
+- Crawler: [`test_ssrf.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/crowler/tests/test_ssrf.py), [`test_ssrf_redirect.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/crowler/tests/test_ssrf_redirect.py), [`test_geoip.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/crowler/tests/test_geoip.py)
+- Rule-engine / backend: [`test_violation_catalog.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/backend/tests/test_violation_catalog.py), [`test_llm_cache.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/backend/tests/test_llm_cache.py)
+- PDF microservice: [`test_models.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/PDFreport/tests/test_models.py), [`test_renderer.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/PDFreport/tests/test_renderer.py)
+- Frontend: [`mapReport.test.js`](https://github.com/ValekusVachpekus/pdn-control/blob/main/frontend/test/mapReport.test.js), [`smoke.test.jsx`](https://github.com/ValekusVachpekus/pdn-control/blob/main/frontend/test/smoke.test.jsx)
+
+**Integration tests:**
+- Backend pipeline (parser → rule-engine → report): [`test_integration_pipeline.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/backend/tests/test_integration_pipeline.py), [`test_determinism.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/backend/tests/test_determinism.py)
+- Backend API e2e (register/login/scan/report/billing): [`test_e2e.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/backend/tests/test_e2e.py)
+- PDF microservice API: [`test_api.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/PDFreport/tests/test_api.py)
+
+### Per-module coverage status (Part 19)
+
+Critical modules each gate at **≥ 30 %** line coverage (per-module, enforced by
+[`scripts/check_coverage.py`](https://github.com/ValekusVachpekus/pdn-control/blob/main/scripts/check_coverage.py); a renamed/missing module fails the gate so coverage cannot silently disappear). The gate passes on the latest `main` CI run.
+
+| Critical module | Threshold | Current |
+|---|---|---|
+| `crowler/pdn_parser/ssrf.py` | 30 % | ~81 % |
+| `crowler/pdn_parser/geoip.py` | 30 % | ~84 % |
+| `backend/app/services/violation_catalog.py` | 30 % | ~73 % |
+| `backend/app/services/llm_cache.py` | 30 % | ~62 % |
+
+### Additional QA check — SAST + dependency audit (Part 7.3)
+
+- **Options considered:** SAST of our own code (Bandit), dependency vulnerability audit (pip-audit), secret scanning, and container image scanning.
+- **Selected:** **Bandit** (SAST, mandatory gate) + **pip-audit** (dependency audit, advisory), running in the dedicated `security` CI job — deliberately distinct from lint, formatting, type-check, build, unit/integration tests, coverage, the automated QRTs, and the Lychee link-check.
+- **QA objective / risk:** catch insecure code patterns (e.g. XXE in untrusted XML, unsafe subprocess/network calls) and known-vulnerable dependencies before they reach `main`.
+- **Why it matters here:** the crawler fetches and parses **untrusted third-party content** (external `sitemap.xml`, pages) server-side — exactly the surface where SSRF/XXE-class issues are dangerous. Hardening already done under this gate: untrusted XML is parsed via `defusedxml`; the intentional `0.0.0.0` container bind is annotated `# nosec B104`.
+- **Where it runs:** `security` job in [`.github/workflows/ci.yml`](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/workflows/ci.yml), on every PR and push to `main`; Bandit fails the build on findings of severity ≥ medium.
+- **Limitations / deferred:** pip-audit is advisory (`continue-on-error`) so upstream transitive CVEs do not block feature merges but stay visible in the log; `ruff format --check` and `mypy` are not yet mandatory gates (tracked separately). Details: [`docs/testing.md`](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/testing.md).
 
 ## User Acceptance Tests (Part 10)
 
@@ -156,6 +190,46 @@ Week 3 review; exact UAT/Review timecodes are in the private Moodle submission.
 
 - **LLM Usage Report:** [llm-report.md](llm-report.md)
 - **LLM Report PR:** [#92](https://github.com/ValekusVachpekus/pdn-control/pull/92)
+
+## Quality gates going forward (Part 27)
+
+The Assignment 4 tests, CI checks, quality requirement tests, and Definition of Done are
+**maintained project assets, not one-time submission evidence**. They keep governing later work:
+
+- The 7 required CI jobs and the `main` ruleset stay enforced — every future PR must pass them
+  and be reviewed by another member before merge.
+- The automated QRTs (anti-SSRF, determinism, rule-engine correctness) and the per-module
+  coverage gate (≥ 30 % on critical modules) remain blocking; a renamed/missing critical module
+  fails the gate by design.
+- The updated [Definition of Done](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/definition-of-done.md)
+  requires these gates for any PBI to be `Done`. Later PBIs (including the six follow-ups
+  [#99–#104](https://github.com/ValekusVachpekus/pdn-control/issues/99)) must **maintain or extend**
+  these gates — not bypass or disable them. If the stack, critical modules, or CI change, the QRs,
+  tests, and DoD are updated rather than left stale.
+
+## Current product status (Part 38)
+
+- **Released:** [v1.1.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0),
+  deployed and internet-accessible on the **customer's own infrastructure**
+  ([pdn.neurolife.tech](https://pdn.neurolife.tech/)).
+- **Accepted:** the customer ran all five UAT scenarios live (5 / 5 Pass) and accepted the
+  Sprint increment; the Sprint Goal (quality automation + deployment on their infrastructure) was met.
+- **Quality:** CI quality gate green on `main`, branch protection active, QRs covered by automated
+  QRTs, critical modules above the coverage threshold.
+- **Known gaps:** six minor UI/UX and one infra (email) follow-up from UAT are filed
+  ([#99–#104](https://github.com/ValekusVachpekus/pdn-control/issues/99)) for the next Sprint;
+  US-13 scan-finished notification ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70))
+  is carried over.
+
+## Next steps (Part 39)
+
+- Address the six UAT follow-ups ([#99–#104](https://github.com/ValekusVachpekus/pdn-control/issues/99)):
+  fix the UI defects and integrate a third-party email provider.
+- Close the front-end UI-testing gap (UI smoke check / pre-demo dry-run) agreed in the
+  [retrospective](retrospective.md), so presentation defects are caught before UAT.
+- Continue US-13 ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)) and the next-Sprint
+  roadmap items: social login (Yandex/VK OAuth), CloudPayments, broader JS/SPA crawl coverage
+  (see [docs/roadmap.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/docs/roadmap.md)).
 
 ## Authoritative Live Sources
 
