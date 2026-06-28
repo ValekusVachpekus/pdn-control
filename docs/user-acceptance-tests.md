@@ -9,10 +9,22 @@ attributes), UAT confirms the product is **fit for purpose** for the end user.
 - **Acceptor:** the **customer** (product stakeholder), who reviewed and accepted MVP v1 at
   the **Sprint Review on 2026-06-21**
   (see [`reports/week3/customer-review-summary.md`](../reports/week3/customer-review-summary.md)).
-- **Session date:** 2026-06-21 (acceptance walkthrough during Sprint Review).
 - **Build under test:** MVP v1 (full stack via `cd backend && docker compose up`; crawler on
   :8010, PDF microservice on :8020, frontend served by nginx).
 - **Overall result:** **5 / 5 Pass** — customer accepted MVP v1.
+
+### Execution history
+
+| Session date | Build / environment | Acceptor | Result |
+|---|---|---|---|
+| 2026-06-21 | MVP v1 on the university VM (Sprint Review walkthrough) | Customer | 5 / 5 Pass |
+| 2026-06-27 | v1.1.0 on the **customer's own infrastructure** (`pdn.neurolife.tech`), re-run during the Sprint 2 Review | Customer | 5 / 5 Pass |
+
+> **2026-06-27 re-run (Sprint 2):** all five scenarios were re-executed by the customer against
+> the live deployment on their own infrastructure and passed again
+> (see [`reports/week4/customer-review-summary.md`](../reports/week4/customer-review-summary.md)).
+> No scenario failed; six **minor UI defects** observed during execution were logged as new
+> backlog items and did not block any scenario from passing.
 
 Each scenario is written in the standard UAT form: a business goal, the user story and its
 acceptance criteria, preconditions, steps, expected result, the observed actual result, and
