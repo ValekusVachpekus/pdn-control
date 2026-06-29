@@ -44,6 +44,20 @@ describe('Report', () => {
     expect(container).toBeTruthy();
   });
 
+  // issue #101: нарушение с fine_rub: 0 не должно рендерить блок штрафа
+  // (раньше `{0 && ...}` выводил литеральный «0»). ERR-001 раскрыт по умолчанию.
+  it('не показывает блок штрафа при fine_rub: 0', () => {
+    const zeroFine = {
+      ...r,
+      violations: r.violations.map((v, i) => i === 0 ? { ...v, id: 'ERR-001', fine_rub: 0 } : v),
+    };
+    render(
+      <Report r={zeroFine} detail="owner" onToast={noop} onRescan={noop}
+        onDownload={noop} paid={true} onUnlock={noop} />
+    );
+    expect(screen.queryByText(/Потенциальный штраф/)).not.toBeInTheDocument();
+  });
+
   it('показывает заглушку при scanFailed вместо краша', () => {
     const failed = { ...r, scanFailed: true };
     const onRescan = vi.fn();

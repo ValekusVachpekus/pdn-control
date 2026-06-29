@@ -67,7 +67,7 @@ function ViolationCard({ v, detail, open, onToggle }) {
               </div>
             </div>
           )}
-          {v.fine_rub && (
+          {v.fine_rub > 0 && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12,
               padding: '10px 13px', background: 'var(--crit-soft)', borderRadius: 9 }}>
               <Icon name="alert" size={15} stroke={2} style={{ color: 'var(--crit-ink)', flexShrink: 0 }} />

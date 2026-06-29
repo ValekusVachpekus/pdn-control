@@ -25,6 +25,18 @@ function dateHuman(iso) {
   });
 }
 
+// URL точки сбора ПДн → человекочитаемая метка расположения (issue #102):
+// корень → «Главная страница», иначе путь (напр. "/contacts"). Показывается всем ролям,
+// чтобы блок «Точки сбора ПДн» не выглядел пустым в режиме «Владелец».
+function pageLocation(url) {
+  if (!url) return 'Главная страница';
+  let path;
+  try { path = new URL(url).pathname; }
+  catch { path = String(url).replace(/^https?:\/\/[^/]*/i, '').split(/[?#]/)[0]; }
+  path = (path || '').replace(/\/+$/, '');
+  return path === '' ? 'Главная страница' : path;
+}
+
 // "ст. 9 (согласие)" → "ст. 9"
 function articleShort(article) {
   if (!article) return '';
@@ -121,7 +133,8 @@ export function mapReport(j) {
 
     collectionPoints: (ta.data_collection_points ?? []).map(c => ({
       page: c.url,
-      form: c.form_name,
+      location: pageLocation(c.url),
+      form: c.form_name || 'Форма',
       fields: c.fields ?? [],
     })),
 
