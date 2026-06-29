@@ -48,6 +48,7 @@ core risk, so the target is zero tolerance.
 - User story / issues: US-12 ([#69](https://github.com/ValekusVachpekus/pdn-control/issues/69)), PR [#57](https://github.com/ValekusVachpekus/pdn-control/pull/57).
 - 152-ФЗ relevance: protects the service operator's own data and third-party systems from unauthorized access.
 - QRT: [QRT-01](./quality-requirement-tests.md#qrt-01) — `crowler/tests/test_ssrf.py`, `crowler/tests/test_ssrf_redirect.py`.
+- ADR: [ADR-0003 — server-side gating & anti-SSRF boundary](./architecture/adr/0003-server-side-gating-and-ssrf-boundary.md); [ADR-0004 — Caddy/TLS single exposed boundary](./architecture/adr/0004-single-host-compose-caddy-tls.md).
 
 ---
 
@@ -79,6 +80,7 @@ scopes determinism to the **mechanical / rule-based** facts and violations.
 - Customer feedback: Sprint Review 2026-06-21 (non-deterministic results).
 - Issues: bug [#34](https://github.com/ValekusVachpekus/pdn-control/issues/34), canonicalization [#31](https://github.com/ValekusVachpekus/pdn-control/issues/31).
 - QRT: [QRT-02](./quality-requirement-tests.md#qrt-02) — idempotency of `detect_mechanical` in `backend/tests/test_violation_catalog.py` plus a canonicalization determinism check.
+- ADR: [ADR-0002 — deterministic GeoIP over LLM](./architecture/adr/0002-deterministic-geoip-over-llm.md); [ADR-0001 — deterministic violation catalog guard](./architecture/adr/0001-full-llm-analysis-pipeline.md).
 
 ---
 
@@ -107,6 +109,7 @@ known cases and must fail closed rather than fabricate findings from unverifiabl
 - Product pipeline: rule-engine fact→violation comparison (see `CLAUDE.md`, Contract №1).
 - 152-ФЗ relevance: ст. 9 (consent), ст. 7 (third-party transfer), ст. 18 ч.5 (localization) mapping.
 - QRT: [QRT-03](./quality-requirement-tests.md#qrt-03) — `backend/tests/test_violation_catalog.py`.
+- ADR: [ADR-0001 — hybrid LLM analysis guarded by a deterministic violation catalog](./architecture/adr/0001-full-llm-analysis-pipeline.md).
 
 ---
 

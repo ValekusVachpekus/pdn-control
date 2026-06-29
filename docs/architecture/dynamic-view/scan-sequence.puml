@@ -1,0 +1,69 @@
+@startuml scan-sequence
+' Dynamic view — the end-to-end "scan a site → report" flow of ПДн Контроль.
+title ПДн Контроль — Scan-to-Report Sequence (Dynamic View)
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Business owner" as User
+participant "Frontend SPA" as FE
+participant "Backend API\n(FastAPI)" as API
+database "PostgreSQL" as DB
+queue "Redis\n(broker/cache/progress)" as Redis
+participant "Celery Worker" as Worker
+participant "Crowler / Parser" as Crawler
+participant "Target site" as Target
+participant "LLM API (Qwen)" as LLM
+participant "PDF Report\n(Typst)" as PDF
+
+User -> FE : enter URL, "Проверить"
+FE -> API : POST /api/scans {url}
+API -> API : SSRF guard\n(internal_target_reason)
+alt internal / private target
+  API --> FE : 400 Bad Request
+else allowed
+  API -> DB : INSERT Scan(status=pending)
+  API -> Redis : set progress = queued
+  API -> Redis : enqueue scans.run(scan_id, url)
+  API --> FE : 201 {scan_id}
+end
+
+== Background processing (Celery Worker) ==
+Worker -> Redis : consume scans.run
+Worker -> DB : Scan.status = running
+Worker -> Redis : phase = crawling
+Worker -> Crawler : POST /scan {url, max_pages}
+Crawler -> Target : crawl public pages
+Crawler --> Worker : CrawlJSON (facts, Contract #1)
+
+Worker -> Redis : phase = analyzing
+Worker -> Redis : LLM cache lookup(crawl)
+alt cache miss
+  Worker -> LLM : analyze policy / consent / cookie texts
+  LLM --> Worker : LLM verdict JSON
+  Worker -> Redis : cache store (TTL 7d)
+else cache hit
+  Redis --> Worker : cached LLM JSON
+end
+
+Worker -> Redis : phase = building
+Worker -> Worker : report_builder.assemble\n(Contract #2)
+Worker -> DB : Scan.report_json, status = done
+Worker -> Redis : phase = done
+
+== Frontend polling ==
+FE -> API : GET /api/scans/{id}/status  (poll)
+API -> DB : read status
+API --> FE : status = done
+FE -> API : GET /api/reports/{id}
+API -> DB : read report_json (gated by paid)
+API --> FE : unified report JSON
+
+opt download PDF
+  FE -> API : GET report PDF
+  API -> PDF : POST unified report JSON
+  PDF --> API : rendered PDF
+  API --> FE : PDF file
+end
+
+@enduml

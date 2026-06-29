@@ -83,13 +83,30 @@ above and pulled into Sprint 5. Two **related** items are intentionally deferred
 - [`docs/quality-requirements.md`](../../docs/quality-requirements.md)
 - [`docs/quality-requirement-tests.md`](../../docs/quality-requirement-tests.md)
 - [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md)
-- [`docs/development-process.md`](../../docs/development-process.md) <!-- TODO Part 3 -->
-- [`docs/architecture/README.md`](../../docs/architecture/README.md) <!-- TODO Part 4 -->
-- Architecture views: [static](../../docs/architecture/static-view/) · [dynamic](../../docs/architecture/dynamic-view/) · [deployment](../../docs/architecture/deployment-view/) <!-- TODO Part 4 -->
-- [ADR directory](../../docs/architecture/adr/) <!-- TODO Part 5 -->
+- [`docs/development-process.md`](../../docs/development-process.md)
+- [`docs/architecture/README.md`](../../docs/architecture/README.md)
+- Architecture views: [static](../../docs/architecture/static-view/component-diagram.svg) · [dynamic](../../docs/architecture/dynamic-view/scan-sequence.svg) · [deployment](../../docs/architecture/deployment-view/deployment-diagram.svg)
+- [ADR directory](../../docs/architecture/adr/)
 
 ## Architecture Summary (Parts 4–5)
-<!-- TODO: summary of the architecture, how it supports the product, and how quality requirements link to ADRs -->
+
+The product is a set of cooperating services run as one Docker Compose stack behind Caddy/TLS:
+a React **frontend**, a FastAPI **backend API**, an async **Celery worker** running the scan
+pipeline, a **crawler/parser** (facts, Contract #1), a **PDF** renderer (Typst), **PostgreSQL**,
+and **Redis** (queue, LLM cache, progress). It integrates with external systems: the scanned
+target site, the LLM API (Qwen), GeoIP, OAuth (Yandex/VK), an e-mail provider, and CloudPayments.
+Services are highly cohesive and loosely coupled through two stable JSON contracts and a Redis
+queue, which keeps the MVP v2 auth work isolated from the scan pipeline. See
+[`docs/architecture/README.md`](../../docs/architecture/README.md) for the static, dynamic, and
+deployment views.
+
+**Quality requirements ↔ architecture decisions:** the three quality requirements are each backed
+by a recorded ADR — [QR-01 confidentiality](../../docs/quality-requirements.md#qr-01--crawler-confidentiality-against-ssrf)
+→ [ADR-0003](../../docs/architecture/adr/0003-server-side-gating-and-ssrf-boundary.md)/[ADR-0004](../../docs/architecture/adr/0004-single-host-compose-caddy-tls.md);
+[QR-02 determinism](../../docs/quality-requirements.md#qr-02--deterministic-scan-results)
+→ [ADR-0002](../../docs/architecture/adr/0002-deterministic-geoip-over-llm.md)/[ADR-0001](../../docs/architecture/adr/0001-full-llm-analysis-pipeline.md);
+[QR-03 correctness](../../docs/quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine)
+→ [ADR-0001](../../docs/architecture/adr/0001-full-llm-analysis-pipeline.md).
 
 ## Testing & CI Status (Part 6)
 <!-- TODO: testing/CI summary, link to CI pipeline + latest protected-branch run -->

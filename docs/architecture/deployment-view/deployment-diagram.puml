@@ -1,0 +1,57 @@
+@startuml deployment-diagram
+' Deployment view — runtime topology of ПДн Контроль (MVP v2).
+' Rendered without Graphviz via PlantUML's built-in Smetana layout engine.
+!pragma layout smetana
+title ПДн Контроль — Deployment Diagram (Deployment View, MVP v2)
+
+skinparam shadowing false
+
+node "User device" {
+  artifact "Web browser" as Browser
+}
+
+node "Customer host (Linux VM)\nDocker Compose stack" as Host {
+  node "caddy\n:443 TLS" as Caddy
+  node "frontend\nnginx :80" as FE
+  node "api\nuvicorn :8000" as API
+  node "worker\nCelery (queue: scans)" as Worker
+  node "crowler\n:8010 (Chromium, init=tini)" as Crawler
+  node "pdfreport\n:8020 (Typst)" as PDF
+  database "db\nPostgres 16 :5432\n(volume: pgdata)" as DB
+  queue "redis\n:6379 (db0/1/2)" as Redis
+}
+
+cloud "Internet / external services" {
+  node "Scanned target site" as Target
+  node "LLM API (Qwen)" as LLM
+  node "GeoIP" as GeoIP
+  node "OAuth: Yandex / VK" as OAuth
+  node "E-mail provider" as Email
+  node "CloudPayments" as Pay
+}
+
+Browser --> Caddy : HTTPS :443
+Caddy --> FE : HTTP
+Caddy --> API : HTTP /api/*
+
+API --> DB
+API --> Redis
+Worker --> DB
+Worker --> Redis
+Worker --> Crawler : HTTP
+API --> PDF : HTTP
+Worker --> LLM : HTTPS
+Worker --> GeoIP : HTTPS
+API --> OAuth : HTTPS
+API --> Email : SMTP/HTTPS
+API --> Pay : HTTPS
+Crawler --> Target : HTTP/HTTPS
+
+note bottom of Host
+  One `docker compose up` brings up all services.
+  Only Caddy (:443) is exposed to the internet;
+  internal service ports are reachable only on the
+  Compose network (dev maps them to localhost).
+end note
+
+@enduml
