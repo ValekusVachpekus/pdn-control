@@ -1,0 +1,52 @@
+@startuml component-diagram
+' Static view — component diagram of ПДн Контроль (MVP v2).
+' Rendered without Graphviz via PlantUML's built-in Smetana layout engine.
+!pragma layout smetana
+title ПДн Контроль — Component Diagram (Static View, MVP v2)
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+actor "Business owner\n(browser)" as User
+
+node "Customer host (Docker Compose)" {
+  [Caddy\nTLS reverse proxy] as Caddy
+  [Frontend SPA\nReact + Vite / nginx] as FE
+  [Backend API\nFastAPI / uvicorn] as API
+  [Celery Worker\nscan pipeline] as Worker
+  [Crowler / Parser\nFastAPI + Chromium] as Crawler
+  [PDF Report\nFastAPI + Typst] as PDF
+  database "PostgreSQL\nscans, users" as DB
+  queue "Redis\nbroker · result · LLM cache · progress" as Redis
+}
+
+cloud "External systems" {
+  [Scanned target site] as Target
+  [LLM API (Qwen)] as LLM
+  [GeoIP] as GeoIP
+  [OAuth: Yandex / VK] as OAuth
+  [E-mail provider] as Email
+  [CloudPayments] as Pay
+}
+
+User --> Caddy : HTTPS :443
+Caddy --> FE : static SPA
+Caddy --> API : /api/* (reverse proxy)
+
+API --> DB : SQLAlchemy (asyncpg)
+API --> Redis : enqueue scan · read progress
+API --> OAuth : OAuth2 redirect flow
+API --> Email : send OTP / notifications (SMTP/API)
+API --> Pay : checkout
+API --> PDF : POST unified report JSON\n→ receive PDF (HTTP)
+
+Worker --> Redis : consume queue · LLM cache · progress
+Worker --> DB : write Scan.report_json (psycopg2)
+Worker --> Crawler : POST /scan (HTTP)
+Worker --> LLM : analyze policy texts (HTTPS)
+Worker --> GeoIP : resolve server country
+
+Crawler --> Target : crawl public pages (HTTP/HTTPS)
+
+@enduml

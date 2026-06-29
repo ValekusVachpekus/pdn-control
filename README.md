@@ -32,6 +32,11 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
   `frontend/app/example-report.json` (эталонная фикстура).
 - [docs/user-stories.md](docs/user-stories.md) — индекс бэклога: пользовательские истории
   (`US-xx`) с ссылками на GitHub Issues (живой источник) и статусом трассируемости.
+- [docs/architecture/README.md](docs/architecture/README.md) — архитектура: static / dynamic /
+  deployment views (diagrams-as-code) и ADR.
+- [docs/development-process.md](docs/development-process.md) — процесс разработки (git workflow,
+  ревью, статусы) и configuration management.
+- [docs/roadmap.md](docs/roadmap.md) — дорожная карта по спринтам.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — рабочий процесс: ветки, PR, релизы.
 - [CHANGELOG.md](CHANGELOG.md) — история изменений (Keep a Changelog / SemVer).
 
