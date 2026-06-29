@@ -109,14 +109,17 @@ CATALOG: dict[str, ViolationSpec] = {
         "article_152fz": "ст. 18.1 ч. 2",
         "severity": "warning",
         "fine_rub": 60_000,
-        "target_role": "marketer",
+        # Реализация cookie-баннера (кнопка «Отклонить») — задача разработчика,
+        # а не маркетолога (#103).
+        "target_role": "developer",
         "title": "Cookie-баннер без возможности отказа",
     },
     "no_cookie_notice": {
         "article_152fz": "ст. 18.1 ч. 2",
         "severity": "info",
         "fine_rub": 60_000,
-        "target_role": "marketer",
+        # Cookie-уведомление — тоже техническая задача разработчика (#103).
+        "target_role": "developer",
         "title": "Cookie-уведомление отсутствует",
     },
     "captcha_no_notice": {
