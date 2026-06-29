@@ -195,6 +195,36 @@ export async function register({ email, password, consent }) {
   return auth;
 }
 
+/* Passwordless-вход по коду на e-mail (issue #55).
+ * POST /api/auth/request-code { email }              -> 204 (всегда, анти-enumeration)
+ * POST /api/auth/verify-code  { email, code, consent } -> { token, user }
+ * 152-ФЗ ст. 9: при ПЕРВОЙ регистрации consent=true обязателен (иначе 400). */
+export async function requestCode({ email }) {
+  if (IS_MOCK) return true;
+  await http('/api/auth/request-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  return true;
+}
+
+export async function verifyCode({ email, code, consent }) {
+  if (IS_MOCK) {
+    const auth = { token: 'mock', user: { email } };
+    writeAuth(auth);
+    return auth;
+  }
+  const res = await http('/api/auth/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, consent }),
+  });
+  const auth = await res.json();
+  writeAuth(auth);
+  return auth;
+}
+
 /* Вход через Яндекс/ВК. На бэке сейчас 501 — UI-кнопки видны, но реальный
  * OAuth-flow пока не реализован (см. backend/app/routers/auth.py). */
 export async function loginWithProvider(provider, consent) {

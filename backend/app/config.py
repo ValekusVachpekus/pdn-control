@@ -48,9 +48,28 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3.6-plus"
     llm_timeout_sec: int = 60
 
+    # ── E-mail (passwordless OTP) ────────────────────────────────────────────
+    # Транзакционная отправка через Resend (HTTP API). Если ключ пуст — DEV-режим:
+    # код печатается в лог, письмо не уходит (см. services/email.py). Чтобы
+    # включить реальную отправку, достаточно ЗАДАТЬ ДАННЫЕ: resend_api_key +
+    # email_from на верифицированный домен — код менять не нужно.
+    resend_api_key: str = ""
+    email_from: str = "ПДн Контроль <onboarding@resend.dev>"
+    email_api_base: str = "https://api.resend.com"
+
+    # OTP-параметры passwordless-входа по коду на e-mail.
+    otp_ttl_sec: int = 600              # код живёт 10 минут
+    otp_max_attempts: int = 5          # попыток ввода на один код (анти-брутфорс)
+    otp_resend_cooldown_sec: int = 60  # не чаще 1 кода/мин на email и на IP
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def email_configured(self) -> bool:
+        """Есть ли данные для реальной отправки писем (иначе DEV-режим в лог)."""
+        return bool(self.resend_api_key)
 
 
 @lru_cache
