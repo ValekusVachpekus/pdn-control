@@ -130,7 +130,18 @@ scenarios were added for the Week 4 customer-UAT feedback fixes:
 <!-- TODO Part 13: public sanitized demo video (<2 min) -->
 
 ## Hosted Documentation (Part 11)
-<!-- TODO: link to hosted docs site -->
+
+The maintained `docs/` are published as a browsable documentation site (MkDocs Material),
+built and deployed to GitHub Pages from the protected `main` branch by
+[`.github/workflows/docs.yml`](../../.github/workflows/docs.yml).
+
+- **Hosted documentation site:** https://valekusvachpekus.github.io/pdn-control/
+
+The site surfaces the [roadmap](https://valekusvachpekus.github.io/pdn-control/roadmap/),
+[architecture overview + views](https://valekusvachpekus.github.io/pdn-control/architecture/),
+the [ADRs](https://valekusvachpekus.github.io/pdn-control/architecture/adr/0001-full-llm-analysis-pipeline/),
+the [development process](https://valekusvachpekus.github.io/pdn-control/development-process/),
+and the quality docs (requirements, requirement tests, testing strategy, Definition of Done).
 
 ## Sprint Review & Retrospective (Parts 9–10)
 - [Sprint Review summary](sprint-review-summary.md) <!-- TODO -->

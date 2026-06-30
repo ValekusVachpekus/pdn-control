@@ -9,9 +9,9 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 
 | QRT | Verifies | Type | Test location | Runs in CI |
 |---|---|---|---|---|
-| [QRT-01](#qrt-01) | [QR-01](./quality-requirements.md#qr-01-crawler-confidentiality-against-ssrf) (Security / Confidentiality) | Unit | [`crowler/tests/test_ssrf.py`](../crowler/tests/test_ssrf.py), [`crowler/tests/test_ssrf_redirect.py`](../crowler/tests/test_ssrf_redirect.py) | crowler test job (#71) |
-| [QRT-02](#qrt-02) | [QR-02](./quality-requirements.md#qr-02-deterministic-scan-results) (Reliability / Maturity) | Unit | [`backend/tests/test_determinism.py`](../backend/tests/test_determinism.py), [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) (`test_detect_mechanical_idempotent`) | backend test job (#71) |
-| [QRT-03](#qrt-03) | [QR-03](./quality-requirements.md#qr-03-correct-fact-to-violation-mapping-rule-engine) (Functional suitability / Functional correctness) | Unit | [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) | backend test job (#71) |
+| [QRT-01](#qrt-01) | [QR-01](./quality-requirements.md#qr-01--crawler-confidentiality-against-ssrf) (Security / Confidentiality) | Unit | [`crowler/tests/test_ssrf.py`](../crowler/tests/test_ssrf.py), [`crowler/tests/test_ssrf_redirect.py`](../crowler/tests/test_ssrf_redirect.py) | crowler test job (#71) |
+| [QRT-02](#qrt-02) | [QR-02](./quality-requirements.md#qr-02--deterministic-scan-results) (Reliability / Maturity) | Unit | [`backend/tests/test_determinism.py`](../backend/tests/test_determinism.py), [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) (`test_detect_mechanical_idempotent`) | backend test job (#71) |
+| [QRT-03](#qrt-03) | [QR-03](./quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine) (Functional suitability / Functional correctness) | Unit | [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) | backend test job (#71) |
 
 > **CI note.** The CI runner, coverage gate, additional QA check, and branch protection
 > that execute these QRTs on every PR are delivered by issue
@@ -22,7 +22,7 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 
 ## QRT-01
 
-- **Verifies:** [QR-01 — Crawler confidentiality against SSRF](./quality-requirements.md#qr-01-crawler-confidentiality-against-ssrf)
+- **Verifies:** [QR-01 — Crawler confidentiality against SSRF](./quality-requirements.md#qr-01--crawler-confidentiality-against-ssrf)
 - **ISO/IEC 25010:** Security → Confidentiality
 - **Evidence type:** Automated unit tests (deterministic; DNS resolver is injected as a fake, no real network).
 - **Location:** [`crowler/tests/test_ssrf.py`](../crowler/tests/test_ssrf.py), [`crowler/tests/test_ssrf_redirect.py`](../crowler/tests/test_ssrf_redirect.py)
@@ -35,7 +35,7 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 
 ## QRT-02
 
-- **Verifies:** [QR-02 — Deterministic scan results](./quality-requirements.md#qr-02-deterministic-scan-results)
+- **Verifies:** [QR-02 — Deterministic scan results](./quality-requirements.md#qr-02--deterministic-scan-results)
 - **ISO/IEC 25010:** Reliability → Maturity
 - **Evidence type:** Automated unit tests (pure functions; no Redis/DB/LLM).
 - **Location:** [`backend/tests/test_determinism.py`](../backend/tests/test_determinism.py) (added for QR-02), and the existing `test_detect_mechanical_idempotent` in [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py).
@@ -50,7 +50,7 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 
 ## QRT-03
 
-- **Verifies:** [QR-03 — Correct fact-to-violation mapping](./quality-requirements.md#qr-03-correct-fact-to-violation-mapping-rule-engine)
+- **Verifies:** [QR-03 — Correct fact-to-violation mapping](./quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine)
 - **ISO/IEC 25010:** Functional suitability → Functional correctness
 - **Evidence type:** Automated unit tests over labelled crawl fixtures (no LLM/DB).
 - **Location:** [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py)

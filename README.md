@@ -37,6 +37,8 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
 - [docs/development-process.md](docs/development-process.md) — процесс разработки (git workflow,
   ревью, статусы) и configuration management.
 - [docs/roadmap.md](docs/roadmap.md) — дорожная карта по спринтам.
+- **Hosted-документация (сайт):** https://valekusvachpekus.github.io/pdn-control/ —
+  браузерная версия `docs/` (MkDocs Material, публикуется из `main`).
 - [CONTRIBUTING.md](CONTRIBUTING.md) — рабочий процесс: ветки, PR, релизы.
 - [CHANGELOG.md](CHANGELOG.md) — история изменений (Keep a Changelog / SemVer).
 

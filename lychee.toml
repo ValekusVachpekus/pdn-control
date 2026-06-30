@@ -34,6 +34,10 @@ exclude = [
   # GitLab Innopolis — за корпоративной аутентификацией, недоступен анонимно из CI.
   "^https://gitlab\\.pg\\.innopolis\\.university",
 
+  # Hosted documentation site (GitHub Pages). Публикуется отдельным workflow только
+  # после merge в main, поэтому в PR, который сайт настраивает, ещё недостижим.
+  "^https://valekusvachpekus\\.github\\.io/pdn-control",
+
   # Ссылки версий из CHANGELOG (compare/<tag> и releases/tag/<tag>) резолвятся только
   # после публикации релиза, поэтому в PR, который этот релиз нарезает, недостижимы.
   # GitHub генерирует их автоматически — проверять до публикации нечего.
