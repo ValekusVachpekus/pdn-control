@@ -115,7 +115,19 @@ by a recorded ADR — [QR-01 confidentiality](../../docs/quality-requirements.md
 <!-- TODO: link to SemVer release mapped to MVP v2 + CHANGELOG.md -->
 
 ## Demo & UAT (Parts 8, 13)
-<!-- TODO: public demo video (<2 min) + public UAT results summary -->
+
+**User Acceptance Tests:** all scenarios are maintained in
+[`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md). For `MVP v2` two new
+scenarios were added for the Week 4 customer-UAT feedback fixes:
+
+- [UAT-06](../../docs/user-acceptance-tests.md#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) — logged-out check routes to sign-in without a loading screen ([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99)).
+- [UAT-07](../../docs/user-acceptance-tests.md#uat-07--report-and-history-ui-clarity-fixes) — report and history UI clarity fixes ([#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102)).
+
+> Status: ⏳ **Pending execution** — UAT-06/07 are scheduled to be run with the customer at the
+> Sprint 5 Review (recorded session). The public UAT **results summary** is filled in here after
+> that session.
+
+<!-- TODO Part 13: public sanitized demo video (<2 min) -->
 
 ## Hosted Documentation (Part 11)
 <!-- TODO: link to hosted docs site -->
@@ -124,7 +136,7 @@ by a recorded ADR — [QR-01 confidentiality](../../docs/quality-requirements.md
 - [Sprint Review summary](sprint-review-summary.md) <!-- TODO -->
 - [Reflection](reflection.md) <!-- TODO -->
 - [Retrospective](retrospective.md) <!-- TODO -->
-- [LLM report](llm-report.md) <!-- TODO -->
+- [LLM report](llm-report.md)
 
 ## Product Status & Next Steps
 <!-- TODO -->
