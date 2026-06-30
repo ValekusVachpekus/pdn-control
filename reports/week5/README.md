@@ -121,7 +121,7 @@ by a recorded ADR — [QR-01 confidentiality](../../docs/quality-requirements.md
 
 The maintained `docs/` are published as a browsable documentation site (MkDocs Material),
 built and deployed to GitHub Pages from the protected `main` branch by
-[`.github/workflows/docs.yml`](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/workflows/docs.yml).
+[`.github/workflows/docs.yml`](../../.github/workflows/docs.yml).
 
 - **Hosted documentation site:** https://valekusvachpekus.github.io/pdn-control/
 
