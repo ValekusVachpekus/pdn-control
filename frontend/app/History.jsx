@@ -56,7 +56,7 @@ function formatDate(iso) {
   } catch { return iso; }
 }
 
-function History({ onOpen, onOpenScan, onToast, currentReportId }) {
+function History({ onOpen, onOpenScan, onToast, currentReportId, onNewScan }) {
   const [items, setItems] = useState(null);  // null = loading
   const [q, setQ] = useState('');
 
@@ -111,8 +111,12 @@ function History({ onOpen, onOpenScan, onToast, currentReportId }) {
         )}
 
         {items !== null && items.length === 0 && (
-          <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-            История пуста — запустите первую проверку сайта.
+          <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div>История пуста — запустите первую проверку сайта.</div>
+            <button className="btn btn-primary" style={{ height: 42, padding: '0 22px' }} onClick={onNewScan}>
+              Новая проверка <Icon name="arrow" size={17} />
+            </button>
           </div>
         )}
 
