@@ -13,6 +13,11 @@ attributes), UAT confirms the product is **fit for purpose** for the end user.
   :8010, PDF microservice on :8020, frontend served by nginx).
 - **Overall result:** **5 / 5 Pass** — customer accepted MVP v1.
 
+> **MVP v2 (Sprint 5):** new scenarios for the `MVP v2` increment are maintained in their own
+> section, [**MVP v2 (Sprint 5) — new scenarios**](#mvp-v2-sprint-5--new-scenarios), below.
+> They are **scheduled for execution with the customer at the Sprint 5 Review** and are marked
+> **Pending** until then — no verdict is asserted in advance.
+
 ### Execution history
 
 | Session date | Build / environment | Acceptor | Result |
@@ -120,6 +125,62 @@ the **Pass/Fail** verdict.
 | Expected result | Each non-public target (direct or via redirect) is refused with no outbound connection to the protected address; the user sees a clear refusal rather than a report. |
 | **Actual result** | As expected — direct and redirect-based private targets were refused. Backed by the automated SSRF corpus ([QRT-01](./quality-requirement-tests.md#qrt-01), `crowler/tests/test_ssrf*.py`, 45 passing). |
 | **Verdict** | ✅ **Pass** |
+
+---
+
+## MVP v2 (Sprint 5) — new scenarios
+
+These scenarios cover **new or changed user-facing behaviour delivered in `MVP v2`**
+(Sprint 5). They were added for the **Week 4 customer-UAT feedback fixes** raised during the
+2026-06-27 session
+([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99),
+[#100](https://github.com/ValekusVachpekus/pdn-control/issues/100),
+[#101](https://github.com/ValekusVachpekus/pdn-control/issues/101),
+[#102](https://github.com/ValekusVachpekus/pdn-control/issues/102); source:
+[`reports/week4/customer-review-summary.md`](../reports/week4/customer-review-summary.md)).
+
+- **Build under test:** `MVP v2` (`v1.2.0`) on the customer's own infrastructure
+  (`pdn.neurolife.tech`), after the Sprint 5 deploy.
+- **Status:** ⏳ **Pending execution** — to be run with the customer at the **Sprint 5 Review
+  (recorded session)**. Actual results and verdicts are filled in only after that session; no
+  Pass/Fail is asserted in advance.
+
+| UAT | Source issue | Feature | Acceptor | Result |
+|---|---|---|---|---|
+| [UAT-06](#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Logged-out check → sign-in, no loading screen | Customer | ⏳ Pending |
+| [UAT-07](#uat-07--report-and-history-ui-clarity-fixes) | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Report and history UI clarity | Customer | ⏳ Pending |
+
+---
+
+## UAT-06 — Logged-out check routes to sign-in without a loading screen
+
+- **Source:** bug [#99 — loading screen opens on a logged-out check](https://github.com/ValekusVachpekus/pdn-control/issues/99) (Must Have), from the 2026-06-27 customer UAT.
+- **Business goal:** A visitor who is not signed in must not be dropped onto a dead "loading" screen; they should be guided to register / sign in.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | Given a **logged-out** user, when they start a check, the loading/scanning screen is **not** shown, and the user is routed to registration/login (a clear path to authenticate). |
+| Preconditions | `MVP v2` (`v1.2.0`) live on `pdn.neurolife.tech`; user is **logged out**. |
+| Steps | 1. Open the site while logged out. 2. Enter a valid public URL in the landing input. 3. Click **«Проверить»**. |
+| Expected result | No scanning/loading screen appears; instead the registration/login prompt is shown, giving the user a clear path to authenticate before any check runs. |
+| **Actual result** | ⏳ Pending — to be executed at the Sprint 5 Review (recorded). |
+| **Verdict** | ⏳ **Pending** |
+
+---
+
+## UAT-07 — Report and history UI clarity fixes
+
+- **Source:** bugs/tasks [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) (Should Have), from the 2026-06-27 customer UAT.
+- **Business goal:** The report and the history must not look empty or show misleading values — three specific clarity defects the customer raised during live testing.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | (a) **#100** — on an empty history screen, a prominent **"Новая проверка"** action returns the user to the main page; (b) **#101** — no misleading **"0"** fine is shown for a check that cannot be assessed (the value is hidden, not rendered as zero); (c) **#102** — found forms in **"Точки сбора ПДн"** show their **location** (e.g. «Главная страница» or the page path) and the block is not empty. |
+| Preconditions | `MVP v2` (`v1.2.0`) live; a registered, signed-in account; for (a) a fresh/empty history; for (b)/(c) a completed scan of a site that has a form on the **main page** and at least one non-applicable (non-fineable) check. |
+| Steps | 1. With an empty history, open **«История»** → confirm the prominent **«Новая проверка»** action and that it returns to the main page. 2. Run a scan of a site with a main-page form. 3. Open the report → confirm no stray **"0"** fine appears for non-applicable checks. 4. Open the technical appendix → confirm **«Точки сбора ПДн»** lists the found form with its location. |
+| Expected result | (a) the empty-history "Новая проверка" action is obvious and navigates to the main page; (b) non-applicable checks show no "0" fine; (c) each found form shows a non-empty location label. |
+| **Actual result** | ⏳ Pending — to be executed at the Sprint 5 Review (recorded). |
+| **Verdict** | ⏳ **Pending** |
 
 ---
 
