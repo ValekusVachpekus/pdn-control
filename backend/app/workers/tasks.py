@@ -19,10 +19,11 @@ import uuid
 from datetime import datetime, timezone
 
 from celery import Task
-from sqlalchemy import create_engine, update
+from sqlalchemy import create_engine, delete, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import get_settings
+from ..models.email_code import EmailCode
 from ..models.scan import Scan, ScanStatus
 from ..services import llm_cache, scan_progress
 from ..services.crawler_client import CrawlerError, scan_site_sync
@@ -135,5 +136,29 @@ def run_scan(self: Task, scan_id: str, url: str, *, max_pages: int, llm_enabled:
     except Exception as exc:  # noqa: BLE001 — самый внешний catch для надёжности
         log.exception("scan %s crashed", sid)
         return _mark_failed(session, sid, f"internal: {exc}")
+    finally:
+        session.close()
+
+
+@celery_app.task(name="auth.cleanup_email_codes")
+def cleanup_email_codes() -> dict:
+    """Периодическая чистка отработавших OTP-кодов: использованные и протухшие.
+
+    Живые коды (не использованные и с действующим TTL) не трогаем. Запускается
+    celery beat по расписанию (см. celery_app.beat_schedule). Идемпотентна.
+    """
+    now = datetime.now(timezone.utc)
+    session = _make_session()
+    try:
+        res = session.execute(
+            delete(EmailCode).where(
+                (EmailCode.used.is_(True)) | (EmailCode.expires_at < now)
+            )
+        )
+        session.commit()
+        deleted = res.rowcount or 0
+        if deleted:
+            log.info("cleanup_email_codes: удалено %d отработавших кодов", deleted)
+        return {"deleted": deleted}
     finally:
         session.close()

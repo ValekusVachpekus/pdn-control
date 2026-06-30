@@ -85,7 +85,9 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2 -Q scans
+    # -B = embedded celery beat (периодическая чистка OTP-кодов). Воркер один,
+    # поэтому отдельный beat-контейнер не нужен и дублей расписания не будет.
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2 -Q scans -B
 
   frontend:
     build: ../frontend
