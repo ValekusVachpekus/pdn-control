@@ -44,6 +44,13 @@ e2e backend поднимает реальный Postgres в CI.
   (API на реальном Postgres).
 - Канонизация входа LLM-кэша (стабильность ключа):
   [`backend/tests/test_llm_cache.py`](../backend/tests/test_llm_cache.py).
+- **MVP v2 (Sprint 5)** — аутентификация (bcrypt + JWT: подпись/подмена/просрочка):
+  [`backend/tests/test_auth_service.py`](../backend/tests/test_auth_service.py);
+  cookie-нарушения адресованы маркетологу, точки сбора ПДн, разбивка скоринга по
+  роли (фидбэк заказчика):
+  [`backend/tests/test_mvp_v2_rules.py`](../backend/tests/test_mvp_v2_rules.py);
+  адаптер отчёта UI (роли, метки точек сбора):
+  [`frontend/test/mapReport.test.js`](../frontend/test/mapReport.test.js).
 
 ## Критические модули и порог покрытия
 
@@ -56,8 +63,9 @@ e2e backend поднимает реальный Postgres в CI.
 |--------|------|-------|------------------|
 | [`crowler/pdn_parser/ssrf.py`](../crowler/pdn_parser/ssrf.py) | anti-SSRF инвариант | 30 % | ~81 % |
 | [`crowler/pdn_parser/geoip.py`](../crowler/pdn_parser/geoip.py) | детерминированная страна хостинга | 30 % | ~84 % |
-| [`backend/app/services/violation_catalog.py`](../backend/app/services/violation_catalog.py) | rule-engine (механические нарушения) | 30 % | ~73 % |
+| [`backend/app/services/violation_catalog.py`](../backend/app/services/violation_catalog.py) | rule-engine (механические нарушения) | 30 % | ~74 % |
 | [`backend/app/services/llm_cache.py`](../backend/app/services/llm_cache.py) | детерминизм входа LLM | 30 % | ~62 % |
+| [`backend/app/services/auth.py`](../backend/app/services/auth.py) | аутентификация MVP v2 (bcrypt + JWT) | 30 % | ~100 % |
 
 «Текущее покрытие» — ориентир на момент заведения гейта; гейт падает только при
 просадке ниже порога или если модуль исчез из отчёта (переименование = провал,

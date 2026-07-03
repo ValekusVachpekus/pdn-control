@@ -80,11 +80,13 @@ jobs:
         run: |
           pytest tests/ -q --ignore=tests/test_e2e.py \
             --cov=app.services.violation_catalog --cov=app.services.llm_cache \
+            --cov=app.services.auth \
             --cov-report=term-missing --cov-report=json:coverage.json
       - name: Per-module coverage gate (>=30%)
         run: |
           python ../scripts/check_coverage.py coverage.json --min 30 \
-            app/services/violation_catalog.py app/services/llm_cache.py
+            app/services/violation_catalog.py app/services/llm_cache.py \
+            app/services/auth.py
 
   # ── Backend: интеграция через реальный Postgres (API e2e) ───────────────────
   backend-integration:
