@@ -44,17 +44,17 @@ def _crawl_cookie_no_reject() -> dict:
     }
 
 
-# ─── cookie target_role = marketer (фидбэк заказчика) ────────────────────────
+# ─── cookie target_role = developer (#103: реализация — техническая задача) ───
 
-def test_cookie_specs_target_marketer():
-    # Лок каталога: cookie-нарушения адресованы маркетологу.
+def test_cookie_specs_target_developer():
+    # Лок каталога: cookie-нарушения адресованы разработчику (#103).
     for t in ("cookie_no_reject", "no_cookie_notice"):
         spec = vc.spec_for(t)
         assert spec is not None
-        assert spec["target_role"] == "marketer", t
+        assert spec["target_role"] == "developer", t
 
 
-def test_cookie_no_reject_detected_and_routed_to_marketer():
+def test_cookie_no_reject_detected_and_routed_to_developer():
     crawl = _crawl_cookie_no_reject()
     mech = vc.detect_mechanical(crawl)
     types = {v["type"] for v in mech}
@@ -62,7 +62,7 @@ def test_cookie_no_reject_detected_and_routed_to_marketer():
 
     report = assemble(crawl, {"violations": mech}, report_id=uuid.uuid4())
     v = next(v for v in report["violations"] if v["type"] == "cookie_no_reject")
-    assert v["target_role"] == "marketer"
+    assert v["target_role"] == "developer"
 
 
 # ─── data collection points (issue #102, бэкенд-строитель) ───────────────────
