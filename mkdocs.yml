@@ -1,0 +1,97 @@
+site_name: ПДн Контроль — Документация
+site_description: >-
+  Поддерживаемая документация сервиса предварительного технического аудита сайтов
+  на риски нарушения 152-ФЗ: архитектура, ADR, процесс разработки, качество и тесты.
+site_url: https://valekusvachpekus.github.io/pdn-control/
+site_author: Team ПДн Контроль
+
+repo_url: https://github.com/ValekusVachpekus/pdn-control
+repo_name: ValekusVachpekus/pdn-control
+edit_uri: edit/main/docs/
+
+# Источник — поддерживаемые активы в docs/ (Assignment 5 Part 11).
+docs_dir: docs
+
+theme:
+  name: material
+  language: ru
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      toggle:
+        icon: material/weather-night
+        name: Тёмная тема
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      toggle:
+        icon: material/weather-sunny
+        name: Светлая тема
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      # Слугификация якорей «как на GitHub» — чтобы существующие кросс-ссылки вида
+      # #qr-01--... и #uat-01--... резолвились и на сайте, и в файловом браузере.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
+  - pymdownx.superfences:
+      custom_fences:
+        # Рендер Mermaid-диаграмм (gitGraph в development-process.md) на сайте.
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search:
+      lang: ru
+
+# Build-time перезапись относительных ссылок, выходящих за пределы docs/ (на код,
+# CI, CHANGELOG и т.п.), в абсолютные GitHub-URL. Оставляет maintained-доки нетронутыми.
+hooks:
+  - mkdocs_hooks.py
+
+# Ссылки на код вне docs/ резолвятся хуком в GitHub, поэтому не падаем на них.
+validation:
+  links:
+    not_found: warn
+    absolute_links: ignore
+  nav:
+    omitted_files: ignore
+
+nav:
+  - Главная: index.md
+  - Дорожная карта: roadmap.md
+  - Архитектура:
+      - Обзор: architecture/README.md
+      - ADR:
+          - Индекс: architecture/adr/index.md
+          - ADR-0001 — Full-LLM pipeline: architecture/adr/0001-full-llm-analysis-pipeline.md
+          - ADR-0002 — Deterministic GeoIP: architecture/adr/0002-deterministic-geoip-over-llm.md
+          - ADR-0003 — Server-side gating & SSRF: architecture/adr/0003-server-side-gating-and-ssrf-boundary.md
+          - ADR-0004 — Single-host Compose + Caddy/TLS: architecture/adr/0004-single-host-compose-caddy-tls.md
+  - Процесс разработки: development-process.md
+  - Качество:
+      - Требования к качеству: quality-requirements.md
+      - Тесты требований к качеству: quality-requirement-tests.md
+      - Стратегия тестирования: testing.md
+      - Definition of Done: definition-of-done.md
+  - Приёмочные тесты (UAT): user-acceptance-tests.md
+  - Пользовательские истории: user-stories.md

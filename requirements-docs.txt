@@ -1,0 +1,4 @@
+# Зависимости для сборки hosted documentation site (MkDocs Material).
+# Используется только в CI (.github/workflows/docs.yml) и для локального
+# `mkdocs serve`; в рантайм продукта не входит.
+mkdocs-material>=9.5,<10

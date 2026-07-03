@@ -100,6 +100,7 @@ function App() {
   // а UI считает, что пользователь не залогинен (и шлёт его на форму входа).
   const [user, setUser] = useState(() => getStoredAuth()?.user || null);
   const [paid, setPaid] = useState(false);  // оплачен ли ТЕКУЩИЙ отчёт (разовая оплата, per-report)
+  const [pendingScan, setPendingScan] = useState(null); // URL, ждущий входа (issue #99)
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
   const handleLogout = () => {
@@ -188,7 +189,19 @@ function App() {
     return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
   }, [reportId]);
 
+  // Гейт по авторизации (issue #99): незалогиненному не показываем экран загрузки —
+  // запоминаем введённый URL, открываем вход; после успешного входа onAuth сам
+  // запустит runScan. Залогиненный сразу идёт в runScan.
   const startScan = (d, skip) => {
+    if (!user) {
+      setPendingScan(normalizeDomain(d));
+      setModal('auth');
+      return;
+    }
+    runScan(d, skip);
+  };
+
+  const runScan = (d, skip) => {
     const dom = normalizeDomain(d);
     setDomain(dom);
     setPaid(false); // новый отчёт — снова бесплатный тизер до оплаты
@@ -289,6 +302,7 @@ function App() {
           {nav === 'history' && <History
             currentReportId={reportId}
             onToast={toast}
+            onNewScan={() => setScreen('landing')}
             onOpenScan={(it) => {
               // Идущая проверка (pending/running) — открываем экран её хода (issue #50).
               // Новый скан НЕ запускаем (apiStartScan не дёргаем), только навигация на
@@ -326,7 +340,13 @@ function App() {
       )}
 
       <Auth open={modal === 'auth'} onClose={() => setModal(null)}
-        onAuth={setUser} onToast={toast} onOpenPolicy={openPolicy} />
+        onAuth={(u) => {
+          setUser(u);
+          // Был отложенный скан (issue #99) — запускаем напрямую runScan: user в
+          // этом рендере ещё не обновлён, обёртка-гейт снова открыла бы модалку.
+          if (pendingScan) { const d = pendingScan; setPendingScan(null); runScan(d); }
+        }}
+        onToast={toast} onOpenPolicy={openPolicy} />
       {modal === 'pricing' && (
         <Suspense fallback={null}>
           <Pricing open onClose={() => setModal(null)} onToast={toast}

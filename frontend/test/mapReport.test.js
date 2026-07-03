@@ -103,4 +103,20 @@ describe('mapReport — крайние случаи', () => {
     expect(mapReport({ infrastructure_and_geo: { localization_compliant: false } })
       .infra.localizationStatus).toBe('unknown');
   });
+
+  // issue #102: расположение формы — человекочитаемая метка для всех ролей.
+  it('точки сбора: location из URL + fallback имени формы', () => {
+    const r = mapReport({ technical_appendix: { data_collection_points: [
+      { url: 'https://x.ru/', form_name: 'Запись на приём', fields: ['name'] },
+      { url: 'https://x.ru/contacts', form_name: 'Обратная связь' },
+      { url: 'https://x.ru/about?x=1#y' },
+    ] } });
+    expect(r.collectionPoints[0].location).toBe('Главная страница');
+    expect(r.collectionPoints[1].location).toBe('/contacts');
+    expect(r.collectionPoints[2].location).toBe('/about');
+    // нет form_name → плейсхолдер
+    expect(r.collectionPoints[2].form).toBe('Форма');
+    // fields по умолчанию пустой массив
+    expect(r.collectionPoints[1].fields).toEqual([]);
+  });
 });
