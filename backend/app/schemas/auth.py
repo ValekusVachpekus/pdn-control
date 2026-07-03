@@ -21,6 +21,19 @@ class LoginIn(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class RequestCodeIn(BaseModel):
+    """Шаг 1 passwordless-входа: запрос кода на e-mail."""
+    email: EmailStr
+
+
+class VerifyCodeIn(BaseModel):
+    """Шаг 2: проверка кода. `consent` обязателен только при ПЕРВОЙ регистрации
+    (нового пользователя) — 152-ФЗ ст. 9; для существующего игнорируется."""
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    consent: bool = False
+
+
 class OAuthIn(BaseModel):
     """Тело при входе через провайдера. `consent` обязателен только при ПЕРВОЙ
     регистрации (для существующего пользователя бэкенд может игнорировать)."""
