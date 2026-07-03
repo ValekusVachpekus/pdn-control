@@ -157,11 +157,15 @@ async def _run_flow():
                               json={"email": email, "password": "wrongpass"})
         assert r.status_code == 401
 
-        # OAuth — заглушка (501 на yandex/vk, 404 на остальное)
-        r = await client.post("/api/auth/oauth/yandex", json={"consent": True})
-        assert r.status_code == 501, r.text
-        r = await client.post("/api/auth/oauth/google", json={"consent": True})
+        # OAuth (реальный redirect-flow, #72). Провайдер не сконфигурен в тестовой
+        # среде → /start редиректит в SPA с ошибкой (307). Неизвестный провайдер → 404.
+        r = await client.get("/api/auth/oauth/yandex/start")
+        assert r.status_code == 307, r.text
+        r = await client.get("/api/auth/oauth/google/start")
         assert r.status_code == 404, r.text
+        # Колбэк с отказом/ошибкой провайдера → редирект в SPA без сессии (307).
+        r = await client.get("/api/auth/oauth/yandex/callback?error=access_denied")
+        assert r.status_code == 307, r.text
 
         # Plans
         plans = (await client.get("/api/billing/plans")).json()
