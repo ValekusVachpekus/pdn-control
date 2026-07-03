@@ -15,7 +15,7 @@
   - валидация URL отсекает мусор/инъекции;
   - POST /api/billing/checkout помечает отчёт оплаченным (dev-stub);
   - paid-режим: полный JSON + PDF доступен (PDF-сервис замокан);
-  - OAuth-эндпоинт пока 501.
+  - OAuth redirect-flow: /start и /callback (без сконфигуренных провайдеров).
 """
 from __future__ import annotations
 
