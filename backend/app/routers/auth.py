@@ -1,15 +1,17 @@
-"""Регистрация / логин по email+password + OAuth-заглушки (Яндекс/ВК).
+"""Аутентификация: email+password, passwordless OTP по коду и соц-вход OAuth.
 
-Реальный OAuth-flow (редирект → провайдер → callback → JWT) — отдельная задача:
-здесь возвращаем 501 c понятным сообщением, чтобы это нельзя было перепутать
-с рабочим эндпоинтом. Конструкция сохраняет контракт с фронтом — когда OAuth
-будет готов, поменяем только тело функции.
+Соц-вход (Яндиз/ВК) — реальный redirect authorization-code flow (#72):
+GET /oauth/{provider}/start → редирект к провайдеру; GET /oauth/{provider}/callback
+→ обмен code на токен, профиль, find-or-create User, httpOnly-JWT, редирект в SPA.
+Провайдерская механика — в services/oauth.py; включается заданием client_id/secret.
 """
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,20 +23,17 @@ from ..plans import POLICY_VERSION
 from ..schemas.auth import (
     AuthOut,
     LoginIn,
-    OAuthIn,
     RegisterIn,
     RequestCodeIn,
     UserOut,
     VerifyCodeIn,
 )
-from ..services import otp
+from ..services import oauth, oauth_state, otp
 from ..services.auth import create_access_token, hash_password, verify_password
 from ..services.email import send_otp_email
 from ..services.rate_limit import allow_otp_request
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-_OAUTH_PROVIDERS = {"yandex", "vk"}
 
 
 def _client_ip(request: Request) -> str:
@@ -169,21 +168,101 @@ async def verify_code(
     return AuthOut(token=token, user=UserOut.model_validate(user))
 
 
-@router.post("/oauth/{provider}", response_model=AuthOut)
-async def oauth_login(
-    provider: str,
-    body: OAuthIn,
-    session: AsyncSession = Depends(get_session),  # noqa: ARG001 — будет нужен после реализации
-) -> AuthOut:
-    """Заглушка OAuth.
+def _oauth_redirect_uri(provider: str) -> str:
+    """redirect_uri колбэка — должен совпадать с зарегистрированным у провайдера."""
+    return f"{get_settings().oauth_backend_base}/api/auth/oauth/{provider}/callback"
 
-    Реальный flow: фронт → /api/auth/oauth/{provider} → redirect к Яндексу/ВК →
-    callback → обмен code на access_token → достаём email → ищем/создаём User →
-    выдаём JWT. Сейчас не реализовано — отдаём 501.
+
+def _frontend(query: str) -> str:
+    return f"{get_settings().oauth_frontend_redirect}/{query}"
+
+
+def _cookie_secure() -> bool:
+    # В dev по http браузер отбросил бы Secure-cookie — там его выключаем.
+    return get_settings().app_env != "dev"
+
+
+@router.get("/oauth/{provider}/start")
+async def oauth_start(provider: str, consent: bool = False) -> RedirectResponse:
+    """Шаг 1: редирект на экран согласия провайдера. `consent` — состояние
+    чекбокса согласия на ПДн (нужно при первой регистрации, 152-ФЗ ст. 9).
     """
-    if provider not in _OAUTH_PROVIDERS:
+    if not oauth.is_supported(provider):
         raise HTTPException(status_code=404, detail="unknown provider")
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=f"OAuth via {provider} is not implemented yet. Use /api/auth/register.",
+    if not oauth.is_configured(provider):
+        return RedirectResponse(_frontend("?oauth_error=provider_unavailable"), status_code=307)
+
+    state = secrets.token_urlsafe(24)
+    verifier = oauth.new_code_verifier() if oauth.uses_pkce(provider) else None
+    challenge = oauth.code_challenge_s256(verifier) if verifier else None
+    try:
+        oauth_state.save_state(
+            state, {"provider": provider, "consent": bool(consent), "code_verifier": verifier}
+        )
+    except Exception:  # noqa: BLE001 — Redis недоступен: без CSRF-стейта не стартуем
+        return RedirectResponse(_frontend("?oauth_error=state"), status_code=307)
+
+    url = oauth.build_authorize_url(
+        provider, redirect_uri=_oauth_redirect_uri(provider),
+        state=state, code_challenge=challenge,
     )
+    return RedirectResponse(url, status_code=307)
+
+
+@router.get("/oauth/{provider}/callback")
+async def oauth_callback(
+    provider: str,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    device_id: str | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> RedirectResponse:
+    """Шаг 2: провайдер вернул code+state. Валидируем state (CSRF), меняем code
+    на токен, читаем профиль, находим/создаём/линкуем User, ставим httpOnly-JWT
+    и возвращаем в SPA. Любая ошибка → редирект в SPA без сессии.
+    """
+    if not oauth.is_supported(provider):
+        raise HTTPException(status_code=404, detail="unknown provider")
+
+    # Пользователь отказал в доступе / провайдер вернул ошибку.
+    if error or not code or not state:
+        return RedirectResponse(_frontend("?oauth_error=denied"), status_code=307)
+
+    saved = oauth_state.pop_state(state)
+    if saved is None or saved.get("provider") != provider:
+        return RedirectResponse(_frontend("?oauth_error=state"), status_code=307)
+
+    try:
+        token = await oauth.exchange_code(
+            provider, code=code, redirect_uri=_oauth_redirect_uri(provider),
+            code_verifier=saved.get("code_verifier"), device_id=device_id,
+        )
+        email, _uid = await oauth.fetch_profile(provider, token)
+    except oauth.OAuthError:
+        return RedirectResponse(_frontend("?oauth_error=provider"), status_code=307)
+
+    email = email.lower()
+    now = datetime.now(timezone.utc)
+    user = await session.scalar(select(User).where(User.email == email))
+    if user is None:
+        # Первая регистрация — согласие обязательно (152-ФЗ ст. 9), иначе без сессии.
+        if not saved.get("consent"):
+            return RedirectResponse(_frontend("?oauth_error=consent_required"), status_code=307)
+        user = User(
+            email=email, oauth_provider=provider,
+            consent_at=now, consent_policy_version=POLICY_VERSION,
+        )
+        session.add(user)
+        await session.flush()
+    elif user.oauth_provider is None:
+        user.oauth_provider = provider  # линкуем соц-вход к существующему аккаунту
+
+    jwt_token = create_access_token(user.id)
+    resp = RedirectResponse(_frontend("?oauth=success"), status_code=307)
+    resp.set_cookie(
+        "access_token", jwt_token,
+        httponly=True, secure=_cookie_secure(), samesite="lax",
+        max_age=get_settings().jwt_expire_minutes * 60, path="/",
+    )
+    return resp
