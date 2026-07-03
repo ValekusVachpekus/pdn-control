@@ -62,9 +62,14 @@ function ReportAppendix({ r, isSpec, onToast }) {
           <div className="col" style={{ gap: 10 }}>
             {r.collectionPoints.map((c, i) => (
               <div key={i} className="surface-tile" style={{ padding: '12px 13px', borderRadius: 10 }}>
-                <div className="row-center" style={{ gap: 8, marginBottom: 8 }}>
+                <div className="row-center" style={{ gap: 8, marginBottom: 6 }}>
                   <Icon name="form" size={16} style={{ color: 'var(--ink-2)' }} />
                   <span style={{ fontSize: 13.5, fontWeight: 600 }}>{c.form}</span>
+                </div>
+                {/* Расположение формы — всем ролям, чтобы блок не выглядел пустым (issue #102) */}
+                <div className="row-center" style={{ gap: 6, marginBottom: 8, fontSize: 12, color: 'var(--muted)' }}>
+                  <Icon name="doc" size={13} style={{ color: 'var(--faint)' }} />
+                  <span>{c.location}</span>
                 </div>
                 {isSpec && <div className="mono" style={{ fontSize: 11, color: 'var(--faint)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.page}</div>}
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>

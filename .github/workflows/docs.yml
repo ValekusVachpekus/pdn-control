@@ -1,0 +1,74 @@
+name: Docs (MkDocs → Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - mkdocs_hooks.py
+      - requirements-docs.txt
+      - .github/workflows/docs.yml
+  # На PR — только сборка (без публикации): ловим поломку сайта до merge.
+  pull_request:
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - mkdocs_hooks.py
+      - requirements-docs.txt
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Не отменяем выполняющийся деплой Pages, но не копим очередь.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install MkDocs Material
+        run: pip install -r requirements-docs.txt
+
+      - name: Build site
+        run: mkdocs build --site-dir site
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    # Публикуем только из protected default branch (main) — не из PR.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Включить Pages (source = GitHub Actions) при первом запуске, если ещё не включён.
+          enablement: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
