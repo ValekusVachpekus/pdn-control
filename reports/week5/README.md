@@ -169,9 +169,9 @@ scenarios were added for the Week 4 customer-UAT feedback fixes:
 > Sprint 5 Review (recorded session); the customer accepted the MVP v2 increment. Full scenarios,
 > actual results and verdicts: [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md#mvp-v2-sprint-5--new-scenarios).
 
-**Recordings:** the Sprint 5 Review / UAT session was recorded (Maksim Shakhrai). The public
-sanitized product demo video (< 2 min, Part 13) is prepared separately.
-<!-- TODO Part 13: link the public sanitized demo video (<2 min) once uploaded -->
+**Demo video (Part 13):** [public sanitized product demo (< 2 min)](https://drive.google.com/file/d/1oNELDN7wBCO_SLX-4MAFFBw9rTh7bxfz/view?usp=sharing) — a short walkthrough of `MVP v2` (scan → report, authentication).
+
+**Recordings:** the Sprint 5 Review / UAT session was recorded separately (Maksim Shakhrai).
 
 ## Hosted Documentation (Part 11)
 
@@ -207,8 +207,6 @@ fully live: registering the Yandex/VK OAuth apps (to supply `client_id`/`secret`
 SPF/DKIM DNS records for outbound e-mail.
 
 **Next steps:**
-- Publish the public sanitized product demo video (< 2 min, Part 13) and link it here and in the
-  release.
 - Collect OAuth credentials and the e-mail DNS confirmation from the customer to activate social
   login and domain e-mail in production (the customer's stated next-Sprint request).
 - Next Sprint: scan-finished e-mail notification (US-13, [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)), building on the new e-mail provider.
