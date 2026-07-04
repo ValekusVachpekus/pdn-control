@@ -48,9 +48,43 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3.6-plus"
     llm_timeout_sec: int = 60
 
+    # ── E-mail (passwordless OTP) ────────────────────────────────────────────
+    # Транзакционная отправка через Resend (HTTP API). Если ключ пуст — DEV-режим:
+    # код печатается в лог, письмо не уходит (см. services/email.py). Чтобы
+    # включить реальную отправку, достаточно ЗАДАТЬ ДАННЫЕ: resend_api_key +
+    # email_from на верифицированный домен — код менять не нужно.
+    resend_api_key: str = ""
+    email_from: str = "ПДн Контроль <onboarding@resend.dev>"
+    email_api_base: str = "https://api.resend.com"
+
+    # OTP-параметры passwordless-входа по коду на e-mail.
+    otp_ttl_sec: int = 600              # код живёт 10 минут
+    otp_max_attempts: int = 5          # попыток ввода на один код (анти-брутфорс)
+    otp_resend_cooldown_sec: int = 60  # не чаще 1 кода/мин на email и на IP
+
+    # ── OAuth (соц-вход: Яндекс / ВКонтакте) ─────────────────────────────────
+    # Реальный вход включается ЗАДАНИЕМ ДАННЫХ — client_id/secret в .env.secret,
+    # код менять не нужно. Пусто = провайдер выключен (кнопка вернёт ошибку).
+    # ВК использует VK ID (OAuth 2.1 + PKCE): секрет не обязателен.
+    oauth_yandex_client_id: str = ""
+    oauth_yandex_client_secret: str = ""
+    oauth_vk_client_id: str = ""
+    oauth_vk_client_secret: str = ""
+    # Публичный базовый URL БЭКЕНДА — из него строится redirect_uri колбэка
+    # (должен совпадать с зарегистрированным у провайдера).
+    oauth_backend_base: str = "http://localhost:8000"
+    # Куда вернуть пользователя в SPA после логина (успех/ошибка).
+    oauth_frontend_redirect: str = "http://localhost:5173"
+    oauth_state_ttl_sec: int = 600  # время жизни CSRF-state между start и callback
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def email_configured(self) -> bool:
+        """Есть ли данные для реальной отправки писем (иначе DEV-режим в лог)."""
+        return bool(self.resend_api_key)
 
 
 @lru_cache

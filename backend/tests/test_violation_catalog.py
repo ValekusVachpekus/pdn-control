@@ -147,3 +147,12 @@ def test_rkn_is_advisory_if_ever_emitted():
     """Латентная защита: если no_rkn_notification всё же придёт (старый кэш),
     он advisory → без штрафа."""
     assert vc.is_advisory("no_rkn_notification") is True
+
+
+def test_cookie_violations_target_developer():
+    """#103: cookie-нарушения адресуются разработчику (реализация баннера/
+    уведомления — техническая задача), а не маркетологу."""
+    for t in ("cookie_no_reject", "no_cookie_notice"):
+        spec = vc.spec_for(t)
+        assert spec is not None
+        assert spec["target_role"] == "developer", t

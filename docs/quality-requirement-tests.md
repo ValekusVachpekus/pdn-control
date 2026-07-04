@@ -11,7 +11,7 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 |---|---|---|---|---|
 | [QRT-01](#qrt-01) | [QR-01](./quality-requirements.md#qr-01--crawler-confidentiality-against-ssrf) (Security / Confidentiality) | Unit | [`crowler/tests/test_ssrf.py`](../crowler/tests/test_ssrf.py), [`crowler/tests/test_ssrf_redirect.py`](../crowler/tests/test_ssrf_redirect.py) | crowler test job (#71) |
 | [QRT-02](#qrt-02) | [QR-02](./quality-requirements.md#qr-02--deterministic-scan-results) (Reliability / Maturity) | Unit | [`backend/tests/test_determinism.py`](../backend/tests/test_determinism.py), [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) (`test_detect_mechanical_idempotent`) | backend test job (#71) |
-| [QRT-03](#qrt-03) | [QR-03](./quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine) (Functional suitability / Functional correctness) | Unit | [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py) | backend test job (#71) |
+| [QRT-03](#qrt-03) | [QR-03](./quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine) (Functional suitability / Functional correctness) | Unit | [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py), [`backend/tests/test_mvp_v2_rules.py`](../backend/tests/test_mvp_v2_rules.py) | backend test job (#71) |
 
 > **CI note.** The CI runner, coverage gate, additional QA check, and branch protection
 > that execute these QRTs on every PR are delivered by issue
@@ -53,11 +53,14 @@ merge per [`docs/definition-of-done.md`](./definition-of-done.md).
 - **Verifies:** [QR-03 — Correct fact-to-violation mapping](./quality-requirements.md#qr-03--correct-fact-to-violation-mapping-rule-engine)
 - **ISO/IEC 25010:** Functional suitability → Functional correctness
 - **Evidence type:** Automated unit tests over labelled crawl fixtures (no LLM/DB).
-- **Location:** [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py)
+- **Location:** [`backend/tests/test_violation_catalog.py`](../backend/tests/test_violation_catalog.py),
+  [`backend/tests/test_mvp_v2_rules.py`](../backend/tests/test_mvp_v2_rules.py) (MVP v2)
 - **What it checks:** On labelled fixtures the engine emits exactly the expected violation
   types (PII form without consent → violation; clean site → zero); never fabricates
   unverifiable violations (`no_rkn_notification` is not emitted by code); a malformed crawl
-  fails closed to zero violations; operator-identification suppression works.
+  fails closed to zero violations; operator-identification suppression works. **MVP v2:**
+  cookie-нарушения адресованы маркетологу (не разработчику), точки сбора ПДн перечисляются
+  из фактов crawl, и `target_role` управляет разбивкой скоринга (cookie → технический балл).
 - **Pass criteria (maps to QR-03 measure):** Expected-vs-detected violations match with
   100% precision and recall on the fixtures; 0 fabricated violations; malformed crawl → 0.
 - **Run locally:** `cd backend && uv run pytest tests/test_violation_catalog.py`
