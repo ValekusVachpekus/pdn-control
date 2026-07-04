@@ -224,4 +224,29 @@ Based on actual PR authorship and recorded PR reviews on GitHub for Sprint 5 (mi
 | Maksim Shakhrai (`ShakhraiMaksim`) | — | — | — | Recorded the Sprint 5 Review / UAT-06/07 customer session (2026-07-04) | Sprint Review / UAT session recording |
 
 ## Screenshots
-<!-- TODO: Sprint milestone, board view, CI run, release, reviewed PR, hosted docs -->
+
+**Sprint 5 milestone**
+
+![Sprint 5 milestone](images/milestone.png)
+
+**Board / project workflow view (Sprint Backlog)**
+
+![Sprint Backlog board](images/board.png)
+
+**Latest protected-default-branch CI run**
+
+![CI run on main](images/ci.png)
+
+**Example reviewed issue-linked PR**
+
+![Reviewed issue-linked PR](images/pr.png)
+
+**Hosted documentation site**
+
+![Hosted docs site](images/docs.png)
+
+**SemVer release `v1.2.0`**
+
+<!-- TODO: add images/release.png (screenshot of the v1.2.0 release page) and embed it here -->
+See the [`v1.2.0` release page](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0)
+(screenshot pending).
