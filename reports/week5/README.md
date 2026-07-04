@@ -247,6 +247,6 @@ Based on actual PR authorship and recorded PR reviews on GitHub for Sprint 5 (mi
 
 **SemVer release `v1.2.0`**
 
-<!-- TODO: add images/release.png (screenshot of the v1.2.0 release page) and embed it here -->
-See the [`v1.2.0` release page](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0)
-(screenshot pending).
+![v1.2.0 release page](images/release.png)
+
+See the [`v1.2.0` release page](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0).
