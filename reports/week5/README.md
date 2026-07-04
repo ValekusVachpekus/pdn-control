@@ -35,9 +35,8 @@ passwordless OTP [#55](https://github.com/ValekusVachpekus/pdn-control/issues/55
 ([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99)–[#104](https://github.com/ValekusVachpekus/pdn-control/issues/104));
 maintained architecture/ADR/process documentation and extended tests/QA
 ([#107](https://github.com/ValekusVachpekus/pdn-control/issues/107)–[#111](https://github.com/ValekusVachpekus/pdn-control/issues/111)).
-
-<!-- TODO Part 7: Summary of delivered MVP v2 changes -->
-<!-- TODO Part 7: Link to product access artifact + run instructions -->
+See [**Delivered MVP v2 Changes**](#delivered-mvp-v2-changes-part-7) below for the full summary and
+the product-access / run instructions.
 
 ---
 
@@ -51,12 +50,12 @@ live testing. All six were accepted into Sprint 5; none were rejected.
 
 | Feedback point | Resulting PBI or issue | Status | Response |
 |---|---|---|---|
-| Starting a check while logged out is blocked, but the loading screen still opens. | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Planned (Sprint 5) | Stop the loading screen from showing on an unauthenticated check; route the user to registration/login. |
-| From the empty history screen there is no obvious way back to the main page ("New check" not discoverable). | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100) | Planned (Sprint 5) | Make the "New check" / back-to-main action prominent on the empty-history state. |
-| A useless "0" fine is shown when owner-side personal-data checks cannot be assessed. | [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101) | Planned (Sprint 5) | Hide the `0` where the check is not applicable instead of rendering a misleading zero. |
-| "Data collection points" looks empty when the forms are on the main page. | [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Planned (Sprint 5) | Label the location (e.g. "Main page") so found forms are not shown as empty. |
-| The cookie-banner violation is addressed to the Marketer; it should go to the Developer. | [#103](https://github.com/ValekusVachpekus/pdn-control/issues/103) | Planned (Sprint 5) | Change the violation `target_role` for the cookie-banner rule from `marketer` to `developer`. |
-| Use a third-party e-mail provider instead of a local SMTP server on the customer's machine. | [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104) | Planned (Sprint 5) | Integrate a third-party e-mail provider; the team sends the customer the DNS records to add on their side. |
+| Starting a check while logged out is blocked, but the loading screen still opens. | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Done | Stop the loading screen from showing on an unauthenticated check; route the user to registration/login. |
+| From the empty history screen there is no obvious way back to the main page ("New check" not discoverable). | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100) | Done | Make the "New check" / back-to-main action prominent on the empty-history state. |
+| A useless "0" fine is shown when owner-side personal-data checks cannot be assessed. | [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101) | Done | Hide the `0` where the check is not applicable instead of rendering a misleading zero. |
+| "Data collection points" looks empty when the forms are on the main page. | [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Done | Label the location (e.g. "Main page") so found forms are not shown as empty. |
+| The cookie-banner violation is addressed to the Marketer; it should go to the Developer. | [#103](https://github.com/ValekusVachpekus/pdn-control/issues/103) | Done | Change the violation `target_role` for the cookie-banner rule from `marketer` to `developer`. |
+| Use a third-party e-mail provider instead of a local SMTP server on the customer's machine. | [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104) | Done (code); customer DNS pending | Integrated a third-party e-mail provider (Resend), removing the local SMTP server. Delivered and merged; sending real e-mail from the customer's domain still needs the customer to add the SPF/DKIM DNS records we provide. |
 
 ### Feedback not addressed this Sprint
 
@@ -74,7 +73,25 @@ above and pulled into Sprint 5. Two **related** items are intentionally deferred
 <!-- =========================================================== -->
 
 ## Delivered MVP v2 Changes (Part 7)
-<!-- TODO -->
+
+**Authentication & onboarding (Sprint Goal):**
+- **Passwordless e-mail login (OTP)** — two-step sign-in (e-mail → 6-digit code), code stored only as a bcrypt hash, 10-min TTL, attempt limit, rate-limited request that does not reveal account existence ([#55](https://github.com/ValekusVachpekus/pdn-control/issues/55), [PR #119](https://github.com/ValekusVachpekus/pdn-control/pull/119)).
+- **Real social login via Yandex & VK (OAuth)** — full authorization-code redirect flow with CSRF `state`, PKCE for VK ID, provider callback that finds/creates/links the account, records 152-ФЗ art. 9 consent on first registration, and sets an httpOnly session cookie. Enabled by setting provider `client_id`/`secret` ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72), [PR #122](https://github.com/ValekusVachpekus/pdn-control/pull/122)).
+- **Third-party e-mail provider (Resend)** — removes the local SMTP server; DEV mode logs the code when no key is set ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104), [PR #119](https://github.com/ValekusVachpekus/pdn-control/pull/119)).
+
+**Customer UAT feedback fixes (Week 4 → MVP v2):**
+- Logged-out check no longer opens a stuck loading screen; routes to sign-in and auto-runs after login ([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99)).
+- Prominent "New check" action on the empty-history screen ([#100](https://github.com/ValekusVachpekus/pdn-control/issues/100)).
+- Useless "0" fine hidden for non-applicable checks ([#101](https://github.com/ValekusVachpekus/pdn-control/issues/101)).
+- "Data collection points" now labels each form's location instead of looking empty ([#102](https://github.com/ValekusVachpekus/pdn-control/issues/102)).
+- Cookie-banner violation re-addressed to the **Developer** role instead of the Marketer ([#103](https://github.com/ValekusVachpekus/pdn-control/issues/103), PRs [#113](https://github.com/ValekusVachpekus/pdn-control/pull/113)/[#120](https://github.com/ValekusVachpekus/pdn-control/pull/120)/[#121](https://github.com/ValekusVachpekus/pdn-control/pull/121)).
+
+**Architecture, docs & QA (maintainability):**
+- Maintained architecture documentation — static/dynamic/deployment views (PlantUML) + 4 ADRs + development-process doc ([#107](https://github.com/ValekusVachpekus/pdn-control/issues/107)/[#108](https://github.com/ValekusVachpekus/pdn-control/issues/108)/[#109](https://github.com/ValekusVachpekus/pdn-control/issues/109), [PR #112](https://github.com/ValekusVachpekus/pdn-control/pull/112)).
+- Hosted documentation site (MkDocs Material → GitHub Pages) ([#111](https://github.com/ValekusVachpekus/pdn-control/issues/111), [PR #114](https://github.com/ValekusVachpekus/pdn-control/pull/114)).
+- Extended tests/QA for MVP v2 — auth unit tests + rule-engine/report tests; `auth.py` added to the critical-module coverage gate ([#110](https://github.com/ValekusVachpekus/pdn-control/issues/110), [PR #116](https://github.com/ValekusVachpekus/pdn-control/pull/116)).
+
+**Product access & run instructions:** the increment is deployed on the customer's infrastructure at **https://pdn.neurolife.tech**. Local run: `cd backend && docker compose up` (see the [root README](../../README.md) for setup and environment).
 
 ## Maintained Documentation
 - [`docs/roadmap.md`](../../docs/roadmap.md)
@@ -109,10 +126,35 @@ by a recorded ADR — [QR-01 confidentiality](../../docs/quality-requirements.md
 → [ADR-0001](../../docs/architecture/adr/0001-full-llm-analysis-pipeline.md).
 
 ## Testing & CI Status (Part 6)
-<!-- TODO: testing/CI summary, link to CI pipeline + latest protected-branch run -->
+
+All Assignment 4 quality gates stay active and green for the delivered increment. The CI
+pipeline runs on every PR and on `main`: `backend-unit`, `backend-integration`, `crowler`,
+`frontend`, `pdfreport`, `lint`, `security` (Bandit SAST + dependency audit) and `lychee`
+(Markdown link check). `main` is protected — these checks and a review by a different member
+are required to merge.
+
+For `MVP v2` the automated verification was extended around the newly important areas:
+- **Auth unit tests** — bcrypt password hashing and JWT (signature, tampering, expiry); the
+  `auth.py` module was added to the critical-module coverage gate ([#110](https://github.com/ValekusVachpekus/pdn-control/issues/110)).
+- **OAuth unit tests** — PKCE S256, authorize-URL building (Yandex without PKCE, VK with
+  `code_challenge`/`S256`), provider e-mail parsing, single-use CSRF state ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)).
+- **Rule-engine / report tests** — cookie violation `target_role`, data-collection points, and
+  per-role score breakdown ([#110](https://github.com/ValekusVachpekus/pdn-control/issues/110)).
+- The `backend-integration` e2e flow was updated to the real OAuth redirect endpoints.
+
+- **CI pipeline:** [`.github/workflows/ci.yml`](https://github.com/ValekusVachpekus/pdn-control/actions/workflows/ci.yml)
+- **Latest protected-default-branch CI run:** [run #28675643650 — ✅ success](https://github.com/ValekusVachpekus/pdn-control/actions/runs/28675643650) (`main`, after the OAuth merge).
 
 ## Release (Part 7)
-<!-- TODO: link to SemVer release mapped to MVP v2 + CHANGELOG.md -->
+
+`MVP v2` maps to SemVer **`v1.2.0`**. The [`CHANGELOG.md`](../../CHANGELOG.md) `[1.2.0]` section
+is prepared. The tagged GitHub release is cut on the protected `main` branch after the customer
+Sprint Review, so it can link the sanitized demo video, this Week 5 report, the [Sprint 5
+milestone](https://github.com/ValekusVachpekus/pdn-control/milestone/3), and the run/access
+instructions.
+
+- **CHANGELOG:** [`CHANGELOG.md`](../../CHANGELOG.md)
+- **SemVer release `v1.2.0`:** _pending — link added once tagged._
 
 ## Demo & UAT (Parts 8, 13)
 
@@ -150,10 +192,38 @@ and the quality docs (requirements, requirement tests, testing strategy, Definit
 - [LLM report](llm-report.md)
 
 ## Product Status & Next Steps
-<!-- TODO -->
+
+**Current status:** `MVP v2` is delivered on the protected `main` branch and deployed on the
+customer's infrastructure at **https://pdn.neurolife.tech**. All 14 Sprint 5 milestone issues are
+closed; CI is green on `main`. The increment adds real authentication (passwordless e-mail OTP +
+Yandex/VK OAuth), closes the six Week 4 customer-UAT feedback items, and adds maintained
+architecture/ADR/process documentation plus a hosted docs site — without weakening the
+Assignment 4 quality gates. Two items need a **customer-side action** to go fully live: registering
+the Yandex/VK OAuth apps (to supply `client_id`/`secret`) and adding the SPF/DKIM DNS records for
+outbound e-mail.
+
+**Next steps:**
+- Run the customer Sprint Review + execute UAT-06/07 (recorded); fill the UAT results, Sprint
+  Review summary/notes, retrospective, and reflection.
+- Record the public sanitized demo video (< 2 min); tag the **`v1.2.0`** release mapped to `MVP v2`.
+- Collect OAuth credentials and the e-mail DNS confirmation from the customer to activate social
+  login and domain e-mail in production.
+- Next Sprint: scan-finished e-mail notification (US-13, [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)), building on the new e-mail provider.
 
 ## Contribution Traceability
-<!-- TODO Part: team member → issues/PRs/review/testing/architecture/docs -->
+
+Based on actual PR authorship and recorded PR reviews on GitHub for Sprint 5 (milestone #3).
+
+| Member (GitHub) | Issues implemented | PRs authored | PRs reviewed | Testing / QA | Architecture / Docs |
+|---|---|---|---|---|---|
+| Ilia Shchetkov (`ValekusVachpekus`) | #99, #100, #101, #102, #107 | [#112](https://github.com/ValekusVachpekus/pdn-control/pull/112), [#113](https://github.com/ValekusVachpekus/pdn-control/pull/113), [#114](https://github.com/ValekusVachpekus/pdn-control/pull/114), [#115](https://github.com/ValekusVachpekus/pdn-control/pull/115) | #116, #121, #122 | UI feedback-fix verification | Architecture views + 4 ADR + dev-process (#107–#109); hosted docs site (#111); Week 5 UAT scenarios + LLM report |
+| Aleksandr Martiushev (`alexzhal1`) | #55, #72, #103, #104 | [#119](https://github.com/ValekusVachpekus/pdn-control/pull/119), [#120](https://github.com/ValekusVachpekus/pdn-control/pull/120), [#121](https://github.com/ValekusVachpekus/pdn-control/pull/121), [#122](https://github.com/ValekusVachpekus/pdn-control/pull/122) | #113, #114, #115 | Auth (OTP + OAuth) implementation | E-mail provider integration; auth backend |
+| Airat Mingazov (`azenlrd`) | #110 | [#116](https://github.com/ValekusVachpekus/pdn-control/pull/116) | #119, #120 | Auth + rule-engine/report tests; `auth.py` added to coverage gate | `docs/testing.md` / QRT updates |
+| Ksenya Koroleva (`kskorqueen`) | — | [#118](https://github.com/ValekusVachpekus/pdn-control/pull/118) | #112 | — | Week 5 report contributions and report images; reviewed architecture/process docs (#112) |
+| Maksim Shakhrai (`ShakhraiMaksim`) | _to confirm_ | — | — | — | _to confirm_ |
+
+> ⚠️ **`ShakhraiMaksim`'s Sprint 5 contribution is still to be confirmed** — to be filled with his
+> actual work before submission.
 
 ## Screenshots
 <!-- TODO: Sprint milestone, board view, CI run, release, reviewed PR, hosted docs -->
