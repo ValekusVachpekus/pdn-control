@@ -119,5 +119,7 @@ Assignment 4.
   30x-редиректящий на внутренний адрес, не проходит. Дублирующая проверка на входе
   `/api/scans` (defense-in-depth).
 
-[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.0.0...main
+[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.2.0...main
+[1.2.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0

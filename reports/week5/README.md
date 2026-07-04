@@ -154,7 +154,7 @@ milestone](https://github.com/ValekusVachpekus/pdn-control/milestone/3), and the
 instructions.
 
 - **CHANGELOG:** [`CHANGELOG.md`](../../CHANGELOG.md)
-- **SemVer release `v1.2.0`:** _pending — link added once tagged._
+- **SemVer release `v1.2.0`:** [github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0) — `MVP v2: Auth & Architecture`.
 
 ## Demo & UAT (Parts 8, 13)
 
@@ -165,11 +165,13 @@ scenarios were added for the Week 4 customer-UAT feedback fixes:
 - [UAT-06](../../docs/user-acceptance-tests.md#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) — logged-out check routes to sign-in without a loading screen ([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99)).
 - [UAT-07](../../docs/user-acceptance-tests.md#uat-07--report-and-history-ui-clarity-fixes) — report and history UI clarity fixes ([#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102)).
 
-> Status: ⏳ **Pending execution** — UAT-06/07 are scheduled to be run with the customer at the
-> Sprint 5 Review (recorded session). The public UAT **results summary** is filled in here after
-> that session.
+> Status: ✅ **Executed 2026-07-04 — 2 / 2 Pass.** UAT-06/07 were run with the customer at the
+> Sprint 5 Review (recorded session); the customer accepted the MVP v2 increment. Full scenarios,
+> actual results and verdicts: [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md#mvp-v2-sprint-5--new-scenarios).
 
-<!-- TODO Part 13: public sanitized demo video (<2 min) -->
+**Recordings:** the Sprint 5 Review / UAT session was recorded (Maksim Shakhrai). The public
+sanitized product demo video (< 2 min, Part 13) is prepared separately.
+<!-- TODO Part 13: link the public sanitized demo video (<2 min) once uploaded -->
 
 ## Hosted Documentation (Part 11)
 
@@ -186,28 +188,29 @@ the [development process](https://valekusvachpekus.github.io/pdn-control/develop
 and the quality docs (requirements, requirement tests, testing strategy, Definition of Done).
 
 ## Sprint Review & Retrospective (Parts 9–10)
-- [Sprint Review summary](sprint-review-summary.md) <!-- TODO -->
-- [Reflection](reflection.md) <!-- TODO -->
-- [Retrospective](retrospective.md) <!-- TODO -->
+- [Sprint Review summary](sprint-review-summary.md) <!-- TODO: filled from the recorded session -->
+- [Reflection](reflection.md)
+- [Retrospective](retrospective.md)
 - [LLM report](llm-report.md)
 
 ## Product Status & Next Steps
 
-**Current status:** `MVP v2` is delivered on the protected `main` branch and deployed on the
-customer's infrastructure at **https://pdn.neurolife.tech**. All 14 Sprint 5 milestone issues are
-closed; CI is green on `main`. The increment adds real authentication (passwordless e-mail OTP +
-Yandex/VK OAuth), closes the six Week 4 customer-UAT feedback items, and adds maintained
-architecture/ADR/process documentation plus a hosted docs site — without weakening the
-Assignment 4 quality gates. Two items need a **customer-side action** to go fully live: registering
-the Yandex/VK OAuth apps (to supply `client_id`/`secret`) and adding the SPF/DKIM DNS records for
-outbound e-mail.
+**Current status:** `MVP v2` is delivered on the protected `main` branch, deployed on the
+customer's infrastructure at **https://pdn.neurolife.tech**, and released as
+[**`v1.2.0`**](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0). All 14 Sprint 5
+milestone issues are closed; CI is green on `main`. The customer **accepted the increment at the
+Sprint 5 Review on 2026-07-04** (UAT-06/07 passed 2 / 2, recorded). The increment adds real
+authentication (passwordless e-mail OTP + Yandex/VK OAuth), closes the six Week 4 customer-UAT
+feedback items, and adds maintained architecture/ADR/process documentation plus a hosted docs site
+— without weakening the Assignment 4 quality gates. Two items need a **customer-side action** to go
+fully live: registering the Yandex/VK OAuth apps (to supply `client_id`/`secret`) and adding the
+SPF/DKIM DNS records for outbound e-mail.
 
 **Next steps:**
-- Run the customer Sprint Review + execute UAT-06/07 (recorded); fill the UAT results, Sprint
-  Review summary/notes, retrospective, and reflection.
-- Record the public sanitized demo video (< 2 min); tag the **`v1.2.0`** release mapped to `MVP v2`.
+- Publish the public sanitized product demo video (< 2 min, Part 13) and link it here and in the
+  release.
 - Collect OAuth credentials and the e-mail DNS confirmation from the customer to activate social
-  login and domain e-mail in production.
+  login and domain e-mail in production (the customer's stated next-Sprint request).
 - Next Sprint: scan-finished e-mail notification (US-13, [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)), building on the new e-mail provider.
 
 ## Contribution Traceability
@@ -220,10 +223,7 @@ Based on actual PR authorship and recorded PR reviews on GitHub for Sprint 5 (mi
 | Aleksandr Martiushev (`alexzhal1`) | #55, #72, #103, #104 | [#119](https://github.com/ValekusVachpekus/pdn-control/pull/119), [#120](https://github.com/ValekusVachpekus/pdn-control/pull/120), [#121](https://github.com/ValekusVachpekus/pdn-control/pull/121), [#122](https://github.com/ValekusVachpekus/pdn-control/pull/122) | #113, #114, #115 | Auth (OTP + OAuth) implementation | E-mail provider integration; auth backend |
 | Airat Mingazov (`azenlrd`) | #110 | [#116](https://github.com/ValekusVachpekus/pdn-control/pull/116) | #119, #120 | Auth + rule-engine/report tests; `auth.py` added to coverage gate | `docs/testing.md` / QRT updates |
 | Ksenya Koroleva (`kskorqueen`) | — | [#118](https://github.com/ValekusVachpekus/pdn-control/pull/118) | #112 | — | Week 5 report contributions and report images; reviewed architecture/process docs (#112) |
-| Maksim Shakhrai (`ShakhraiMaksim`) | _to confirm_ | — | — | — | _to confirm_ |
-
-> ⚠️ **`ShakhraiMaksim`'s Sprint 5 contribution is still to be confirmed** — to be filled with his
-> actual work before submission.
+| Maksim Shakhrai (`ShakhraiMaksim`) | — | — | — | Recorded the Sprint 5 Review / UAT-06/07 customer session (2026-07-04) | Sprint Review / UAT session recording |
 
 ## Screenshots
 <!-- TODO: Sprint milestone, board view, CI run, release, reviewed PR, hosted docs -->
