@@ -131,18 +131,46 @@ async def _run_flow():
                               json={"email": bad_email, "password": "secretpass1", "consent": False})
         assert r.status_code == 400, r.text
 
-        # Register с consent=true → 201
-        email = f"u{uuid.uuid4().hex[:10]}@example.com"
-        r = await client.post("/api/auth/register",
-                              json={"email": email, "password": "secretpass1", "consent": True})
-        assert r.status_code == 201, r.text
+        # Register с consent=true → 202 (код отправлен, пользователь ещё НЕ создан).
+        # Перехватываем OTP через подмену мейлера, чтобы подтвердить регистрацию.
+        import app.routers.auth as auth_router
+        sent: dict[str, str] = {}
+
+        async def _capture_otp(to_email: str, code: str) -> None:
+            sent[to_email] = code
+
+        orig_mailer = auth_router.send_otp_email
+        auth_router.send_otp_email = _capture_otp
+        try:
+            email = f"u{uuid.uuid4().hex[:10]}@example.com"
+            r = await client.post("/api/auth/register",
+                                  json={"email": email, "password": "secretpass1", "consent": True})
+            assert r.status_code == 202, r.text
+            assert "token" not in r.json()  # токена на шаге 1 нет
+
+            # До подтверждения войти нельзя (пользователя ещё нет)
+            r = await client.post("/api/auth/login",
+                                  json={"email": email, "password": "secretpass1"})
+            assert r.status_code == 401
+
+            # Неверный код → 400
+            r = await client.post("/api/auth/register/confirm",
+                                  json={"email": email, "code": "000000"})
+            assert r.status_code == 400, r.text
+
+            # Верный код → 201 + токен, пользователь создан
+            r = await client.post("/api/auth/register/confirm",
+                                  json={"email": email, "code": sent[email]})
+            assert r.status_code == 201, r.text
+        finally:
+            auth_router.send_otp_email = orig_mailer
+
         token = r.json()["token"]
         auth = {"Authorization": f"Bearer {token}"}
-        # В UserOut больше нет plan — есть oauth_provider=None
         assert "plan" not in r.json()["user"]
         assert r.json()["user"]["oauth_provider"] is None
 
-        # Дубль → 409
+        # Дубль (пользователь уже существует) → register даёт 409
         r = await client.post("/api/auth/register",
                               json={"email": email, "password": "secretpass1", "consent": True})
         assert r.status_code == 409, r.text

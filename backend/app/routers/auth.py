@@ -22,13 +22,14 @@ from ..models.user import User
 from ..plans import POLICY_VERSION
 from ..schemas.auth import (
     AuthOut,
+    ConfirmRegisterIn,
     LoginIn,
     RegisterIn,
     RequestCodeIn,
     UserOut,
     VerifyCodeIn,
 )
-from ..services import oauth, oauth_state, otp
+from ..services import oauth, oauth_state, otp, pending_registration
 from ..services.auth import create_access_token, hash_password, verify_password
 from ..services.email import send_otp_email
 from ..services.rate_limit import allow_otp_request
@@ -44,27 +45,108 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.post("/register", response_model=AuthOut, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterIn, session: AsyncSession = Depends(get_session)) -> AuthOut:
-    # 152-ФЗ ст. 9: без согласия — не регистрируем.
+async def _issue_and_send_code(session: AsyncSession, email: str) -> None:
+    """Инвалидирует прежние живые коды e-mail, создаёт новый (хэш + TTL), шлёт письмо."""
+    await session.execute(
+        update(EmailCode)
+        .where(EmailCode.email == email, EmailCode.used.is_(False))
+        .values(used=True)
+    )
+    code = otp.generate_code()
+    session.add(EmailCode(
+        email=email,
+        code_hash=otp.hash_code(code),
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=get_settings().otp_ttl_sec),
+    ))
+    await session.flush()
+    await send_otp_email(email, code)
+
+
+async def _consume_email_code(session: AsyncSession, email: str, code: str, now: datetime) -> None:
+    """Проверяет и ГАСИТ последний живой код e-mail. HTTPException 400 при
+    неверном/протухшем/исчерпанном. Неудачная попытка фиксируется отдельным
+    коммитом — иначе rollback get_session на 400 сбросил бы счётчик и брутфорс-
+    лимит не работал бы.
+    """
+    invalid = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="invalid or expired code"
+    )
+    ec = await session.scalar(
+        select(EmailCode)
+        .where(EmailCode.email == email, EmailCode.used.is_(False))
+        .order_by(EmailCode.created_at.desc())
+        .limit(1)
+    )
+    if ec is None or not otp.is_consumable(ec, now):
+        raise invalid
+    if not otp.code_matches(code, ec.code_hash):
+        ec.attempts += 1
+        await session.commit()
+        raise invalid
+    ec.used = True  # код одноразовый
+
+
+@router.post("/register", status_code=status.HTTP_202_ACCEPTED)
+async def register(
+    body: RegisterIn, request: Request, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Шаг 1 регистрации: НЕ создаём пользователя, а отправляем код подтверждения
+    на e-mail. Пароль (bcrypt-хэш) и согласие держим в pending-регистрации до
+    подтверждения кодом (POST /register/confirm). Так неподтверждённый аккаунт не
+    существует и не может войти. 152-ФЗ ст. 9: без согласия не начинаем.
+    """
     if not body.consent:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="consent to personal data processing is required",
         )
-
-    existing = await session.scalar(select(User).where(User.email == body.email.lower()))
+    email = body.email.lower()
+    existing = await session.scalar(select(User).where(User.email == email))
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already registered")
 
+    # Rate-limit отправки письма (как у request-code). При активном кулдауне
+    # прежний код + pending ещё живы, поэтому подтверждение сработает по ним.
+    if allow_otp_request(email, _client_ip(request)):
+        pending_registration.save(email, {
+            "password_hash": hash_password(body.password),
+            "consent": body.consent,
+        })
+        await _issue_and_send_code(session, email)
+
+    return {"status": "verification_required", "email": email}
+
+
+@router.post("/register/confirm", response_model=AuthOut,
+             status_code=status.HTTP_201_CREATED)
+async def register_confirm(
+    body: ConfirmRegisterIn, session: AsyncSession = Depends(get_session)
+) -> AuthOut:
+    """Шаг 2 регистрации: подтверждаем e-mail кодом и СОЗДАЁМ пользователя с
+    ранее принятыми паролем и согласием. Возвращаем JWT.
+    """
+    email = body.email.lower()
+    now = datetime.now(timezone.utc)
+    await _consume_email_code(session, email, body.code, now)
+
+    pending = pending_registration.pop(email)
+    if pending is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="registration expired, please start again",
+        )
+    # Гонка: пользователь мог появиться между шагами.
+    if await session.scalar(select(User).where(User.email == email)) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already registered")
+
     user = User(
-        email=body.email.lower(),
-        password_hash=hash_password(body.password),
-        consent_at=datetime.now(timezone.utc),
+        email=email,
+        password_hash=pending["password_hash"],
+        consent_at=now,
         consent_policy_version=POLICY_VERSION,
     )
     session.add(user)
-    await session.flush()  # чтобы получить user.id до коммита
+    await session.flush()
 
     token = create_access_token(user.id)
     return AuthOut(token=token, user=UserOut.model_validate(user))
@@ -95,24 +177,10 @@ async def request_code(
     (анти-enumeration). Rate-limit по e-mail и IP против спам-рассылки.
     """
     email = body.email.lower()
-    s = get_settings()
 
     # Rate-limit срабатывает молча (тоже 204), чтобы не утекал тайминг/факт лимита.
     if allow_otp_request(email, _client_ip(request)):
-        # Инвалидируем прежние живые коды этого e-mail — действителен только новый.
-        await session.execute(
-            update(EmailCode)
-            .where(EmailCode.email == email, EmailCode.used.is_(False))
-            .values(used=True)
-        )
-        code = otp.generate_code()
-        session.add(EmailCode(
-            email=email,
-            code_hash=otp.hash_code(code),
-            expires_at=datetime.now(timezone.utc) + timedelta(seconds=s.otp_ttl_sec),
-        ))
-        await session.flush()
-        await send_otp_email(email, code)
+        await _issue_and_send_code(session, email)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -126,28 +194,7 @@ async def verify_code(
     """
     email = body.email.lower()
     now = datetime.now(timezone.utc)
-    # Одинаковая 400 на «нет кода» и «неверный код» — не раскрываем наличие аккаунта.
-    invalid = HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail="invalid or expired code"
-    )
-
-    ec = await session.scalar(
-        select(EmailCode)
-        .where(EmailCode.email == email, EmailCode.used.is_(False))
-        .order_by(EmailCode.created_at.desc())
-        .limit(1)
-    )
-    if ec is None or not otp.is_consumable(ec, now):
-        raise invalid
-
-    if not otp.code_matches(body.code, ec.code_hash):
-        # Учитываем неудачную попытку отдельным коммитом: иначе rollback get_session
-        # на HTTPException откатил бы инкремент и брутфорс-лимит не работал бы.
-        ec.attempts += 1
-        await session.commit()
-        raise invalid
-
-    ec.used = True  # код одноразовый
+    await _consume_email_code(session, email, body.code, now)
 
     user = await session.scalar(select(User).where(User.email == email))
     if user is None:

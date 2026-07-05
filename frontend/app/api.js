@@ -179,16 +179,30 @@ export async function login({ email, password }) {
   return auth;
 }
 
+/* Регистрация — двухшаговая с подтверждением e-mail кодом.
+ * Шаг 1: POST /register { email, password, consent } -> 202 (код отправлен, юзер
+ *        ещё НЕ создан). Токена тут нет.
+ * Шаг 2: POST /register/confirm { email, code } -> { token, user }. */
 export async function register({ email, password, consent }) {
+  if (IS_MOCK) return { status: 'verification_required', email };
+  const res = await http('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, consent }),
+  });
+  return res.json();
+}
+
+export async function confirmRegister({ email, code }) {
   if (IS_MOCK) {
     const auth = { token: 'mock', user: { email } };
     writeAuth(auth);
     return auth;
   }
-  const res = await http('/api/auth/register', {
+  const res = await http('/api/auth/register/confirm', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, consent }),
+    body: JSON.stringify({ email, code }),
   });
   const auth = await res.json();
   writeAuth(auth);

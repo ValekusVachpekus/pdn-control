@@ -34,6 +34,13 @@ class VerifyCodeIn(BaseModel):
     consent: bool = False
 
 
+class ConfirmRegisterIn(BaseModel):
+    """Шаг 2 регистрации по e-mail+password: подтверждение почты кодом.
+    Пароль и согласие уже приняты на шаге 1 (лежат в pending-регистрации)."""
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
 class OAuthIn(BaseModel):
     """Тело при входе через провайдера. `consent` обязателен только при ПЕРВОЙ
     регистрации (для существующего пользователя бэкенд может игнорировать)."""
