@@ -11,7 +11,7 @@ and development-process documentation** — all under the Assignment 4 quality g
 - **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 - **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
 
-Canonical Week 5 public report and submission index. _Sections are filled as Sprint 5 progresses; status fields update from `Planned`/`In Progress` to `Done` as work merges._
+Canonical Week 5 public report and submission index.
 
 ---
 
@@ -66,11 +66,6 @@ above and pulled into Sprint 5. Two **related** items are intentionally deferred
 - **DNS cut-over to the customer's domain ([#88](https://github.com/ValekusVachpekus/pdn-control/issues/88))** — the DNS change itself is a **customer-side action**. The team provides configuration and the records to add; the cut-over depends on the customer.
 
 `MVP v2` addresses customer feedback directly: all six Week 4 UAT items are in scope this Sprint.
-
-<!-- =========================================================== -->
-<!-- The sections below are scaffolded and filled as Sprint 5    -->
-<!-- progresses (Parts 3–14).                                    -->
-<!-- =========================================================== -->
 
 ## Delivered MVP v2 Changes (Part 7)
 
@@ -154,7 +149,7 @@ milestone](https://github.com/ValekusVachpekus/pdn-control/milestone/3), and the
 instructions.
 
 - **CHANGELOG:** [`CHANGELOG.md`](../../CHANGELOG.md)
-- **SemVer release `v1.2.0`:** _pending — link added once tagged._
+- **SemVer release `v1.2.0`:** [github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0) — `MVP v2: Auth & Architecture`.
 
 ## Demo & UAT (Parts 8, 13)
 
@@ -165,11 +160,13 @@ scenarios were added for the Week 4 customer-UAT feedback fixes:
 - [UAT-06](../../docs/user-acceptance-tests.md#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) — logged-out check routes to sign-in without a loading screen ([#99](https://github.com/ValekusVachpekus/pdn-control/issues/99)).
 - [UAT-07](../../docs/user-acceptance-tests.md#uat-07--report-and-history-ui-clarity-fixes) — report and history UI clarity fixes ([#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102)).
 
-> Status: ⏳ **Pending execution** — UAT-06/07 are scheduled to be run with the customer at the
-> Sprint 5 Review (recorded session). The public UAT **results summary** is filled in here after
-> that session.
+> Status: ✅ **Executed 2026-07-04 — 2 / 2 Pass.** UAT-06/07 were run with the customer at the
+> Sprint 5 Review (recorded session); the customer accepted the MVP v2 increment. Full scenarios,
+> actual results and verdicts: [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md#mvp-v2-sprint-5--new-scenarios).
 
-<!-- TODO Part 13: public sanitized demo video (<2 min) -->
+**Demo video (Part 13):** [public sanitized product demo (< 2 min)](https://drive.google.com/file/d/1oNELDN7wBCO_SLX-4MAFFBw9rTh7bxfz/view?usp=sharing) — a short walkthrough of `MVP v2` (scan → report, authentication).
+
+**Recordings:** the Sprint 5 Review / UAT session was recorded separately (Maksim Shakhrai).
 
 ## Hosted Documentation (Part 11)
 
@@ -186,28 +183,28 @@ the [development process](https://valekusvachpekus.github.io/pdn-control/develop
 and the quality docs (requirements, requirement tests, testing strategy, Definition of Done).
 
 ## Sprint Review & Retrospective (Parts 9–10)
-- [Sprint Review summary](sprint-review-summary.md) <!-- TODO -->
-- [Reflection](reflection.md) <!-- TODO -->
-- [Retrospective](retrospective.md) <!-- TODO -->
+- [Sprint Review summary](sprint-review-summary.md) — public sanitized summary of the recorded Sprint 5 Review / UAT session.
+- [Sprint Review transcript](sprint-review-transcript.md) — sanitized English transcript (publication permission obtained). Private exact UAT/Review timecodes are in the Moodle submission only.
+- [Reflection](reflection.md)
+- [Retrospective](retrospective.md)
 - [LLM report](llm-report.md)
 
 ## Product Status & Next Steps
 
-**Current status:** `MVP v2` is delivered on the protected `main` branch and deployed on the
-customer's infrastructure at **https://pdn.neurolife.tech**. All 14 Sprint 5 milestone issues are
-closed; CI is green on `main`. The increment adds real authentication (passwordless e-mail OTP +
-Yandex/VK OAuth), closes the six Week 4 customer-UAT feedback items, and adds maintained
-architecture/ADR/process documentation plus a hosted docs site — without weakening the
-Assignment 4 quality gates. Two items need a **customer-side action** to go fully live: registering
-the Yandex/VK OAuth apps (to supply `client_id`/`secret`) and adding the SPF/DKIM DNS records for
-outbound e-mail.
+**Current status:** `MVP v2` is delivered on the protected `main` branch, deployed on the
+customer's infrastructure at **https://pdn.neurolife.tech**, and released as
+[**`v1.2.0`**](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0). All 14 Sprint 5
+milestone issues are closed; CI is green on `main`. The customer **accepted the increment at the
+Sprint 5 Review on 2026-07-04** (UAT-06/07 passed 2 / 2, recorded). The increment adds real
+authentication (passwordless e-mail OTP + Yandex/VK OAuth), closes the six Week 4 customer-UAT
+feedback items, and adds maintained architecture/ADR/process documentation plus a hosted docs site
+— without weakening the Assignment 4 quality gates. Two items need a **customer-side action** to go
+fully live: registering the Yandex/VK OAuth apps (to supply `client_id`/`secret`) and adding the
+SPF/DKIM DNS records for outbound e-mail.
 
 **Next steps:**
-- Run the customer Sprint Review + execute UAT-06/07 (recorded); fill the UAT results, Sprint
-  Review summary/notes, retrospective, and reflection.
-- Record the public sanitized demo video (< 2 min); tag the **`v1.2.0`** release mapped to `MVP v2`.
 - Collect OAuth credentials and the e-mail DNS confirmation from the customer to activate social
-  login and domain e-mail in production.
+  login and domain e-mail in production (the customer's stated next-Sprint request).
 - Next Sprint: scan-finished e-mail notification (US-13, [#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)), building on the new e-mail provider.
 
 ## Contribution Traceability
@@ -220,10 +217,32 @@ Based on actual PR authorship and recorded PR reviews on GitHub for Sprint 5 (mi
 | Aleksandr Martiushev (`alexzhal1`) | #55, #72, #103, #104 | [#119](https://github.com/ValekusVachpekus/pdn-control/pull/119), [#120](https://github.com/ValekusVachpekus/pdn-control/pull/120), [#121](https://github.com/ValekusVachpekus/pdn-control/pull/121), [#122](https://github.com/ValekusVachpekus/pdn-control/pull/122) | #113, #114, #115 | Auth (OTP + OAuth) implementation | E-mail provider integration; auth backend |
 | Airat Mingazov (`azenlrd`) | #110 | [#116](https://github.com/ValekusVachpekus/pdn-control/pull/116) | #119, #120 | Auth + rule-engine/report tests; `auth.py` added to coverage gate | `docs/testing.md` / QRT updates |
 | Ksenya Koroleva (`kskorqueen`) | — | [#118](https://github.com/ValekusVachpekus/pdn-control/pull/118) | #112 | — | Week 5 report contributions and report images; reviewed architecture/process docs (#112) |
-| Maksim Shakhrai (`ShakhraiMaksim`) | _to confirm_ | — | — | — | _to confirm_ |
-
-> ⚠️ **`ShakhraiMaksim`'s Sprint 5 contribution is still to be confirmed** — to be filled with his
-> actual work before submission.
+| Maksim Shakhrai (`ShakhraiMaksim`) | — | — | — | Recorded the Sprint 5 Review / UAT-06/07 customer session (2026-07-04) | Sprint Review / UAT session recording |
 
 ## Screenshots
-<!-- TODO: Sprint milestone, board view, CI run, release, reviewed PR, hosted docs -->
+
+**Sprint 5 milestone**
+
+![Sprint 5 milestone](images/milestone.png)
+
+**Board / project workflow view (Sprint Backlog)**
+
+![Sprint Backlog board](images/board.png)
+
+**Latest protected-default-branch CI run**
+
+![CI run on main](images/ci.png)
+
+**Example reviewed issue-linked PR**
+
+![Reviewed issue-linked PR](images/pr.png)
+
+**Hosted documentation site**
+
+![Hosted docs site](images/docs.png)
+
+**SemVer release `v1.2.0`**
+
+![v1.2.0 release page](images/release.png)
+
+See the [`v1.2.0` release page](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0).
