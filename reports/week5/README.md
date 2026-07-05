@@ -11,7 +11,7 @@ and development-process documentation** — all under the Assignment 4 quality g
 - **Issue Templates:** [.github/ISSUE_TEMPLATE](https://github.com/ValekusVachpekus/pdn-control/tree/main/.github/ISSUE_TEMPLATE)
 - **Extended PR Template:** [pull_request_template.md](https://github.com/ValekusVachpekus/pdn-control/blob/main/.github/pull_request_template.md)
 
-Canonical Week 5 public report and submission index. _Sections are filled as Sprint 5 progresses; status fields update from `Planned`/`In Progress` to `Done` as work merges._
+Canonical Week 5 public report and submission index.
 
 ---
 
@@ -66,11 +66,6 @@ above and pulled into Sprint 5. Two **related** items are intentionally deferred
 - **DNS cut-over to the customer's domain ([#88](https://github.com/ValekusVachpekus/pdn-control/issues/88))** — the DNS change itself is a **customer-side action**. The team provides configuration and the records to add; the cut-over depends on the customer.
 
 `MVP v2` addresses customer feedback directly: all six Week 4 UAT items are in scope this Sprint.
-
-<!-- =========================================================== -->
-<!-- The sections below are scaffolded and filled as Sprint 5    -->
-<!-- progresses (Parts 3–14).                                    -->
-<!-- =========================================================== -->
 
 ## Delivered MVP v2 Changes (Part 7)
 
@@ -188,7 +183,8 @@ the [development process](https://valekusvachpekus.github.io/pdn-control/develop
 and the quality docs (requirements, requirement tests, testing strategy, Definition of Done).
 
 ## Sprint Review & Retrospective (Parts 9–10)
-- [Sprint Review summary](sprint-review-summary.md) <!-- TODO: filled from the recorded session -->
+- [Sprint Review summary](sprint-review-summary.md) — public sanitized summary of the recorded Sprint 5 Review / UAT session.
+- [Sprint Review transcript](sprint-review-transcript.md) — sanitized English transcript (publication permission obtained). Private exact UAT/Review timecodes are in the Moodle submission only.
 - [Reflection](reflection.md)
 - [Retrospective](retrospective.md)
 - [LLM report](llm-report.md)
