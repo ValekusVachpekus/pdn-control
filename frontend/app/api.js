@@ -209,10 +209,10 @@ export async function confirmRegister({ email, code }) {
   return auth;
 }
 
-/* Passwordless-вход по коду на e-mail (issue #55).
- * POST /api/auth/request-code { email }              -> 204 (всегда, анти-enumeration)
- * POST /api/auth/verify-code  { email, code, consent } -> { token, user }
- * 152-ФЗ ст. 9: при ПЕРВОЙ регистрации consent=true обязателен (иначе 400). */
+/* Passwordless-ВХОД по коду на e-mail (только для существующих аккаунтов).
+ * POST /api/auth/request-code { email }        -> 204 (всегда, анти-enumeration)
+ * POST /api/auth/verify-code  { email, code }  -> { token, user } | 404 если аккаунта нет.
+ * Регистрация здесь НЕ происходит — это отдельный поток (пароль+код или OAuth). */
 export async function requestCode({ email }) {
   if (IS_MOCK) return true;
   await http('/api/auth/request-code', {
@@ -223,7 +223,7 @@ export async function requestCode({ email }) {
   return true;
 }
 
-export async function verifyCode({ email, code, consent }) {
+export async function verifyCode({ email, code }) {
   if (IS_MOCK) {
     const auth = { token: 'mock', user: { email } };
     writeAuth(auth);
@@ -232,7 +232,7 @@ export async function verifyCode({ email, code, consent }) {
   const res = await http('/api/auth/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code, consent }),
+    body: JSON.stringify({ email, code }),
   });
   const auth = await res.json();
   writeAuth(auth);

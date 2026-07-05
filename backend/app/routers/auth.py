@@ -172,15 +172,19 @@ async def login(body: LoginIn, session: AsyncSession = Depends(get_session)) -> 
 async def request_code(
     body: RequestCodeIn, request: Request, session: AsyncSession = Depends(get_session)
 ) -> Response:
-    """Шаг 1 passwordless-входа: генерим 6-значный код, кладём его ХЭШ с TTL и
-    шлём письмо. Всегда отвечаем 204 — наличие аккаунта не раскрываем
-    (анти-enumeration). Rate-limit по e-mail и IP против спам-рассылки.
+    """Шаг 1 passwordless-ВХОДА (только для существующих аккаунтов): шлём
+    6-значный код на e-mail. Всегда отвечаем 204 — наличие аккаунта не
+    раскрываем (анти-enumeration). Код отправляем ТОЛЬКО если аккаунт есть:
+    вход по коду — это логин, а не регистрация. Rate-limit по e-mail и IP.
     """
     email = body.email.lower()
 
     # Rate-limit срабатывает молча (тоже 204), чтобы не утекал тайминг/факт лимита.
     if allow_otp_request(email, _client_ip(request)):
-        await _issue_and_send_code(session, email)
+        # Код входа шлём только зарегистрированным (незнакомым письмо не отправляем).
+        user_exists = await session.scalar(select(User.id).where(User.email == email))
+        if user_exists is not None:
+            await _issue_and_send_code(session, email)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -189,8 +193,10 @@ async def request_code(
 async def verify_code(
     body: VerifyCodeIn, session: AsyncSession = Depends(get_session)
 ) -> AuthOut:
-    """Шаг 2: проверяем код, выдаём JWT. Находим/создаём пользователя. При первой
-    регистрации (юзера нет) consent обязателен — 152-ФЗ ст. 9.
+    """Шаг 2: проверяем код и выдаём JWT для СУЩЕСТВУЮЩЕГО аккаунта. Вход по
+    коду — только логин: если аккаунта нет, НЕ создаём его (404), а предлагаем
+    зарегистрироваться. Регистрация — отдельный осознанный поток (пароль + код
+    или OAuth).
     """
     email = body.email.lower()
     now = datetime.now(timezone.utc)
@@ -198,18 +204,10 @@ async def verify_code(
 
     user = await session.scalar(select(User).where(User.email == email))
     if user is None:
-        if not body.consent:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="consent to personal data processing is required",
-            )
-        user = User(
-            email=email,
-            consent_at=now,
-            consent_policy_version=POLICY_VERSION,
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="account not found, please register",
         )
-        session.add(user)
-        await session.flush()
 
     token = create_access_token(user.id)
     return AuthOut(token=token, user=UserOut.model_validate(user))

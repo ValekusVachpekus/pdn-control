@@ -185,14 +185,14 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
     if (!CODE_RE.test(code.trim())) { setErr('Код — 6 цифр'); return; }
     setBusy(true);
     try {
-      const { user } = await verifyCode({ email: email.trim(), code: code.trim(), consent });
+      const { user } = await verifyCode({ email: email.trim(), code: code.trim() });
       onToast && onToast('Вы вошли', 'ok');
       onAuth && onAuth(user);
       handleClose();
     } catch (e) {
-      // Новому пользователю нужен consent (ст. 9) — бэк отдаёт 400 с detail про consent.
-      setErr(/consent/i.test(e?.message || '')
-        ? 'Подтвердите согласие на обработку персональных данных'
+      // 404 — аккаунта нет (вход по коду только для существующих): зовём регистрироваться.
+      setErr(e?.status === 404
+        ? 'Аккаунт с этим e-mail не найден — зарегистрируйтесь'
         : 'Неверный или просроченный код');
     } finally {
       setBusy(false);
@@ -256,7 +256,6 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
                 <Field icon="lock" type="text" value={code} onChange={setCode}
                   placeholder="6-значный код" autoComplete="one-time-code"
                   inputMode="numeric" maxLength={6} onEnter={submitCode} />
-                <ConsentBox consent={consent} setConsent={setConsent} onOpenPolicy={onOpenPolicy} />
                 <ErrorBox err={err} />
                 <button className="btn btn-primary" disabled={busy}
                   style={{ height: 46, marginTop: 4, justifyContent: 'center' }} onClick={submitCode}>
