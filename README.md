@@ -6,6 +6,10 @@
 > ⚠️ Сервис **не даёт юридической гарантии** и не обещает «полное соответствие
 > 152-ФЗ за 5 минут». Это инструмент снижения типовых рисков, а не заключение юриста.
 
+**Продукт (живой доступ):** https://pdn.neurolife.tech ·
+**Документация:** https://valekusvachpekus.github.io/pdn-control/ ·
+**Передача заказчику:** [`docs/customer-handover.md`](docs/customer-handover.md)
+
 ## Что делает
 
 - ввод URL → запуск проверки;
@@ -39,11 +43,20 @@ Pipeline: `URL → парсер (факты JSON) → rule-engine + LLM → ед
 - [docs/roadmap.md](docs/roadmap.md) — дорожная карта по спринтам.
 - **Hosted-документация (сайт):** https://valekusvachpekus.github.io/pdn-control/ —
   браузерная версия `docs/` (MkDocs Material, публикуется из `main`).
+- [docs/customer-handover.md](docs/customer-handover.md) — передача продукта заказчику:
+  что развёрнуто и кому принадлежит, конфигурация, запуск/восстановление, статус передачи.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — рабочий процесс: ветки, PR, релизы.
+- [AGENTS.md](AGENTS.md) — руководство для агентов/контрибьюторов: setup, verify, safety.
 - [CHANGELOG.md](CHANGELOG.md) — история изменений (Keep a Changelog / SemVer).
 
 ## Отчёты по неделям
 
+- [reports/week7/README.md](reports/week7/README.md) — индекс сдачи Assignment 6 (Week 7,
+  Sprint 7): финальная передача и доставка `MVP v3`.
+- [reports/week6/README.md](reports/week6/README.md) — Assignment 6 (Week 6, Sprint 6):
+  trial-релиз и готовность к передаче.
+- [reports/week5/README.md](reports/week5/README.md) — индекс сдачи Assignment 5
+  (Sprint 5, `MVP v2`: аутентификация и архитектура).
 - [reports/week3/README.md](reports/week3/README.md) — индекс сдачи Assignment 3
   (продуктовый бэклог, рефайнмент, оценка в Story Points, спринт).
 - [reports/week2/README.md](reports/week2/README.md) — индекс сдачи Assignment 2
