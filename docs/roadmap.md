@@ -70,7 +70,6 @@ This roadmap outlines our Sprint-by-Sprint delivery plan through the end of the 
 *   **Candidate Items:**
     *   [Task] Production OAuth Yandex/VK on the customer's keys ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72) follow-up)
     *   [Task] Production e-mail sending + sender-domain DNS verification (SPF/DKIM), on top of ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104))
-    *   [US-13] Scan-finished notification (link/email) ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70))
     *   [Task] Customer-handover documentation + customer-facing documentation review ([`docs/customer-handover.md`](customer-handover.md))
 *   **Release target:** Week 6 trial `v1.3.0` on the protected `main`.
 
