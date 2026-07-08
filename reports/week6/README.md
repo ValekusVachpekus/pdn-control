@@ -43,6 +43,8 @@
 
 ## Передача и обратная связь
 - **16. Transition-readiness summary** (что ещё должно произойти в Week 7): TODO.
+  Подготовка встречи (агенда + trial/UAT-сценарий + чек-лист ревью доков):
+  [`transition-meeting-agenda.md`](transition-meeting-agenda.md).
 - **17. Таблица ответов на фидбек заказчика:**
 
   | Фидбек заказчика | Результат (PBI / issue) |
@@ -50,7 +52,9 @@
   | TODO | TODO |
 
 - **18. Фидбек, ещё не закрытый:** TODO.
-- **21. UAT / customer-trial результаты:** TODO — см. [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md).
+- **21. UAT / customer-trial результаты:** TODO. Новые сценарии Week 6 trial —
+  UAT-08 (production-вход Яндекс/ВК) и UAT-09 (реальное письмо с домена заказчика) в
+  [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md) (статус Pending до встречи).
 
 ## Релиз и Sprint Review
 - **22. Week 6 SemVer trial release (`v1.3.0`):** TODO — ссылка на релиз.

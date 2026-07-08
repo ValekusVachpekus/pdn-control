@@ -188,6 +188,60 @@ These scenarios cover **new or changed user-facing behaviour delivered in `MVP v
 
 ---
 
+## MVP v3 (Sprint 6) — new scenarios
+
+These scenarios cover **new or changed user-facing behaviour delivered in the `MVP v3`
+Sprint 6 trial**: bringing social login and domain e-mail **fully live on the customer's
+own accounts and DNS**. They are the direct follow-up requested by the customer at the
+Sprint 5 Review (see Sign-off below) and map to
+[#129 — production OAuth on the customer's keys](https://github.com/ValekusVachpekus/pdn-control/issues/129)
+and [#130 — production e-mail + sender-domain DNS verification](https://github.com/ValekusVachpekus/pdn-control/issues/130).
+
+- **Build under test:** `MVP v3` Week 6 trial (`v1.3.0`) on the customer's own
+  infrastructure (`pdn.neurolife.tech`).
+- **Status:** Pending — to be executed by the customer at the **Week 6 transition-readiness
+  meeting / trial**. Preconditions require the customer to provide the production OAuth
+  `client_id`/`client_secret` and to apply the SPF/DKIM DNS records.
+
+| UAT | Source issue | Feature | Acceptor | Result |
+|---|---|---|---|---|
+| [UAT-08](#uat-08--production-social-login-yandex--vk-on-the-customers-apps) | [#129](https://github.com/ValekusVachpekus/pdn-control/issues/129) (on [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) | Production social login (Yandex/VK) | Customer | Pending |
+| [UAT-09](#uat-09--login-code-e-mail-is-delivered-from-the-customers-verified-domain) | [#130](https://github.com/ValekusVachpekus/pdn-control/issues/130) (on [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) | Real e-mail from the verified domain | Customer | Pending |
+
+---
+
+## UAT-08 — Production social login (Yandex & VK) on the customer's apps
+
+- **Source:** [#129 — production OAuth on the customer's keys](https://github.com/ValekusVachpekus/pdn-control/issues/129) (Must Have), on top of [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72) (redirect flow, delivered in MVP v2).
+- **Business goal:** A user can sign in with Yandex or VK against the customer's **real** OAuth applications on the live domain — not a stub or a developer app.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | Given the customer's OAuth `client_id`/`client_secret` configured in `.env.secret` and the app redirect URI set to `https://pdn.neurolife.tech`, when the user clicks **«Войти через Яндекс»** or **«Войти через ВКонтакте»**, they complete the provider consent and return **signed in**; on first-time registration the ПДн consent is recorded (152-ФЗ ст. 9). |
+| Preconditions | `v1.3.0` trial live on `pdn.neurolife.tech`; customer's OAuth apps created and keys applied; user logged out. |
+| Steps | 1. Open the site logged out. 2. Sign in via **Яндекс** → complete the provider consent → confirm the user returns authenticated. 3. Repeat via **ВКонтакте**. 4. For a first-time account, confirm the registration records the ПДн consent. |
+| Expected result | Both providers sign the user in on the production domain; the session is established (httpOnly cookie); first-time registration records the consent with timestamp and policy version. |
+| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
+| **Verdict** | Pending |
+
+---
+
+## UAT-09 — Login-code e-mail is delivered from the customer's verified domain
+
+- **Source:** [#130 — production e-mail + sender-domain DNS verification](https://github.com/ValekusVachpekus/pdn-control/issues/130) (Must Have), on top of [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104) (Resend integration, delivered in MVP v2).
+- **Business goal:** The passwordless login code (and the scan-finished notification) actually reaches the user's **real inbox**, sent from the customer's own verified domain — not printed to the DEV log.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | Given the sender domain verified in Resend (SPF/DKIM applied by the customer) and the DEV log-fallback off, when the user requests an e-mail login code, a **real e-mail** arrives from the customer's domain within a short time and the code signs the user in. |
+| Preconditions | `v1.3.0` trial live; sender domain verified; `RESEND` API key set in `.env.secret`; an external test mailbox available. |
+| Steps | 1. On the login screen, request an e-mail code to an external mailbox. 2. Confirm a real e-mail arrives from the customer's domain (SPF/DKIM pass, not a DEV-log code). 3. Enter the code and confirm sign-in. 4. Optionally, complete a scan and confirm the scan-finished notification arrives ([US-13](https://github.com/ValekusVachpekus/pdn-control/issues/70)). |
+| Expected result | A real e-mail is delivered from the customer's verified domain; the code authenticates the user; no reliance on the DEV log-fallback in production. |
+| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
+| **Verdict** | Pending |
+
+---
+
 ## Sign-off
 
 - **Decision (MVP v1):** MVP v1 **accepted** by the customer at the Sprint Review on 2026-06-21, with
