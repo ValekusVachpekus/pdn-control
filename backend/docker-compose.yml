@@ -14,8 +14,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # Биндим на loopback: БД доступна только с самого хоста (для отладки/бэкапов
+    # через SSH-туннель), но НЕ из интернета. Сервисы стека ходят к ней по
+    # внутреннему имени db:5432 и в публикации порта не нуждаются.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:7-alpine
@@ -24,8 +27,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # Только loopback: открытый в интернет Redis без пароля = RCE. Внутри стека
+    # доступен как redis:6379.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   crowler:
     build: ../crowler
@@ -38,14 +43,16 @@ services:
       MAX_CONCURRENT_SCANS: "2"
       SCAN_TIMEOUT_SEC: "300"
     shm_size: "1gb"
+    # Внутренний сервис — наружу не публикуем (api ходит к нему по crowler:8010).
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
 
   pdfreport:
     build: ../PDFreport
     image: pdn-control/pdfreport:latest
+    # Внутренний сервис — наружу не публикуем (api ходит к нему по pdfreport:8020).
     ports:
-      - "8020:8020"
+      - "127.0.0.1:8020:8020"
 
   # Секреты (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*) кладём в .env.secret рядом
   # с этим файлом. Он подключается через env_file. Адреса инфраструктуры
@@ -66,8 +73,9 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
+    # Только loopback: наружу api отдаёт reverse-proxy (Caddy) на хосте.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     command: >
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
@@ -91,8 +99,9 @@ services:
 
   frontend:
     build: ../frontend
+    # Только loopback: наружу отдаёт reverse-proxy (Caddy) на хосте.
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     depends_on:
       - api
 
