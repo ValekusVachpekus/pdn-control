@@ -125,8 +125,13 @@ async def _register_and_confirm(client, email: str) -> str:
     async def _cap(to_email: str, code: str) -> None:
         captured["code"] = code
 
-    orig = auth_router.send_otp_email
+    orig_mailer = auth_router.send_otp_email
+    orig_rl = auth_router.allow_otp_request
     auth_router.send_otp_email = _cap
+    # Rate-limit идёт по IP; в e2e все запросы с одного «адреса», поэтому после
+    # первой регистрации кулдаун заблокировал бы отправку кода второму юзеру —
+    # в тесте отключаем.
+    auth_router.allow_otp_request = lambda *a, **k: True
     try:
         r = await client.post("/api/auth/register",
                               json={"email": email, "password": "secretpass1", "consent": True})
@@ -136,7 +141,8 @@ async def _register_and_confirm(client, email: str) -> str:
         assert r.status_code == 201, r.text
         return r.json()["token"]
     finally:
-        auth_router.send_otp_email = orig
+        auth_router.send_otp_email = orig_mailer
+        auth_router.allow_otp_request = orig_rl
 
 
 async def _run_flow():
@@ -164,7 +170,9 @@ async def _run_flow():
             sent[to_email] = code
 
         orig_mailer = auth_router.send_otp_email
+        orig_rl = auth_router.allow_otp_request
         auth_router.send_otp_email = _capture_otp
+        auth_router.allow_otp_request = lambda *a, **k: True  # rate-limit off (один IP в e2e)
         try:
             email = f"u{uuid.uuid4().hex[:10]}@example.com"
             r = await client.post("/api/auth/register",
@@ -188,6 +196,7 @@ async def _run_flow():
             assert r.status_code == 201, r.text
         finally:
             auth_router.send_otp_email = orig_mailer
+            auth_router.allow_otp_request = orig_rl
 
         token = r.json()["token"]
         auth = {"Authorization": f"Bearer {token}"}
