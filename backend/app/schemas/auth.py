@@ -34,12 +34,6 @@ class VerifyCodeIn(BaseModel):
     consent: bool = False
 
 
-class OAuthIn(BaseModel):
-    """Тело при входе через провайдера. `consent` обязателен только при ПЕРВОЙ
-    регистрации (для существующего пользователя бэкенд может игнорировать)."""
-    consent: bool = False
-
-
 class UserOut(BaseModel):
     id: uuid.UUID
     email: EmailStr
