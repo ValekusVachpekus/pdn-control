@@ -1,7 +1,7 @@
 """Общие зависимости FastAPI: получение текущего пользователя по JWT."""
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +14,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 
 
 async def get_current_user(
+    request: Request,
     token: str | None = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
+    # Bearer-заголовок (email/пароль/OTP хранят JWT в localStorage) — основной путь;
+    # httpOnly-cookie access_token (соц-вход OAuth, #72/#129) — запасной, т.к. JS её
+    # не читает и в заголовок подставить не может.
+    if not token:
+        token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not authenticated")
     try:

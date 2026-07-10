@@ -165,13 +165,19 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
     if (isRegister && !consent) { setErr('Подтвердите согласие на обработку персональных данных'); return; }
     setBusy(true);
     try {
-      const { user } = await loginWithProvider(provider, isRegister ? consent : undefined);
-      onToast && onToast('Вы вошли', 'ok');
-      onAuth && onAuth(user);
-      handleClose();
+      // В проде loginWithProvider уводит браузер на провайдера и НЕ резолвится —
+      // код ниже отработает только в MOCK-режиме (вернёт готового user). Возврат из
+      // реального redirect-flow (?oauth=success/error) разбирает App.jsx.
+      const res = await loginWithProvider(provider, isRegister ? consent : false);
+      if (res?.user) {
+        setBusy(false);
+        onToast && onToast('Вы вошли', 'ok');
+        onAuth && onAuth(res.user);
+        handleClose();
+      }
+      // real-режим: страница уже уходит на провайдера — busy оставляем true.
     } catch {
       setErr('Не удалось войти через провайдера');
-    } finally {
       setBusy(false);
     }
   };

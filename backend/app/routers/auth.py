@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..db import get_session
+from ..deps import get_current_user
 from ..models.email_code import EmailCode
 from ..models.user import User
 from ..plans import POLICY_VERSION
@@ -265,4 +266,21 @@ async def oauth_callback(
         httponly=True, secure=_cookie_secure(), samesite="lax",
         max_age=get_settings().jwt_expire_minutes * 60, path="/",
     )
+    return resp
+
+
+@router.get("/me", response_model=UserOut)
+async def me(user: User = Depends(get_current_user)) -> UserOut:
+    """Текущий пользователь по сессии. Для соц-входа JWT лежит в httpOnly-cookie,
+    которую JS прочитать не может, — фронт зовёт /me, чтобы узнать, кто вошёл, и
+    восстановить сессию после reload (#129)."""
+    return UserOut.model_validate(user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout() -> Response:
+    """Гасим cookie-сессию соц-входа. Bearer-токен (localStorage) фронт снимает сам;
+    здесь важно снести именно httpOnly-cookie, до которой JS не дотянется."""
+    resp = Response(status_code=status.HTTP_204_NO_CONTENT)
+    resp.delete_cookie("access_token", path="/")
     return resp
