@@ -115,6 +115,30 @@ def _fake_call_llm(crawl):
     return {"violations": detect_mechanical(crawl), "_ai_degraded": True}
 
 
+async def _register_and_confirm(client, email: str) -> str:
+    """Двухшаговая регистрация: register (202) → перехват кода мейлера → confirm
+    (201). Возвращает JWT (там, где нужен просто готовый аутентифицированный
+    пользователь, без проверки промежуточных шагов)."""
+    import app.routers.auth as auth_router
+    captured: dict[str, str] = {}
+
+    async def _cap(to_email: str, code: str) -> None:
+        captured["code"] = code
+
+    orig = auth_router.send_otp_email
+    auth_router.send_otp_email = _cap
+    try:
+        r = await client.post("/api/auth/register",
+                              json={"email": email, "password": "secretpass1", "consent": True})
+        assert r.status_code == 202, r.text
+        r = await client.post("/api/auth/register/confirm",
+                              json={"email": email, "code": captured["code"]})
+        assert r.status_code == 201, r.text
+        return r.json()["token"]
+    finally:
+        auth_router.send_otp_email = orig
+
+
 async def _run_flow():
     import httpx
     from httpx import ASGITransport
@@ -243,11 +267,10 @@ async def _run_flow():
         r = await client.get(f"/api/reports/{report_id}/pdf", headers=auth)
         assert r.status_code == 402
 
-        # Чужой отчёт → 404
+        # Чужой отчёт → 404 (регистрируем второго юзера через двухшаговый флоу)
         other_email = f"v{uuid.uuid4().hex[:10]}@example.com"
-        r2 = await client.post("/api/auth/register",
-                               json={"email": other_email, "password": "secretpass1", "consent": True})
-        other = {"Authorization": f"Bearer {r2.json()['token']}"}
+        other_token = await _register_and_confirm(client, other_email)
+        other = {"Authorization": f"Bearer {other_token}"}
         r = await client.get(f"/api/reports/{report_id}", headers=other)
         assert r.status_code == 404
 
