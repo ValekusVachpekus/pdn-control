@@ -10,6 +10,11 @@
 ### Security
 
 - Docker Compose: порты внутренних сервисов (Postgres, Redis, crowler, PDFreport, api, frontend) публикуются только на `127.0.0.1`, а не на всех интерфейсах. Раньше порты БД (`5432`) и Redis (`6379`) были открыты в интернет на публичном IP ВМ и подвергались брутфорсу (роли `adm`/`postgres`), а открытый без пароля Redis — это риск RCE. Наружу теперь смотрит только reverse-proxy (Caddy на хосте), а сервисы стека общаются между собой по внутренним именам (`db:5432`, `redis:6379`).
+- Пароль БД больше не захардкожен в `docker-compose.yml`: `POSTGRES_USER/PASSWORD/DB` берутся из host-файла `.env`, пароль обязателен (нет слабого дефолта `pdn` в репозитории).
+- Контейнеры backend (api/worker) и PDFreport запускаются от непривилегированного пользователя, а не от root (crowler уже был non-root).
+- Swagger/OpenAPI (`/docs`, `/redoc`, `/openapi.json`) отдаются только в dev-режиме — в проде эндпоинты не раскрываются.
+- Docker Compose: у всех сервисов включён `restart: unless-stopped` (упавший worker/api поднимается сам).
+- Фронтенд-nginx отдаёт базовые security-заголовки (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`).
 
 ## [1.2.0] - 2026-07-04
 

@@ -1,16 +1,20 @@
 # Полный стек ПДн Контроль: api + db + redis + celery + crowler + pdfreport.
 # Запуск:  docker compose up --build
+#
+# Креды БД берутся из host-файла .env (см. .env.example): POSTGRES_USER /
+# POSTGRES_PASSWORD / POSTGRES_DB. Пароль ОБЯЗАТЕЛЕН и в репозитории не хранится.
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: pdn
-      POSTGRES_PASSWORD: pdn
-      POSTGRES_DB: pdn
+      POSTGRES_USER: ${POSTGRES_USER:-pdn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pdn}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pdn -d pdn"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,6 +26,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,6 +40,7 @@ services:
   crowler:
     build: ../crowler
     image: pdn-control-crowler:latest
+    restart: unless-stopped
     # Chromium форкает дочерние процессы (zygote/GPU/renderer). PID 1 в контейнере
     # (uvicorn) их не reap'ит → зомби. init: true запускает tini как PID 1,
     # который автоматически пожинает осиротевшие процессы.
@@ -50,20 +56,22 @@ services:
   pdfreport:
     build: ../PDFreport
     image: pdn-control/pdfreport:latest
+    restart: unless-stopped
     # Внутренний сервис — наружу не публикуем (api ходит к нему по pdfreport:8020).
     ports:
       - "127.0.0.1:8020:8020"
 
-  # Секреты (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*) кладём в .env.secret рядом
-  # с этим файлом. Он подключается через env_file. Адреса инфраструктуры
-  # (DB/Redis/сервисы) — явно ниже, чтобы compose не зависел от внешнего файла.
+  # Секреты приложения (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*, RESEND_*, OAUTH_*)
+  # кладём в .env.secret рядом с этим файлом (env_file). Креды БД — в host .env
+  # (интерполяция ниже). Адреса инфраструктуры — явно, чтобы не зависеть от файла.
   api:
     build: .
+    restart: unless-stopped
     env_file:
       - path: .env.secret
         required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pdn}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-pdn}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
@@ -81,11 +89,12 @@ services:
 
   worker:
     build: .
+    restart: unless-stopped
     env_file:
       - path: .env.secret
         required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pdn}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-pdn}
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       CRAWLER_URL: http://crowler:8010
@@ -99,6 +108,7 @@ services:
 
   frontend:
     build: ../frontend
+    restart: unless-stopped
     # Только loopback: наружу отдаёт reverse-proxy (Caddy) на хосте.
     ports:
       - "127.0.0.1:8080:80"
