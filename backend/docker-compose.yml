@@ -1,35 +1,46 @@
 # Полный стек ПДн Контроль: api + db + redis + celery + crowler + pdfreport.
 # Запуск:  docker compose up --build
+#
+# Креды БД берутся из host-файла .env (см. .env.example): POSTGRES_USER /
+# POSTGRES_PASSWORD / POSTGRES_DB. Пароль ОБЯЗАТЕЛЕН и в репозитории не хранится.
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: pdn
-      POSTGRES_PASSWORD: pdn
-      POSTGRES_DB: pdn
+      POSTGRES_USER: ${POSTGRES_USER:-pdn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pdn}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pdn -d pdn"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    # Биндим на loopback: БД доступна только с самого хоста (для отладки/бэкапов
+    # через SSH-туннель), но НЕ из интернета. Сервисы стека ходят к ней по
+    # внутреннему имени db:5432 и в публикации порта не нуждаются.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
+    # Только loopback: открытый в интернет Redis без пароля = RCE. Внутри стека
+    # доступен как redis:6379.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   crowler:
     build: ../crowler
     image: pdn-control-crowler:latest
+    restart: unless-stopped
     # Chromium форкает дочерние процессы (zygote/GPU/renderer). PID 1 в контейнере
     # (uvicorn) их не reap'ит → зомби. init: true запускает tini как PID 1,
     # который автоматически пожинает осиротевшие процессы.
@@ -38,25 +49,29 @@ services:
       MAX_CONCURRENT_SCANS: "2"
       SCAN_TIMEOUT_SEC: "300"
     shm_size: "1gb"
+    # Внутренний сервис — наружу не публикуем (api ходит к нему по crowler:8010).
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
 
   pdfreport:
     build: ../PDFreport
     image: pdn-control/pdfreport:latest
+    restart: unless-stopped
+    # Внутренний сервис — наружу не публикуем (api ходит к нему по pdfreport:8020).
     ports:
-      - "8020:8020"
+      - "127.0.0.1:8020:8020"
 
-  # Секреты (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*) кладём в .env.secret рядом
-  # с этим файлом. Он подключается через env_file. Адреса инфраструктуры
-  # (DB/Redis/сервисы) — явно ниже, чтобы compose не зависел от внешнего файла.
+  # Секреты приложения (JWT_SECRET, LLM_API_KEY, CLOUDPAYMENTS_*, RESEND_*, OAUTH_*)
+  # кладём в .env.secret рядом с этим файлом (env_file). Креды БД — в host .env
+  # (интерполяция ниже). Адреса инфраструктуры — явно, чтобы не зависеть от файла.
   api:
     build: .
+    restart: unless-stopped
     env_file:
       - path: .env.secret
         required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pdn}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-pdn}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
@@ -66,18 +81,20 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
+    # Только loopback: наружу api отдаёт reverse-proxy (Caddy) на хосте.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     command: >
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   worker:
     build: .
+    restart: unless-stopped
     env_file:
       - path: .env.secret
         required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://pdn:pdn@db:5432/pdn
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pdn}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-pdn}
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       CRAWLER_URL: http://crowler:8010
@@ -91,8 +108,10 @@ services:
 
   frontend:
     build: ../frontend
+    restart: unless-stopped
+    # Только loopback: наружу отдаёт reverse-proxy (Caddy) на хосте.
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     depends_on:
       - api
 

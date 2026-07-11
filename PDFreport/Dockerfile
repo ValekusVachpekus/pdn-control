@@ -41,6 +41,12 @@ RUN uv sync --frozen --no-dev
 COPY . .
 
 ENV PATH="/app/.venv/bin:$PATH"
+
+# Непривилегированный пользователь: не бежим от root (defense-in-depth).
+# Typst пишет во временный каталог — даём appuser владение /app и /tmp хватает.
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE 8020
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
