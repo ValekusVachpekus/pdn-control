@@ -25,10 +25,15 @@ settings = get_settings()
 ORPHAN_RUNNING_THRESHOLD_MIN = 15
 
 
+# Swagger/OpenAPI открываем только в dev — в проде это лишнее раскрытие всех эндпоинтов.
+_docs_enabled = settings.app_env == "dev"
 app = FastAPI(
     title="ПДн Контроль — API",
     version=__version__,
     description="Backend API: регистрация/логин, проверки сайтов, отчёты (Контракт №2), биллинг.",
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
 app.add_middleware(
