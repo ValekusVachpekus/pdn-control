@@ -115,6 +115,36 @@ def _fake_call_llm(crawl):
     return {"violations": detect_mechanical(crawl), "_ai_degraded": True}
 
 
+async def _register_and_confirm(client, email: str) -> str:
+    """Двухшаговая регистрация: register (202) → перехват кода мейлера → confirm
+    (201). Возвращает JWT (там, где нужен просто готовый аутентифицированный
+    пользователь, без проверки промежуточных шагов)."""
+    import app.routers.auth as auth_router
+    captured: dict[str, str] = {}
+
+    async def _cap(to_email: str, code: str) -> None:
+        captured["code"] = code
+
+    orig_mailer = auth_router.send_otp_email
+    orig_rl = auth_router.allow_otp_request
+    auth_router.send_otp_email = _cap
+    # Rate-limit идёт по IP; в e2e все запросы с одного «адреса», поэтому после
+    # первой регистрации кулдаун заблокировал бы отправку кода второму юзеру —
+    # в тесте отключаем.
+    auth_router.allow_otp_request = lambda *a, **k: True
+    try:
+        r = await client.post("/api/auth/register",
+                              json={"email": email, "password": "secretpass1", "consent": True})
+        assert r.status_code == 202, r.text
+        r = await client.post("/api/auth/register/confirm",
+                              json={"email": email, "code": captured["code"]})
+        assert r.status_code == 201, r.text
+        return r.json()["token"]
+    finally:
+        auth_router.send_otp_email = orig_mailer
+        auth_router.allow_otp_request = orig_rl
+
+
 async def _run_flow():
     import httpx
     from httpx import ASGITransport
@@ -131,18 +161,49 @@ async def _run_flow():
                               json={"email": bad_email, "password": "secretpass1", "consent": False})
         assert r.status_code == 400, r.text
 
-        # Register с consent=true → 201
-        email = f"u{uuid.uuid4().hex[:10]}@example.com"
-        r = await client.post("/api/auth/register",
-                              json={"email": email, "password": "secretpass1", "consent": True})
-        assert r.status_code == 201, r.text
+        # Register с consent=true → 202 (код отправлен, пользователь ещё НЕ создан).
+        # Перехватываем OTP через подмену мейлера, чтобы подтвердить регистрацию.
+        import app.routers.auth as auth_router
+        sent: dict[str, str] = {}
+
+        async def _capture_otp(to_email: str, code: str) -> None:
+            sent[to_email] = code
+
+        orig_mailer = auth_router.send_otp_email
+        orig_rl = auth_router.allow_otp_request
+        auth_router.send_otp_email = _capture_otp
+        auth_router.allow_otp_request = lambda *a, **k: True  # rate-limit off (один IP в e2e)
+        try:
+            email = f"u{uuid.uuid4().hex[:10]}@example.com"
+            r = await client.post("/api/auth/register",
+                                  json={"email": email, "password": "secretpass1", "consent": True})
+            assert r.status_code == 202, r.text
+            assert "token" not in r.json()  # токена на шаге 1 нет
+
+            # До подтверждения войти нельзя (пользователя ещё нет)
+            r = await client.post("/api/auth/login",
+                                  json={"email": email, "password": "secretpass1"})
+            assert r.status_code == 401
+
+            # Неверный код → 400
+            r = await client.post("/api/auth/register/confirm",
+                                  json={"email": email, "code": "000000"})
+            assert r.status_code == 400, r.text
+
+            # Верный код → 201 + токен, пользователь создан
+            r = await client.post("/api/auth/register/confirm",
+                                  json={"email": email, "code": sent[email]})
+            assert r.status_code == 201, r.text
+        finally:
+            auth_router.send_otp_email = orig_mailer
+            auth_router.allow_otp_request = orig_rl
+
         token = r.json()["token"]
         auth = {"Authorization": f"Bearer {token}"}
-        # В UserOut больше нет plan — есть oauth_provider=None
         assert "plan" not in r.json()["user"]
         assert r.json()["user"]["oauth_provider"] is None
 
-        # Дубль → 409
+        # Дубль (пользователь уже существует) → register даёт 409
         r = await client.post("/api/auth/register",
                               json={"email": email, "password": "secretpass1", "consent": True})
         assert r.status_code == 409, r.text
@@ -237,11 +298,10 @@ async def _run_flow():
         r = await client.get(f"/api/reports/{report_id}/pdf", headers=auth)
         assert r.status_code == 402
 
-        # Чужой отчёт → 404
+        # Чужой отчёт → 404 (регистрируем второго юзера через двухшаговый флоу)
         other_email = f"v{uuid.uuid4().hex[:10]}@example.com"
-        r2 = await client.post("/api/auth/register",
-                               json={"email": other_email, "password": "secretpass1", "consent": True})
-        other = {"Authorization": f"Bearer {r2.json()['token']}"}
+        other_token = await _register_and_confirm(client, other_email)
+        other = {"Authorization": f"Bearer {other_token}"}
         r = await client.get(f"/api/reports/{report_id}", headers=other)
         assert r.status_code == 404
 

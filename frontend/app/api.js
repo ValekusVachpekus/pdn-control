@@ -182,26 +182,40 @@ export async function login({ email, password }) {
   return auth;
 }
 
+/* Регистрация — двухшаговая с подтверждением e-mail кодом.
+ * Шаг 1: POST /register { email, password, consent } -> 202 (код отправлен, юзер
+ *        ещё НЕ создан). Токена тут нет.
+ * Шаг 2: POST /register/confirm { email, code } -> { token, user }. */
 export async function register({ email, password, consent }) {
+  if (IS_MOCK) return { status: 'verification_required', email };
+  const res = await http('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, consent }),
+  });
+  return res.json();
+}
+
+export async function confirmRegister({ email, code }) {
   if (IS_MOCK) {
     const auth = { token: 'mock', user: { email } };
     writeAuth(auth);
     return auth;
   }
-  const res = await http('/api/auth/register', {
+  const res = await http('/api/auth/register/confirm', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, consent }),
+    body: JSON.stringify({ email, code }),
   });
   const auth = await res.json();
   writeAuth(auth);
   return auth;
 }
 
-/* Passwordless-вход по коду на e-mail (issue #55).
- * POST /api/auth/request-code { email }              -> 204 (всегда, анти-enumeration)
- * POST /api/auth/verify-code  { email, code, consent } -> { token, user }
- * 152-ФЗ ст. 9: при ПЕРВОЙ регистрации consent=true обязателен (иначе 400). */
+/* Passwordless-ВХОД по коду на e-mail (только для существующих аккаунтов).
+ * POST /api/auth/request-code { email }        -> 204 (всегда, анти-enumeration)
+ * POST /api/auth/verify-code  { email, code }  -> { token, user } | 404 если аккаунта нет.
+ * Регистрация здесь НЕ происходит — это отдельный поток (пароль+код или OAuth). */
 export async function requestCode({ email }) {
   if (IS_MOCK) return true;
   await http('/api/auth/request-code', {
@@ -212,7 +226,7 @@ export async function requestCode({ email }) {
   return true;
 }
 
-export async function verifyCode({ email, code, consent }) {
+export async function verifyCode({ email, code }) {
   if (IS_MOCK) {
     const auth = { token: 'mock', user: { email } };
     writeAuth(auth);
@@ -221,7 +235,7 @@ export async function verifyCode({ email, code, consent }) {
   const res = await http('/api/auth/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code, consent }),
+    body: JSON.stringify({ email, code }),
   });
   const auth = await res.json();
   writeAuth(auth);

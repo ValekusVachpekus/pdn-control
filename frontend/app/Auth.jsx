@@ -4,7 +4,7 @@
  * здесь UI, локальная валидация и состояния. После успеха — onAuth(user). */
 import { useEffect, useState } from 'react';
 import { Icon, Logo, Modal } from './shared.jsx';
-import { login, register, loginWithProvider, requestCode, verifyCode } from './api.js';
+import { login, register, confirmRegister, loginWithProvider, requestCode, verifyCode } from './api.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CODE_RE = /^\d{6}$/;
@@ -104,6 +104,8 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
   const switchMode = (next) => { setMode(next); resetTransient(); };
 
   // ── e-mail + пароль ────────────────────────────────────────────────────
+  // Login — сразу вход. Register — шаг 1: отправляем код подтверждения на почту
+  // и переходим к его вводу (пользователь создастся только после подтверждения).
   const submit = async () => {
     setErr('');
     if (!EMAIL_RE.test(email.trim())) { setErr('Введите корректный e-mail'); return; }
@@ -111,14 +113,51 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
     if (isRegister && !consent) { setErr('Подтвердите согласие на обработку персональных данных'); return; }
     setBusy(true);
     try {
-      const { user } = isRegister
-        ? await register({ email: email.trim(), password, consent })
-        : await login({ email: email.trim(), password });
-      onToast && onToast(isRegister ? 'Аккаунт создан' : 'Вы вошли', 'ok');
+      if (isRegister) {
+        await register({ email: email.trim(), password, consent });
+        onToast && onToast('Код подтверждения отправлен на почту', 'ok');
+        setStep(2); setCode(''); setCooldown(RESEND_COOLDOWN);
+      } else {
+        const { user } = await login({ email: email.trim(), password });
+        onToast && onToast('Вы вошли', 'ok');
+        onAuth && onAuth(user);
+        handleClose();
+      }
+    } catch (e) {
+      if (isRegister && e?.status === 409) setErr('E-mail уже зарегистрирован — войдите');
+      else setErr(isRegister ? 'Не удалось начать регистрацию' : 'Неверный e-mail или пароль');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── регистрация: шаг 2 — подтверждение e-mail кодом ─────────────────────
+  const submitRegisterCode = async () => {
+    setErr('');
+    if (!CODE_RE.test(code.trim())) { setErr('Код — 6 цифр'); return; }
+    setBusy(true);
+    try {
+      const { user } = await confirmRegister({ email: email.trim(), code: code.trim() });
+      onToast && onToast('Аккаунт создан', 'ok');
       onAuth && onAuth(user);
       handleClose();
+    } catch (e) {
+      setErr(e?.status === 400
+        ? 'Код неверный или регистрация истекла — начните заново'
+        : 'Не удалось подтвердить регистрацию');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendRegisterCode = async () => {
+    setErr('');
+    setBusy(true);
+    try {
+      await register({ email: email.trim(), password, consent });
+      setCode(''); setCooldown(RESEND_COOLDOWN);
     } catch {
-      setErr(isRegister ? 'Не удалось зарегистрироваться' : 'Неверный e-mail или пароль');
+      setErr('Не удалось отправить код повторно');
     } finally {
       setBusy(false);
     }
@@ -146,14 +185,14 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
     if (!CODE_RE.test(code.trim())) { setErr('Код — 6 цифр'); return; }
     setBusy(true);
     try {
-      const { user } = await verifyCode({ email: email.trim(), code: code.trim(), consent });
+      const { user } = await verifyCode({ email: email.trim(), code: code.trim() });
       onToast && onToast('Вы вошли', 'ok');
       onAuth && onAuth(user);
       handleClose();
     } catch (e) {
-      // Новому пользователю нужен consent (ст. 9) — бэк отдаёт 400 с detail про consent.
-      setErr(/consent/i.test(e?.message || '')
-        ? 'Подтвердите согласие на обработку персональных данных'
+      // 404 — аккаунта нет (вход по коду только для существующих): зовём регистрироваться.
+      setErr(e?.status === 404
+        ? 'Аккаунт с этим e-mail не найден — зарегистрируйтесь'
         : 'Неверный или просроченный код');
     } finally {
       setBusy(false);
@@ -182,9 +221,13 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
     }
   };
 
-  const title = isCode ? 'Вход по коду' : isRegister ? 'Создать аккаунт' : 'Вход в ПДн Контроль';
+  const isRegisterConfirm = isRegister && step === 2;
+  const title = isCode ? 'Вход по коду'
+    : isRegisterConfirm ? 'Подтвердите e-mail'
+    : isRegister ? 'Создать аккаунт' : 'Вход в ПДн Контроль';
   const subtitle = isCode
     ? (step === 1 ? 'Пришлём одноразовый код на e-mail' : `Код отправлен на ${email.trim()}`)
+    : isRegisterConfirm ? `Мы отправили код на ${email.trim()}`
     : isRegister ? 'История проверок и доступ к Pro' : 'Доступ к истории и сохранённым отчётам';
 
   return (
@@ -219,7 +262,6 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
                 <Field icon="lock" type="text" value={code} onChange={setCode}
                   placeholder="6-значный код" autoComplete="one-time-code"
                   inputMode="numeric" maxLength={6} onEnter={submitCode} />
-                <ConsentBox consent={consent} setConsent={setConsent} onOpenPolicy={onOpenPolicy} />
                 <ErrorBox err={err} />
                 <button className="btn btn-primary" disabled={busy}
                   style={{ height: 46, marginTop: 4, justifyContent: 'center' }} onClick={submitCode}>
@@ -244,6 +286,30 @@ function Auth({ open, onClose, onAuth, onToast, onOpenPolicy }) {
               <button className="btn btn-quiet" style={{ height: 26, padding: '0 6px', fontSize: 13.5, color: 'var(--accent-ink)' }}
                 onClick={() => switchMode('login')}>
                 Войти по паролю
+              </button>
+            </div>
+          </div>
+        ) : isRegisterConfirm ? (
+          /* ───────── регистрация: ввод кода подтверждения ───────── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Field icon="lock" type="text" value={code} onChange={setCode}
+              placeholder="6-значный код" autoComplete="one-time-code"
+              inputMode="numeric" maxLength={6} onEnter={submitRegisterCode} />
+            <ErrorBox err={err} />
+            <button className="btn btn-primary" disabled={busy}
+              style={{ height: 46, marginTop: 4, justifyContent: 'center' }} onClick={submitRegisterCode}>
+              {busy ? 'Подождите…' : 'Подтвердить и создать аккаунт'}
+              {!busy && <Icon name="arrow" size={18} />}
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+              <button className="btn btn-quiet" style={{ height: 28, padding: '0 4px', fontSize: 13, color: 'var(--muted)' }}
+                onClick={() => { setStep(1); setErr(''); setCode(''); }}>
+                ← Назад
+              </button>
+              <button className="btn btn-quiet" disabled={cooldown > 0 || busy}
+                style={{ height: 28, padding: '0 4px', fontSize: 13, color: cooldown > 0 ? 'var(--faint)' : 'var(--accent-ink)' }}
+                onClick={resendRegisterCode}>
+                {cooldown > 0 ? `Повторить через ${cooldown} с` : 'Отправить код повторно'}
               </button>
             </div>
           </div>

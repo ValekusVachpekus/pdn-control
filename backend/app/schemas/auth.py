@@ -27,11 +27,16 @@ class RequestCodeIn(BaseModel):
 
 
 class VerifyCodeIn(BaseModel):
-    """Шаг 2: проверка кода. `consent` обязателен только при ПЕРВОЙ регистрации
-    (нового пользователя) — 152-ФЗ ст. 9; для существующего игнорируется."""
+    """Вход по коду — только для существующего аккаунта (не регистрирует)."""
     email: EmailStr
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    consent: bool = False
+
+
+class ConfirmRegisterIn(BaseModel):
+    """Шаг 2 регистрации по e-mail+password: подтверждение почты кодом.
+    Пароль и согласие уже приняты на шаге 1 (лежат в pending-регистрации)."""
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
 class UserOut(BaseModel):
