@@ -15,8 +15,8 @@ attributes), UAT confirms the product is **fit for purpose** for the end user.
 
 > **MVP v2 (Sprint 5):** new scenarios for the `MVP v2` increment are maintained in their own
 > section, [**MVP v2 (Sprint 5) — new scenarios**](#mvp-v2-sprint-5--new-scenarios), below.
-> They are **scheduled for execution with the customer at the Sprint 5 Review** and are marked
-> **Pending** until then — no verdict is asserted in advance.
+> They were **executed with the customer at the Sprint 5 Review on 2026-07-04 (recorded session)**
+> and **passed 2 / 2**; the customer accepted the MVP v2 increment.
 
 ### Execution history
 
@@ -24,12 +24,17 @@ attributes), UAT confirms the product is **fit for purpose** for the end user.
 |---|---|---|---|
 | 2026-06-21 | MVP v1 on the university VM (Sprint Review walkthrough) | Customer | 5 / 5 Pass |
 | 2026-06-27 | v1.1.0 on the **customer's own infrastructure** (`pdn.neurolife.tech`), re-run during the Sprint 2 Review | Customer | 5 / 5 Pass |
+| 2026-07-04 | `MVP v2` (`v1.2.0`) on `pdn.neurolife.tech`, new scenarios during the Sprint 5 Review (recorded) | Customer | 2 / 2 Pass (UAT-06/07) |
 
 > **2026-06-27 re-run (Sprint 2):** all five scenarios were re-executed by the customer against
 > the live deployment on their own infrastructure and passed again
 > (see [`reports/week4/customer-review-summary.md`](../reports/week4/customer-review-summary.md)).
 > No scenario failed; six **minor UI defects** observed during execution were logged as new
 > backlog items and did not block any scenario from passing.
+>
+> **2026-07-04 (Sprint 5):** the two new MVP v2 scenarios (UAT-06/07), covering the Week 4 UAT
+> feedback fixes, were executed by the customer against the live `MVP v2` deployment and passed
+> 2 / 2. The customer accepted the MVP v2 increment; no scenario failed. The session was recorded.
 
 Each scenario is written in the standard UAT form: a business goal, the user story and its
 acceptance criteria, preconditions, steps, expected result, the observed actual result, and
@@ -141,14 +146,13 @@ These scenarios cover **new or changed user-facing behaviour delivered in `MVP v
 
 - **Build under test:** `MVP v2` (`v1.2.0`) on the customer's own infrastructure
   (`pdn.neurolife.tech`), after the Sprint 5 deploy.
-- **Status:** ⏳ **Pending execution** — to be run with the customer at the **Sprint 5 Review
-  (recorded session)**. Actual results and verdicts are filled in only after that session; no
-  Pass/Fail is asserted in advance.
+- **Status:** ✅ **Executed 2026-07-04 — 2 / 2 Pass.** Run with the customer at the **Sprint 5
+  Review (recorded session)**; the customer accepted the MVP v2 increment.
 
 | UAT | Source issue | Feature | Acceptor | Result |
 |---|---|---|---|---|
-| [UAT-06](#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Logged-out check → sign-in, no loading screen | Customer | ⏳ Pending |
-| [UAT-07](#uat-07--report-and-history-ui-clarity-fixes) | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Report and history UI clarity | Customer | ⏳ Pending |
+| [UAT-06](#uat-06--logged-out-check-routes-to-sign-in-without-a-loading-screen) | [#99](https://github.com/ValekusVachpekus/pdn-control/issues/99) | Logged-out check → sign-in, no loading screen | Customer | ✅ Pass |
+| [UAT-07](#uat-07--report-and-history-ui-clarity-fixes) | [#100](https://github.com/ValekusVachpekus/pdn-control/issues/100), [#101](https://github.com/ValekusVachpekus/pdn-control/issues/101), [#102](https://github.com/ValekusVachpekus/pdn-control/issues/102) | Report and history UI clarity | Customer | ✅ Pass |
 
 ---
 
@@ -163,8 +167,8 @@ These scenarios cover **new or changed user-facing behaviour delivered in `MVP v
 | Preconditions | `MVP v2` (`v1.2.0`) live on `pdn.neurolife.tech`; user is **logged out**. |
 | Steps | 1. Open the site while logged out. 2. Enter a valid public URL in the landing input. 3. Click **«Проверить»**. |
 | Expected result | No scanning/loading screen appears; instead the registration/login prompt is shown, giving the user a clear path to authenticate before any check runs. |
-| **Actual result** | ⏳ Pending — to be executed at the Sprint 5 Review (recorded). |
-| **Verdict** | ⏳ **Pending** |
+| **Actual result** | As expected — the logged-out check no longer opened a loading screen; the user was routed to the sign-in/registration prompt. Executed by the customer at the Sprint 5 Review (recorded, 2026-07-04). |
+| **Verdict** | ✅ **Pass** |
 
 ---
 
@@ -179,16 +183,75 @@ These scenarios cover **new or changed user-facing behaviour delivered in `MVP v
 | Preconditions | `MVP v2` (`v1.2.0`) live; a registered, signed-in account; for (a) a fresh/empty history; for (b)/(c) a completed scan of a site that has a form on the **main page** and at least one non-applicable (non-fineable) check. |
 | Steps | 1. With an empty history, open **«История»** → confirm the prominent **«Новая проверка»** action and that it returns to the main page. 2. Run a scan of a site with a main-page form. 3. Open the report → confirm no stray **"0"** fine appears for non-applicable checks. 4. Open the technical appendix → confirm **«Точки сбора ПДн»** lists the found form with its location. |
 | Expected result | (a) the empty-history "Новая проверка" action is obvious and navigates to the main page; (b) non-applicable checks show no "0" fine; (c) each found form shows a non-empty location label. |
-| **Actual result** | ⏳ Pending — to be executed at the Sprint 5 Review (recorded). |
-| **Verdict** | ⏳ **Pending** |
+| **Actual result** | As expected on all three — (a) the empty-history «Новая проверка» action was obvious and returned to the main page; (b) no stray «0» fine appeared for non-applicable checks; (c) each found form showed its location in «Точки сбора ПДн». Executed by the customer at the Sprint 5 Review (recorded, 2026-07-04). |
+| **Verdict** | ✅ **Pass** |
+
+---
+
+## MVP v3 (Sprint 6) — new scenarios
+
+These scenarios cover **new or changed user-facing behaviour delivered in the `MVP v3`
+Sprint 6 trial**: bringing social login and domain e-mail **fully live on the customer's
+own accounts and DNS**. They are the direct follow-up requested by the customer at the
+Sprint 5 Review (see Sign-off below) and map to
+[#129 — production OAuth on the customer's keys](https://github.com/ValekusVachpekus/pdn-control/issues/129)
+and [#130 — production e-mail + sender-domain DNS verification](https://github.com/ValekusVachpekus/pdn-control/issues/130).
+
+- **Build under test:** `MVP v3` Week 6 trial (`v1.3.0`) on the customer's own
+  infrastructure (`pdn.neurolife.tech`).
+- **Status:** Pending — to be executed by the customer at the **Week 6 transition-readiness
+  meeting / trial**. Preconditions require the customer to provide the production OAuth
+  `client_id`/`client_secret` and to apply the SPF/DKIM DNS records.
+
+| UAT | Source issue | Feature | Acceptor | Result |
+|---|---|---|---|---|
+| [UAT-08](#uat-08--production-social-login-yandex--vk-on-the-customers-apps) | [#129](https://github.com/ValekusVachpekus/pdn-control/issues/129) (on [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) | Production social login (Yandex/VK) | Customer | Pending |
+| [UAT-09](#uat-09--login-code-e-mail-is-delivered-from-the-customers-verified-domain) | [#130](https://github.com/ValekusVachpekus/pdn-control/issues/130) (on [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) | Real e-mail from the verified domain | Customer | Pending |
+
+---
+
+## UAT-08 — Production social login (Yandex & VK) on the customer's apps
+
+- **Source:** [#129 — production OAuth on the customer's keys](https://github.com/ValekusVachpekus/pdn-control/issues/129) (Must Have), on top of [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72) (redirect flow, delivered in MVP v2).
+- **Business goal:** A user can sign in with Yandex or VK against the customer's **real** OAuth applications on the live domain — not a stub or a developer app.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | Given the customer's OAuth `client_id`/`client_secret` configured in `.env.secret` and the app redirect URI set to `https://pdn.neurolife.tech`, when the user clicks **«Войти через Яндекс»** or **«Войти через ВКонтакте»**, they complete the provider consent and return **signed in**; on first-time registration the ПДн consent is recorded (152-ФЗ ст. 9). |
+| Preconditions | `v1.3.0` trial live on `pdn.neurolife.tech`; customer's OAuth apps created and keys applied; user logged out. |
+| Steps | 1. Open the site logged out. 2. Sign in via **Яндекс** → complete the provider consent → confirm the user returns authenticated. 3. Repeat via **ВКонтакте**. 4. For a first-time account, confirm the registration records the ПДн consent. |
+| Expected result | Both providers sign the user in on the production domain; the session is established (httpOnly cookie); first-time registration records the consent with timestamp and policy version. |
+| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
+| **Verdict** | Pending |
+
+---
+
+## UAT-09 — Login-code e-mail is delivered from the customer's verified domain
+
+- **Source:** [#130 — production e-mail + sender-domain DNS verification](https://github.com/ValekusVachpekus/pdn-control/issues/130) (Must Have), on top of [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104) (Resend integration, delivered in MVP v2).
+- **Business goal:** The passwordless login code (and the scan-finished notification) actually reaches the user's **real inbox**, sent from the customer's own verified domain — not printed to the DEV log.
+
+| Field | Value |
+|---|---|
+| Acceptance criteria | Given the sender domain verified in Resend (SPF/DKIM applied by the customer) and the DEV log-fallback off, when the user requests an e-mail login code, a **real e-mail** arrives from the customer's domain within a short time and the code signs the user in. |
+| Preconditions | `v1.3.0` trial live; sender domain verified; `RESEND` API key set in `.env.secret`; an external test mailbox available. |
+| Steps | 1. On the login screen, request an e-mail code to an external mailbox. 2. Confirm a real e-mail arrives from the customer's domain (SPF/DKIM pass, not a DEV-log code). 3. Enter the code and confirm sign-in. 4. Optionally, complete a scan and confirm the scan-finished notification arrives ([US-13](https://github.com/ValekusVachpekus/pdn-control/issues/70)). |
+| Expected result | A real e-mail is delivered from the customer's verified domain; the code authenticates the user; no reliance on the DEV log-fallback in production. |
+| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
+| **Verdict** | Pending |
 
 ---
 
 ## Sign-off
 
-- **Decision:** MVP v1 **accepted** by the customer at the Sprint Review on 2026-06-21, with
+- **Decision (MVP v1):** MVP v1 **accepted** by the customer at the Sprint Review on 2026-06-21, with
   the follow-up items recorded as new backlog entries (e.g. server-side paid-gate hardening,
   deploy to customer infrastructure / DNS migration — [#88](https://github.com/ValekusVachpekus/pdn-control/issues/88)).
+- **Decision (MVP v2):** `MVP v2` (`v1.2.0`) **accepted** by the customer at the Sprint 5 Review on
+  2026-07-04 (recorded); UAT-06/07 passed 2 / 2. The customer's only follow-up request was to bring
+  social login ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) and domain e-mail
+  ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) fully live by providing the
+  OAuth `client_id`/`secret` and the SPF/DKIM DNS records — carried into the next Sprint.
 - **Traceability:** customer feedback source —
   [`reports/week3/customer-review-summary.md`](../reports/week3/customer-review-summary.md);
   acceptance criteria — the linked user-story issues; internal quality evidence —

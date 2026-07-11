@@ -79,7 +79,10 @@ async function http(path, opts = {}) {
 
   let res;
   try {
-    res = await fetch(`${BASE}${path}`, { ...rest, headers, signal: ctrl.signal });
+    // credentials:'include' — чтобы httpOnly-cookie access_token (соц-вход OAuth,
+    // #129) уходила на защищённые запросы. На проде same-origin безвредно; для
+    // cross-origin dev обязательно (CORS бэка уже с allow_credentials).
+    res = await fetch(`${BASE}${path}`, { ...rest, headers, credentials: 'include', signal: ctrl.signal });
   } catch (err) {
     if (ctrl.signal.aborted) {
       // Таймаут — отдельная ошибка для понятного тоста; отмена извне (unmount/
@@ -239,8 +242,11 @@ export async function verifyCode({ email, code }) {
   return auth;
 }
 
-/* Вход через Яндекс/ВК. На бэке сейчас 501 — UI-кнопки видны, но реальный
- * OAuth-flow пока не реализован (см. backend/app/routers/auth.py). */
+/* Вход через Яндекс/ВК — реальный redirect authorization-code flow (#72/#129).
+ * В проде уводим браузер на /oauth/{provider}/start; сессию бэк вернёт httpOnly-cookie
+ * и редиректом обратно в SPA с ?oauth=success | ?oauth_error=<code> (разбирает App.jsx).
+ * `consent` — состояние чекбокса согласия на ПДн (нужно при первой регистрации, ст. 9).
+ * Функция не резолвится (страница уходит) — вызывающий не должен ждать user. */
 export async function loginWithProvider(provider, consent) {
   if (IS_MOCK) {
     const email = provider === 'yandex' ? 'user@yandex.ru' : 'user@vk.com';
@@ -248,14 +254,30 @@ export async function loginWithProvider(provider, consent) {
     writeAuth(auth);
     return auth;
   }
-  const res = await http(`/api/auth/oauth/${provider}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ consent }),
-  });
-  const auth = await res.json();
-  writeAuth(auth);
-  return auth;
+  window.location.href = `${BASE}/api/auth/oauth/${provider}/start?consent=${consent ? 1 : 0}`;
+  return new Promise(() => {}); // навигация уводит страницу — намеренно не резолвим
+}
+
+/* Текущий пользователь по сессии. GET /api/auth/me -> UserOut (или null при 401).
+ * Для соц-входа JWT в httpOnly-cookie, поэтому «кто вошёл» узнаём только с бэка —
+ * и так же восстанавливаем OAuth-сессию после reload. */
+export async function fetchMe() {
+  if (IS_MOCK) return getStoredAuth()?.user ?? null;
+  try {
+    const res = await http('/api/auth/me');
+    return res.json();
+  } catch {
+    return null; // 401/сеть — считаем, что сессии нет
+  }
+}
+
+/* Погасить cookie-сессию соц-входа. POST /api/auth/logout -> 204. Best-effort:
+ * локальный logout() чистит localStorage-токен в любом случае. */
+export async function logoutRequest() {
+  if (IS_MOCK) return;
+  try {
+    await http('/api/auth/logout', { method: 'POST' });
+  } catch { /* сеть/401 — не критично, cookie протухнет по TTL */ }
 }
 
 /* ===== Billing (CloudPayments, пока заглушка на бэке) ===================== */

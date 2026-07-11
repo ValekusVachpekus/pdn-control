@@ -1,8 +1,8 @@
 # Product Roadmap — ПДн Контроль
 
-This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descriptions and real-time progress are tracked in the [Project Board](https://github.com/users/ValekusVachpekus/projects/1). The current Sprint is inspectable on the **Sprint Backlog Assignment 5** view of the board, filtered by the [Sprint 5 milestone](https://github.com/ValekusVachpekus/pdn-control/milestone/3).
+This roadmap outlines our Sprint-by-Sprint delivery plan through the end of the course. Detailed task descriptions and real-time progress are tracked in the [Project Board](https://github.com/users/ValekusVachpekus/projects/1). The current Sprint (Assignment 6, Week 6) is inspectable on the board filtered by the [Sprint 6 milestone](https://github.com/ValekusVachpekus/pdn-control/milestone/4).
 
-> **Sprint numbering:** Sprints are numbered by course week. Sprint 5 is the Assignment 5 increment and maps to release `MVP v2`. The Sprint milestone (work container) is kept separate from the SemVer release tag.
+> **Sprint numbering:** Sprints continue the team's sequential numbering. Assignment 6 spans **Sprint 6** (Week 6) and **Sprint 7** (Week 7); in the assignment text these are referred to as "Sprint 4" and "Sprint 5". The final Sprint 7 increment maps to release `MVP v3`, the final course version. The Sprint milestone (work container) is kept separate from the SemVer release tag.
 
 ## Sprint 1: Stabilization & Public Safety (Completed)
 *   **Milestone:** [Sprint 1 — Stabilization / RC hardening](https://github.com/ValekusVachpekus/pdn-control/milestone/1)
@@ -36,7 +36,7 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
 *   **Sprint size:** 16 Story Points.
 *   **Outcome:** Increment accepted by the customer at the Week 4 Sprint Review/UAT (5/5 UAT pass). Released as [`v1.1.0`](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.1.0). Six minor UI/UX and infra feedback items raised during UAT ([#99–#104](https://github.com/ValekusVachpekus/pdn-control/issues/99)) carried into Sprint 5.
 
-## Sprint 5 — Assignment 5: MVP v2 — Auth & Architecture (Current)
+## Sprint 5 — Assignment 5: MVP v2 — Auth & Architecture (Completed)
 *   **Milestone:** [Sprint 5 — MVP v2: Auth & Architecture](https://github.com/ValekusVachpekus/pdn-control/milestone/3)
 *   **Dates:** 2026-06-29 — 2026-07-05
 *   **Maps to release:** `MVP v2` → SemVer `v1.2.0` (milestone kept separate from the release tag).
@@ -60,21 +60,27 @@ This roadmap outlines our Sprint-by-Sprint delivery plan. Detailed task descript
         *   [Task] Extend tests/QA & CI evidence for MVP v2 ([#110](https://github.com/ValekusVachpekus/pdn-control/issues/110)) — *Must, 5 SP*
         *   [Task] Hosted documentation site ([#111](https://github.com/ValekusVachpekus/pdn-control/issues/111)) — *Should, 3 SP*
 *   **Sprint size:** 42 Story Points.
+*   **Outcome:** `MVP v2` released as [`v1.2.0`](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.2.0). Real authentication (OAuth Yandex/VK + passwordless e-mail login) delivered, Week 4 UAT defects closed, architecture (views + ADRs) and development-process documentation maintained under the existing CI gates.
 
-## Next: Notifications & Customer Infrastructure (Expected next Sprint)
-*   **Milestone:** to be created
-*   **Sprint Goal:** Finish scan-completion notifications on top of the new e-mail provider and complete the customer-infrastructure/DNS hand-off, maintaining the quality gates.
+## Sprint 6 — Assignment 6: MVP v3 — Customer transition (Week 6 trial) (Current)
+*   **Milestone:** [Sprint 6 — MVP v3: Customer transition](https://github.com/ValekusVachpekus/pdn-control/milestone/4)
+*   **Dates:** 2026-07-06 — 2026-07-12
+*   **Sprint Goal:** Deliver a stable trial / handover-candidate release (`v1.3.0`) on the customer's own infrastructure — wire production OAuth (Yandex/VK) on the customer's keys and production e-mail sending via the customer's DNS records — and review the customer-facing documentation set for transition readiness.
+*   **Focus:** Real transition on the customer side over new features — the product already runs on the customer's server (**https://pdn.neurolife.tech**); Week 6 finalizes production credentials, e-mail/DNS verification, and handover documentation.
 *   **Candidate Items:**
-    *   [US-13] Scan-finished notification (link/email) ([#70](https://github.com/ValekusVachpekus/pdn-control/issues/70)) — builds on the MVP v2 e-mail provider ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104))
-    *   [Task] Complete hosting on the customer's infrastructure + DNS migration ([#88](https://github.com/ValekusVachpekus/pdn-control/issues/88))
-*   **Architecture/quality work to continue:** keep `docs/architecture/` (views + ADRs) current as the deployment and auth model evolve; extend QRTs to cover the new auth flows.
+    *   [Task] Production OAuth Yandex/VK on the customer's keys ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72) follow-up)
+    *   [Task] Production e-mail sending + sender-domain DNS verification (SPF/DKIM), on top of ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104))
+    *   [Task] Customer-handover documentation + customer-facing documentation review ([`docs/customer-handover.md`](customer-handover.md))
+*   **Release target:** Week 6 trial `v1.3.0` on the protected `main`.
 
-## Later: AI Intelligence & Automation (Future)
-*   **Sprint Goal:** Implement deep AI analysis of legal texts and improve user retention.
-*   **Focus:** LLM-powered policy auditing and automated remediation recommendations.
-*   **Candidate Items:**
-    *   [US-11] Automatic AI code remediation suggestions (currently Won't-Have; future candidate)
-    *   [Task] Deeper LLM policy auditing across documents (cross-document consistency)
+## Sprint 7 — Assignment 6: MVP v3 — Final delivery & transition (Week 7)
+*   **Milestone:** [Sprint 7 — MVP v3: Final delivery & transition](https://github.com/ValekusVachpekus/pdn-control/milestone/5)
+*   **Dates:** 2026-07-13 — 2026-07-19
+*   **Maps to release:** `MVP v3` → final SemVer tag (higher precedence than `v1.3.0`).
+*   **Sprint Goal:** Complete the transition — finalize OAuth and e-mail on the customer's infrastructure/DNS, resolve Week 6 trial feedback, finalize handover documentation, and deliver the final course version `MVP v3`.
+*   **Focus:** Follow-up maintenance, final transition, and final delivery rather than new features — reliability, handover completeness, and closing customer trial feedback.
+*   **Expected scope:** Week 6 customer-trial feedback items (to be created after the Week 6 meeting), remaining transition actions, documentation updates, and the public sanitized demo video for `MVP v3`.
+*   **End-of-course outcome:** `MVP v3` deployed and operated on the customer's infrastructure, with the reached handover level and customer-confirmation status recorded in [`docs/customer-handover.md`](customer-handover.md) and [`reports/week7/README.md`](../reports/week7/README.md).
 
 ## Continuing Quality & Automation Commitments
 

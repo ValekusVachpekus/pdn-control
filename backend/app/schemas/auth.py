@@ -39,12 +39,6 @@ class ConfirmRegisterIn(BaseModel):
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
-class OAuthIn(BaseModel):
-    """Тело при входе через провайдера. `consent` обязателен только при ПЕРВОЙ
-    регистрации (для существующего пользователя бэкенд может игнорировать)."""
-    consent: bool = False
-
-
 class UserOut(BaseModel):
     id: uuid.UUID
     email: EmailStr

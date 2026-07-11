@@ -14,7 +14,17 @@ const Pricing = lazy(() => import('./Pricing.jsx'));
 // Dev-панель твиков: только в dev и только лениво — в прод-бандл не попадает (issue #43).
 const DevTweaks = import.meta.env.DEV ? lazy(() => import('./DevTweaks.jsx')) : null;
 import { startScan as apiStartScan, fetchReport, reportPdfUrl, normalizeDomain, IS_MOCK,
-  getStoredAuth, logout as apiLogout, getAuthHeader } from './api.js';
+  getStoredAuth, logout as apiLogout, getAuthHeader, fetchMe, logoutRequest } from './api.js';
+
+// Сообщения на коды ошибок OAuth-возврата (?oauth_error=<code>), которые ставит
+// backend (routers/auth.py). Держим рядом с разбором в App, чтобы не разъезжались.
+const OAUTH_ERROR_MSG = {
+  provider_unavailable: 'Провайдер временно недоступен',
+  state: 'Сессия входа истекла, попробуйте снова',
+  denied: 'Вход отменён',
+  provider: 'Не удалось получить данные от провайдера',
+  consent_required: 'Подтвердите согласие на обработку ПДн (нужно при первой регистрации)',
+};
 
 const ACCENTS = {
   '#1F8A5B': { press: '#1A7A50', l: { soft: '#E7F3EC', ink: '#0F5235' }, d: { soft: 'rgba(40,160,105,.18)', ink: '#6FD9A6' } },
@@ -104,7 +114,8 @@ function App() {
   const detail = t.detail === 'Специалист' ? 'specialist' : 'owner';
 
   const handleLogout = () => {
-    apiLogout();
+    logoutRequest(); // best-effort: гасим httpOnly-cookie соц-входа на бэке
+    apiLogout();     // снимаем локальный токен (email/пароль/OTP)
     setUser(null);
     setReportId(null);
     setReport(null);
@@ -146,6 +157,27 @@ function App() {
     }, 2800);
     toastTimers.current.push(timer);
   };
+
+  // Возврат из OAuth-редиректа (#129): бэк присылает ?oauth=success (сессия уже в
+  // httpOnly-cookie) или ?oauth_error=<code>. Разбираем один раз на маунте. Если
+  // oauth-параметров нет, но локального user нет — пробуем восстановить OAuth-сессию
+  // с бэка (cookie переживает reload, а localStorage для соц-входа не пишется).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauth = params.get('oauth');
+    const oauthError = params.get('oauth_error');
+    if (oauth === 'success') {
+      fetchMe().then(u => { if (u) setUser(u); });
+      toast('Вы вошли', 'ok');
+    } else if (oauthError) {
+      toast(OAUTH_ERROR_MSG[oauthError] || 'Не удалось войти через провайдера', 'info');
+    } else {
+      if (!getStoredAuth()?.user) fetchMe().then(u => { if (u) setUser(u); });
+      return; // без oauth-параметров URL не трогаем
+    }
+    // Стираем oauth-параметры из адресной строки, чтобы не сработали при F5.
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
 
   // Загрузка отчёта с polling'ом: пока скан ещё не завершён, бэк отвечает 409
   // (status=pending/running). Подождём — таймаут 3 минуты, шаг 2 секунды.

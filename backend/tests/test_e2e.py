@@ -228,6 +228,28 @@ async def _run_flow():
         r = await client.get("/api/auth/oauth/yandex/callback?error=access_denied")
         assert r.status_code == 307, r.text
 
+        # /me по Bearer-заголовку → 200 и наш email.
+        r = await client.get("/api/auth/me", headers=auth)
+        assert r.status_code == 200 and r.json()["email"] == email, r.text
+
+        # /me с JWT в httpOnly-cookie access_token (соц-вход) вместо Bearer → тоже
+        # 200: get_current_user читает cookie как fallback (#129).
+        r = await client.get("/api/auth/me", cookies={"access_token": token})
+        assert r.status_code == 200 and r.json()["email"] == email, r.text
+
+        # cookie-fallback работает и на прочих защищённых роутах, не только на /me.
+        r = await client.get("/api/scans", cookies={"access_token": token})
+        assert r.status_code == 200, r.text
+
+        # /me без сессии (ни Bearer, ни cookie) → 401.
+        r = await client.get("/api/auth/me")
+        assert r.status_code == 401, r.text
+
+        # logout гасит cookie-сессию: 204 + Set-Cookie со снятым access_token.
+        r = await client.post("/api/auth/logout")
+        assert r.status_code == 204, r.text
+        assert "access_token=" in r.headers.get("set-cookie", ""), r.headers
+
         # Plans
         plans = (await client.get("/api/billing/plans")).json()
         assert {p["id"] for p in plans} == {"free", "paid"}, plans
