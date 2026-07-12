@@ -199,14 +199,15 @@ and [#130 — production e-mail + sender-domain DNS verification](https://github
 
 - **Build under test:** `MVP v3` Week 6 trial (`v1.3.0`) on the customer's own
   infrastructure (`pdn.neurolife.tech`).
-- **Status:** Pending — to be executed by the customer at the **Week 6 transition-readiness
-  meeting / trial**. Preconditions require the customer to provide the production OAuth
-  `client_id`/`client_secret` and to apply the SPF/DKIM DNS records.
+- **Status:** Executed by the customer at the **Week 6 transition-readiness meeting / trial**
+  on 2026-07-11 — both **Pass** (see per-scenario notes). UAT-08 was validated on a test OAuth
+  application because the customer's production `client_id`/`client_secret` are still to be
+  applied by the customer on their side.
 
 | UAT | Source issue | Feature | Acceptor | Result |
 |---|---|---|---|---|
-| [UAT-08](#uat-08--production-social-login-yandex--vk-on-the-customers-apps) | [#129](https://github.com/ValekusVachpekus/pdn-control/issues/129) (on [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) | Production social login (Yandex/VK) | Customer | Pending |
-| [UAT-09](#uat-09--login-code-e-mail-is-delivered-from-the-customers-verified-domain) | [#130](https://github.com/ValekusVachpekus/pdn-control/issues/130) (on [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) | Real e-mail from the verified domain | Customer | Pending |
+| [UAT-08](#uat-08--production-social-login-yandex--vk-on-the-customers-apps) | [#129](https://github.com/ValekusVachpekus/pdn-control/issues/129) (on [#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) | Production social login (Yandex/VK) | Customer | Pass (test app; prod keys pending customer) |
+| [UAT-09](#uat-09--login-code-e-mail-is-delivered-from-the-customers-verified-domain) | [#130](https://github.com/ValekusVachpekus/pdn-control/issues/130) (on [#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) | Real e-mail from the verified domain | Customer | Pass |
 
 ---
 
@@ -221,8 +222,8 @@ and [#130 — production e-mail + sender-domain DNS verification](https://github
 | Preconditions | `v1.3.0` trial live on `pdn.neurolife.tech`; customer's OAuth apps created and keys applied; user logged out. |
 | Steps | 1. Open the site logged out. 2. Sign in via **Яндекс** → complete the provider consent → confirm the user returns authenticated. 3. Repeat via **ВКонтакте**. 4. For a first-time account, confirm the registration records the ПДн consent. |
 | Expected result | Both providers sign the user in on the production domain; the session is established (httpOnly cookie); first-time registration records the consent with timestamp and policy version. |
-| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
-| **Verdict** | Pending |
+| **Actual result** | Executed at the Week 6 trial (2026-07-11) on a **test OAuth application**, since the customer's production keys were not yet applied. The redirect flow, consent, return, and session behaved as expected; the customer confirmed the implementation suits them despite the missing production keys. |
+| **Verdict** | Pass (on a test OAuth app; production `client_id`/`client_secret` to be applied by the customer). |
 
 ---
 
@@ -237,8 +238,8 @@ and [#130 — production e-mail + sender-domain DNS verification](https://github
 | Preconditions | `v1.3.0` trial live; sender domain verified; `RESEND` API key set in `.env.secret`; an external test mailbox available. |
 | Steps | 1. On the login screen, request an e-mail code to an external mailbox. 2. Confirm a real e-mail arrives from the customer's domain (SPF/DKIM pass, not a DEV-log code). 3. Enter the code and confirm sign-in. 4. Optionally, complete a scan and confirm the scan-finished notification arrives ([US-13](https://github.com/ValekusVachpekus/pdn-control/issues/70)). |
 | Expected result | A real e-mail is delivered from the customer's verified domain; the code authenticates the user; no reliance on the DEV log-fallback in production. |
-| **Actual result** | _Pending — to be observed at the Week 6 trial._ |
-| **Verdict** | Pending |
+| **Actual result** | Executed at the Week 6 trial (2026-07-11): the customer requested a login code, received the real e-mail, and the code signed them in. |
+| **Verdict** | Pass |
 
 ---
 
@@ -252,6 +253,11 @@ and [#130 — production e-mail + sender-domain DNS verification](https://github
   social login ([#72](https://github.com/ValekusVachpekus/pdn-control/issues/72)) and domain e-mail
   ([#104](https://github.com/ValekusVachpekus/pdn-control/issues/104)) fully live by providing the
   OAuth `client_id`/`secret` and the SPF/DKIM DNS records — carried into the next Sprint.
+- **Decision (MVP v3):** `MVP v3` (`v1.3.0`) **accepted** by the customer at the Sprint 6 Review on
+  2026-07-11 (recorded); UAT-08/09 passed (UAT-08 on a test OAuth app, production keys to be applied
+  by the customer). The customer confirmed the handover level as **deployed and operated on the
+  customer side**, found the documentation sufficient to run the product independently, initiated
+  the GitHub repository transfer, and requested no further feature iterations.
 - **Traceability:** customer feedback source —
   [`reports/week3/customer-review-summary.md`](../reports/week3/customer-review-summary.md);
   acceptance criteria — the linked user-story issues; internal quality evidence —

@@ -31,13 +31,15 @@ Finalize the product for handover. This includes:
 ### 🧪 User Acceptance Testing (UAT) Results
 The customer executed the active UAT scenarios live. **5 / 5 Pass**.
 
+> UAT IDs follow the canonical [`docs/user-acceptance-tests.md`](../../docs/user-acceptance-tests.md); rows are in execution order.
+
 | UAT ID | Feature / Scenario | Result | Customer Confirmation |
 | :--- | :--- | :---: | :--- |
-| **UAT-06** | Yandex/VK Login Logic & Error Handling | 🟢 Pass | "Implementation suits me." |
-| **UAT-07** | Email Delivery (Verification Code) | 🟢 Pass | "Email with code received." |
-| **UAT-08** | PDF Report Accuracy vs. Web UI | 🟢 Pass | "Data matches results." |
-| **UAT-09** | Internal IP Filtering (Anti-SSRF) | 🟢 Pass | "Correct error message displayed." |
-| **UAT-10** | General Site Navigation & Stability | 🟢 Pass | "Passed." |
+| **UAT-08** | Yandex/VK Login Logic & Error Handling (on a test OAuth app; prod keys pending customer) | 🟢 Pass | "Implementation suits me." |
+| **UAT-09** | Email Delivery (Verification Code) | 🟢 Pass | "Email with code received." |
+| **UAT-04** | PDF Report Accuracy vs. Web UI | 🟢 Pass | "Data matches results." |
+| **UAT-05** | Internal IP Filtering (Anti-SSRF) | 🟢 Pass | "Correct error message displayed." |
+| **UAT-01** | General Site Navigation & Stability | 🟢 Pass | "Passed." |
 
 ---
 
