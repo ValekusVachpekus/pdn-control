@@ -343,67 +343,71 @@ def _analyze_document(doc_name: str, text: str) -> dict:
 # Под-вызов 2: гео по IP (infrastructure_and_geo + server_outside_rf)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_GEO_SYSTEM = """\
-Ты определяешь страну хостинга веб-сайта по IP-адресу сервера. Верни ТОЛЬКО JSON
-(без текста до/после, без markdown).
-
-По IP определи страну и провайдера из знаний об ASN/диапазонах. Если НЕ уверен —
-ставь null и localization_status="unknown", НЕ гадай.
-
-Верни:
-{
-  "server_country": "RU" | "US" | ... | null,
-  "server_country_ru": "Россия" | "США" | ... | null,
-  "hosting_provider": "Selectel LLC" | "Cloudflare, Inc." | ... | null,
-  "localization_status": "compliant" | "non_compliant" | "unknown",
-  "localization_note": "1-2 предложения с обоснованием, упомяни хостинг по IP"
+# ISO-2 → русское название. Страну даёт парсер (offline GeoIP), тут только имя.
+_COUNTRY_RU = {
+    "RU": "Россия", "US": "США", "DE": "Германия", "NL": "Нидерланды",
+    "GB": "Великобритания", "FR": "Франция", "FI": "Финляндия", "UA": "Украина",
+    "KZ": "Казахстан", "BY": "Беларусь", "CN": "Китай", "IE": "Ирландия",
+    "SG": "Сингапур", "PL": "Польша", "SE": "Швеция", "LV": "Латвия",
+    "LT": "Литва", "EE": "Эстония", "CH": "Швейцария", "CA": "Канада",
+    "JP": "Япония", "TR": "Турция", "AE": "ОАЭ", "IN": "Индия", "BG": "Болгария",
+    "CZ": "Чехия", "RO": "Румыния", "MD": "Молдова", "AM": "Армения", "GE": "Грузия",
 }
-
-localization_status:
-  "non_compliant" — если server_country НЕ "RU" ИЛИ has_cross_border=true.
-  "compliant" — server_country=="RU" И has_cross_border=false.
-  "unknown" — IP null/страна не определена И has_cross_border=false.
-"""
 
 
 def _analyze_geo(crawl: dict[str, Any]) -> dict:
+    """Гео БЕЗ LLM: страна/провайдер/CDN берутся из ДЕТЕРМИНИРОВАННОЙ offline-GeoIP
+    парсера (meta.server_country/hosting_provider/server_is_cdn). Раньше страну
+    угадывала LLM по IP — это давало «плавающий» вердикт локализации между
+    сканами. Теперь функция чистая и воспроизводимая.
+    """
     meta = crawl.get("meta", {}) or {}
     summary = crawl.get("summary", {}) or {}
     server_ip = meta.get("server_ip")
+    country = (meta.get("server_country") or "").upper() or None
+    provider = meta.get("hosting_provider")
+    is_cdn = bool(meta.get("server_is_cdn"))
     has_cross = bool(summary.get("has_cross_border_transfer")) or any(
         t.get("cross_border") for t in (summary.get("trackers") or [])
     )
-    if not server_ip:
-        # Без IP гео определить нельзя — не дёргаем LLM.
-        return {
-            "infrastructure_and_geo": {
-                "server_country": None, "server_country_ru": None,
-                "hosting_provider": None,
-                "localization_status": "non_compliant" if has_cross else "unknown",
-                "localization_note": "",
-            },
-            "violations": [],
-        }
+    country_ru = _COUNTRY_RU.get(country, country) if country else None
 
-    user = f"server_ip: {server_ip}\nhas_cross_border: {str(has_cross).lower()}"
-    geo = _chat(_GEO_SYSTEM, user, max_tokens=400)
-    geo = geo if isinstance(geo, dict) else {}
+    # Статус локализации (ст. 18 ч. 5).
+    if country == "RU" and not has_cross:
+        status = "compliant"
+    elif (country and country != "RU") or has_cross:
+        status = "non_compliant"
+    else:
+        status = "unknown"
+
+    # Пояснение — детерминированный шаблон (без LLM).
+    prov = f" ({provider})" if provider else ""
+    if not server_ip:
+        note = "IP сервера не получен — страну хостинга определить нельзя."
+    elif country == "RU":
+        note = (f"IP {server_ip} по offline-базе GeoIP относится к РФ{prov}; "
+                f"трансграничная передача {'выявлена' if has_cross else 'не выявлена'}.")
+    elif country:
+        cdn = " (CDN/edge-узел — фактическое расположение БД требует проверки)" if is_cdn else ""
+        note = f"IP {server_ip} по offline-базе GeoIP относится к стране {country_ru or country}{prov}{cdn}."
+    else:
+        note = f"Страну по IP {server_ip} определить не удалось."
 
     violations: list[dict] = []
-    # server_outside_rf выписываем только если сайт обрабатывает ПДн и страна не РФ.
-    country = (geo.get("server_country") or "").upper()
-    if (country and country != "RU" and violation_catalog.processes_pii(crawl)):
+    # server_outside_rf: только если обрабатываются ПДн, страна не РФ И это НЕ
+    # CDN-узел. Edge CDN может быть за рубежом, а сами БД — в РФ; не штрафуем
+    # вслепую на 6 млн (см. #75: server_is_cdn/confidence).
+    if country and country != "RU" and not is_cdn and violation_catalog.processes_pii(crawl):
         violations.append({
             "type": "server_outside_rf",
             "description": (
-                f"Сервер сайта расположен за пределами РФ "
-                f"({geo.get('server_country_ru') or country}), что нарушает "
-                f"требование локализации баз ПДн (ст. 18 ч. 5 152-ФЗ)."
+                f"Сервер сайта расположен за пределами РФ ({country_ru or country}), "
+                f"что нарушает требование локализации баз ПДн (ст. 18 ч. 5 152-ФЗ)."
             ),
             "evidence": [
                 f"server_ip: {server_ip}",
                 f"server_country: {country}",
-                *( [f"hosting_provider: {geo.get('hosting_provider')}"] if geo.get("hosting_provider") else [] ),
+                *([f"hosting_provider: {provider}"] if provider else []),
             ],
             "recommendation": (
                 "Перенесите базы данных с ПДн на серверы, расположенные на "
@@ -413,11 +417,11 @@ def _analyze_geo(crawl: dict[str, Any]) -> dict:
 
     return {
         "infrastructure_and_geo": {
-            "server_country": geo.get("server_country"),
-            "server_country_ru": geo.get("server_country_ru"),
-            "hosting_provider": geo.get("hosting_provider"),
-            "localization_status": geo.get("localization_status") or "unknown",
-            "localization_note": geo.get("localization_note") or "",
+            "server_country": country,
+            "server_country_ru": country_ru,
+            "hosting_provider": provider,
+            "localization_status": status,
+            "localization_note": note,
         },
         "violations": violations,
     }
@@ -487,12 +491,10 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
     # 1) Механические нарушения — код (детерминированно).
     violations: list[dict] = list(violation_catalog.detect_mechanical(crawl))
 
-    # 2-3) Разбор документов + гео — НЕЗАВИСИМЫЕ под-вызовы, гоним ПАРАЛЛЕЛЬНО,
-    # но max_workers=2: ограничиваем бёрст, чтобы не провоцировать 429 у провайдера
-    # (429 теперь ретраится в _chat, но меньше параллелизма — меньше шанс).
+    # 2) Разбор документов — независимые LLM-под-вызовы, гоним ПАРАЛЛЕЛЬНО, но
+    # max_workers=2: ограничиваем бёрст, чтобы не провоцировать 429 у провайдера.
     docs = _collect_documents(crawl)
-    has_server_ip = bool((crawl.get("meta", {}) or {}).get("server_ip"))
-    llm_attempts = len(docs) + (1 if has_server_ip else 0)
+    llm_attempts = len(docs)
     llm_ok = 0
     ai_analysis: list[dict] = []
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -500,8 +502,6 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
             name: ex.submit(_safe, lambda n=name, t=text: _analyze_document(n, t), {})
             for name, text in docs.items()
         }
-        geo_future = ex.submit(_safe, lambda: _analyze_geo(crawl), {})
-
         for name, fut in doc_futures.items():
             res = fut.result()
             if res:  # непустой → под-вызов отработал (на сбое _safe вернёт {})
@@ -510,14 +510,14 @@ def call_llm(crawl: dict[str, Any]) -> dict[str, Any]:
                 ai_analysis.append(res["analysis"])
             violations.extend(res.get("violations", []))
 
-        geo = geo_future.result()
-    if has_server_ip and geo:
-        llm_ok += 1
+    # 3) Гео — ДЕТЕРМИНИРОВАННО из offline-GeoIP парсера (не LLM), поэтому вне пула
+    # и без учёта в llm_attempts/llm_ok.
+    geo = _analyze_geo(crawl)
     infra = geo.get("infrastructure_and_geo") or {}
     violations.extend(geo.get("violations", []))
 
     # Взаимоисключение локализационных нарушений: cross_border_transfer (факт
-    # парсера: зарубежные трекеры) и server_outside_rf (догадка LLM о стране) —
+    # парсера: зарубежные трекеры) и server_outside_rf (страна из offline-GeoIP) —
     # это одна и та же ст. 18 ч. 5 и один и тот же штраф. Если есть оба — оставляем
     # cross_border_transfer (на факте), убираем server_outside_rf, чтобы не
     # удваивать штраф/score за одну проблему локализации.

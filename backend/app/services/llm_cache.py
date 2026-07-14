@@ -29,9 +29,12 @@ _KEY_PREFIX = f"llm_cache:{CACHE_VERSION}:"
 # Их вычищаем перед хешированием.
 _VOLATILE_META_KEYS = {
     "scan_id", "started_at", "finished_at", "duration_ms",
-    # server_ip: IP origin'а; на CDN/round-robin DNS меняется между сканами,
-    # хотя сам сайт неизменен → cache-miss. Остаётся в исходном CrawlJSON.
-    "server_ip",
+    # server_ip И ВСЕ производные от него geo-поля (страна/CDN/провайдер/ASN):
+    # на CDN/round-robin DNS IP меняется между сканами, хотя сам сайт неизменен →
+    # без этого ключ кэша «плавает» → cache-miss → LLM перегоняется → недетерминизм.
+    # Остаются в исходном CrawlJSON и в отчёте (канонизация идёт на deep-copy).
+    "server_ip", "server_country", "server_country_source", "server_is_cdn",
+    "server_country_confidence", "hosting_provider", "server_asn",
 }
 
 # Волатильные поля cookie: значение-факт, но нестабильное между сканами.

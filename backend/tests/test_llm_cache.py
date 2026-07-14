@@ -69,6 +69,21 @@ def test_canonical_strips_volatile_but_keeps_facts():
     assert canon["summary"]["forms_total"] == 2
 
 
+def test_geo_fields_do_not_change_key():
+    """Производные от server_ip geo-поля (страна/CDN/провайдер/ASN) не влияют на
+    ключ: на CDN/round-robin сайте IP скачет между сканами, и без этого кэш
+    промахивался → LLM перегонялся → недетерминизм (регрессия #75 × #31)."""
+    a = _crawl(server_ip="10.0.0.1", expires=1, scan_id="s", started_at="t")
+    b = _crawl(server_ip="10.0.0.1", expires=1, scan_id="s", started_at="t")
+    a["meta"].update({"server_country": "RU", "server_is_cdn": False,
+                      "hosting_provider": "VK LLC", "server_asn": 47541,
+                      "server_country_confidence": "high", "server_country_source": "geoip"})
+    b["meta"].update({"server_country": "US", "server_is_cdn": True,
+                      "hosting_provider": "Cloudflare", "server_asn": 13335,
+                      "server_country_confidence": "low", "server_country_source": "geoip"})
+    assert cache_key(a) == cache_key(b)
+
+
 def test_source_crawl_not_mutated():
     """_canonical_crawl работает на копии — исходный crawl не теряет поля."""
     src = _crawl(server_ip="10.0.0.1", expires=1_000_000, scan_id="s1", started_at="t")
