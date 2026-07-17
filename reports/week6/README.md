@@ -4,7 +4,7 @@
 > терминологии задания). Sprint dates: **2026-07-06 — 2026-07-12**.
 >
 > Встреча с заказчиком (Sprint Review + customer trial + подтверждение передачи) состоялась
-> **2026-07-11**; продукт **принят**. Оставшиеся `TODO` — только скриншоты-пруфы (пункт 31).
+> **2026-07-11**; продукт **принят**. Отчёт заполнен полностью.
 
 ## 1. Проект
 **ПДн Контроль** — веб-сервис предварительного технического аудита сайтов на типовые
@@ -117,5 +117,24 @@
   > (автор `ValekusVachpekus`). За ним закреплена задача #129 (активация OAuth на ключах
   > заказчика). Если была работа вне репозитория — уточнить и дополнить.
 
-- **31. Скриншоты** (`images/`): TODO — приложить пруфы (milestone #4, релиз `v1.3.0`, пример
-  review-linked PR, доска Sprint 6). Требуют ручных скриншотов, прикладываются отдельно.
+- **31. Скриншоты** (`images/`):
+
+  **Milestone Sprint 6 (#4) — Sprint Backlog и его закрытие:**
+
+  ![Sprint 6 milestone](images/milestone.png)
+
+  **Week 6 SemVer trial release `v1.3.0`:**
+
+  ![Релиз v1.3.0](images/release.png)
+
+  **Пример review-linked PR (issue-linked, с ревьюером и зелёным CI):**
+
+  ![Review-linked PR](images/pr.png)
+
+  **Product access artifact — рабочий деплой на инфраструктуре заказчика:**
+
+  ![pdn.neurolife.tech](images/site.png)
+
+  **Hosted documentation site (GitHub Pages):**
+
+  ![Hosted docs](images/docs.png)
