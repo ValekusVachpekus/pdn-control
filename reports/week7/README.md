@@ -51,21 +51,25 @@
 - **14. Hosted docs site:** https://valekusvachpekus.github.io/pdn-control/
 
 ## Финальная передача
-- **15. Итог передачи** (уровень + статус подтверждения): TODO — фиксируется по итогам
-  финального созвона Week 7 (агенда: [`final-transition-agenda.md`](final-transition-agenda.md)).
-  По состоянию на конец Week 6 достигнут уровень `Deployed or operated on customer side` и
-  статус `Accepted` (встреча 2026-07-11); в Week 7 запрашивается подтверждение уже по текущему
-  тексту [`docs/customer-handover.md`](../../docs/customer-handover.md).
+- **15. Итог передачи** (уровень + статус подтверждения): уровень
+  `Deployed or operated on customer side`, статус `Accepted`. Заказчик развернул и эксплуатирует
+  продукт на своей инфраструктуре (`pdn.neurolife.tech`), принял инкремент `MVP v3` на встрече
+  2026-07-11 и новых доработок не запросил; приёмка по текущему тексту
+  [`docs/customer-handover.md`](../../docs/customer-handover.md) в силе. Единственный оставшийся
+  пункт передачи — перенос GitHub-репозитория — по договорённости с заказчиком выполняется
+  **после окончания курса** (согласованный follow-up, не блокер).
 - **16. Что передано/делегировано:** полная матрица владения —
   [`docs/customer-handover.md`](../../docs/customer-handover.md) § «Что передано, делегировано и
   что осталось у команды». Сервер и домен — у заказчика; продукт развёрнут и работает на его
   инфраструктуре; почтовый домен верифицирован (SPF/DKIM); боевые OAuth-ключи Яндекс/ВК —
   self-service заказчика (задокументированная пошаговая инструкция); перенос GitHub-репозитория
   инициирован 2026-07-11 и финализируется на созвоне Week 7 (#131).
-- **17. Остаточные блокеры/лимиты/поддержка/follow-up от заказчика:** TODO (после созвона).
-  Известные пост-курсовые ограничения перечислены в
-  [`docs/customer-handover.md`](../../docs/customer-handover.md) § «Достаточность документации
-  и остаточная поддержка».
+- **17. Остаточные блокеры/лимиты/поддержка/follow-up от заказчика:** открытых блокеров нет.
+  Согласованный follow-up — перенос GitHub-репозитория заказчику после окончания курса
+  ([#131](https://github.com/ValekusVachpekus/pdn-control/issues/131)). Известные пост-курсовые
+  ограничения перечислены в [`docs/customer-handover.md`](../../docs/customer-handover.md)
+  § «Достаточность документации и остаточная поддержка» (команда не берёт обязательств по
+  поддержке/развитию; production-ключи OAuth Яндекс/ВК — self-service заказчика).
 - **18. Evidence самостоятельного использования / деплоя на стороне заказчика:** TODO —
   публичная санитизированная сводка. Приватная запись, точные таймкоды и скриншоты переписки —
   только в Week 7 Moodle PDF.
@@ -80,10 +84,11 @@
   OAuth-ключах, если заказчик их подставил; UAT-09; смоук UAT-01 и UAT-04).
 
 ## Релиз, демо и Sprint Review
-- **21. Final SemVer release → `MVP v3`:** TODO — `v1.4.0` (precedence выше Week 6 trial
-  `v1.3.0`), на защищённой `main`.
-- **22. CHANGELOG:** [`CHANGELOG.md`](../../CHANGELOG.md)
-- **23. Public sanitized demo video (`MVP v3`):** TODO — ссылка (записывает команда).
+- **21. Final SemVer release → `MVP v3`:** [`v1.4.0`](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.4.0)
+  (precedence выше Week 6 trial `v1.3.0`), на защищённой `main`.
+- **22. CHANGELOG:** [`CHANGELOG.md`](../../CHANGELOG.md) § [`[1.4.0]`](../../CHANGELOG.md)
+- **23. Public sanitized demo video (`MVP v3`):** TODO — записывает команда; ссылка
+  добавляется сюда и в релиз `v1.4.0` после записи (follow-up, релиз выпущен без видео).
 - **24. Demo Day preparation summary:** TODO — слайды (PDF, приватно в Moodle), пре-записанное
   demo под 2 минуты, распределение слайдов между всеми участниками, репетиция на лабораторной
   Week 7 и тайминг 7 + 7 минут для Week 8.
@@ -94,10 +99,12 @@
 - **29. LLM report:** [`llm-report.md`](llm-report.md)
 
 ## Итоги
-- **30. Финальный статус продукта:** TODO (после релиза `v1.4.0` и созвона). Кратко: `MVP v3`
-  развёрнут и эксплуатируется на инфраструктуре заказчика (`pdn.neurolife.tech`), принят
-  заказчиком на встрече 2026-07-11, quality-гейты Assignment 4 (CI, тесты, покрытие,
-  security-скан, branch protection) не ослаблены.
+- **30. Финальный статус продукта:** `MVP v3` выпущен как
+  [`v1.4.0`](https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.4.0), развёрнут и
+  эксплуатируется на инфраструктуре заказчика (`pdn.neurolife.tech`), принят заказчиком на
+  встрече 2026-07-11; quality-гейты Assignment 4 (CI, тесты, покрытие, security-скан, branch
+  protection) не ослаблены. Открытый согласованный follow-up — перенос репозитория после
+  окончания курса.
 - **31. Contribution traceability:**
 
   | Участник | Роль | Issues | PR / ревью | Тесты / доки / передача / деплой / Demo Day |
