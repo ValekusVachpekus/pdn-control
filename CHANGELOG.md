@@ -7,12 +7,7 @@
 
 ## [Unreleased]
 
-<!-- ЗАГОТОВКА релиза v1.4.0 (MVP v3 — финальная поставка, Sprint 7 / milestone #5).
-     Продуктовый код с v1.3.0 НЕ менялся: релиз фиксирует завершение передачи и итоговую
-     документацию/отчётность курса. Перед публикацией по итогам созвона Week 7:
-       - подтвердить финальный статус приёмки и факт переноса репозитория, проставить дату;
-       - переименовать раздел в `## [1.4.0] - <дата>`;
-       - добавить ссылку сравнения `[1.4.0]: .../compare/v1.3.0...v1.4.0` в конце файла. -->
+## [1.4.0] - 2026-07-18
 
 Финальная поставка спринта Assignment 6 (milestone #5) — **MVP v3: «завершение передачи»**.
 Новых фич нет: заказчик принял инкремент `v1.3.0` на встрече 2026-07-11 и доработок не
@@ -26,7 +21,8 @@
   2026-07-11): [`docs/customer-handover.md`](docs/customer-handover.md) — уровень передачи
   `Deployed or operated on customer side`, статус подтверждения `Accepted`, матрица владения
   (сервер и домен — заказчика; почтовый домен верифицирован; боевые OAuth-ключи — self-service
-  заказчика; перенос GitHub-репозитория — финализируется в Week 7);
+  заказчика; перенос GitHub-репозитория выполняется после окончания курса по договорённости с
+  заказчиком — согласованный follow-up, не блокер);
   [`docs/roadmap.md`](docs/roadmap.md) — итог курса без нового продуктового scope (#131, #148).
 - Итоговая отчётность курса за Week 7 ([`reports/week7/`](reports/week7/README.md)): публичный
   отчёт, LLM-report, ретроспектива, рефлексия, summary и transcript финального Sprint Review
@@ -170,7 +166,9 @@ Assignment 4.
   30x-редиректящий на внутренний адрес, не проходит. Дублирующая проверка на входе
   `/api/scans` (defense-in-depth).
 
-[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.2.0...main
+[Unreleased]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.4.0...main
+[1.4.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ValekusVachpekus/pdn-control/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ValekusVachpekus/pdn-control/releases/tag/v1.0.0
