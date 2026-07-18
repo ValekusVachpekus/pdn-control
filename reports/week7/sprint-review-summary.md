@@ -1,22 +1,50 @@
-# Sprint Review Summary — Sprint 7 (Week 7)
+Sprint Review & UAT Summary — Final Handover (MVP v3)
 
-> Заполняется после Sprint Review Week 7. Одна встреча может покрывать Sprint Review +
-> final transition confirmation + UAT (Assignment 6, Part 10.8).
+Status: ACCEPTED / PRODUCT HANDED OVER
+Date: 2024-07-18
+Participants
 
-### Sprint Goal Reviewed
-TODO — планировавшийся Sprint 7 Goal и степень достижения.
+    Customer — Product Stakeholder / Acceptor
 
-### Delivered `MVP v3`
-TODO — что доставлено в финальной версии.
+    ValekusVachpekus — Product Owner
 
-### Resolved / Unresolved Follow-up from Week 6
-TODO — какие issues Week 6 закрыты, какие остались.
+    ShakhraiMaksim — Recorder
 
-### Final Transition Status and Usefulness
-TODO — достигнутый уровень передачи, подтверждение, полезность.
+Sprint Goal Reviewed
 
-### Customer Use / Deployment / Operational Status
-TODO — использует ли заказчик, где развёрнут/эксплуатируется.
+Finalize the project transfer and release the final version of MVP v3. This includes:
 
-### Remaining Risks and Post-Course Limitations
-TODO.
+    Deployment on the customer's infrastructure.
+
+    Finalizing the handover documentation.
+
+    Ensuring the project is ready for active exploitation.
+
+Delivered Increment
+
+    Final Release: MVP v3 version ready for production use.
+
+    Deployment: Successfully deployed on the customer's infrastructure.
+
+    Documentation: Handover documentation suite completed and approved.
+
+    Limitations Disclosure: Formalized constraints regarding legal warranty, parser accuracy on large pages, and post-course support.
+
+User Acceptance Testing (UAT) Results
+
+The customer performed a live review of the product status and verified the readiness of the system.
+UAT ID	Feature / Scenario	Result	Customer Confirmation
+UAT-01	Deployment & Infrastructure Readiness	Pass	"Deployed and operational."
+UAT-02	Documentation Completeness	Pass	"Everything is done, sufficient."
+UAT-03	Final System Acceptance	Pass	"Accepted."
+Handover Status & Action Items
+
+    Source Code: Pending transfer (agreed to execute after course completion to satisfy academic requirements).
+
+    Deployment: Confirmed live on customer infrastructure.
+
+    Documentation: Confirmed as sufficient by the customer.
+
+    Project Status: Product is ready and currently being exploited by the customer.
+
+Final Decision: The product is fully accepted. No further sprints or iterations requested. Handover is complete.
